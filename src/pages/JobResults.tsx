@@ -1,837 +1,1402 @@
 import React, { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Progress } from "@/components/ui/progress";
 import {
-  ArrowLeft,
-  Search,
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
   MapPin,
   Briefcase,
   Clock,
   Building,
-  X,
-  ChevronDown,
+  ExternalLink,
+  ArrowLeft,
+  Search,
+  FileText,
+  Save,
+  Upload,
+  Check,
+  Home,
+  Filter,
+  RefreshCw,
+  Eye,
+  Share2,
+  Loader2,
+  Target,
+  TrendingUp,
+  Award,
+  Users,
+  Sparkles,
+  CheckCircle,
+  Heart,
+  Zap,
+  Globe,
+  MoreVertical,
+  Star,
+  Bookmark,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useUsageTracking } from "@/hooks/useUsageTracking";
+import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import GeoapifyLocationInput from "@/components/Geoapify";
 
-// Create a CSS file approach for Geoapify
-const injectGeoapifyStyles = () => {
-  const styleId = "geoapify-theme-override";
-  let existingStyle = document.getElementById(styleId);
+interface JobResult {
+  jobLink: string;
+  title: string;
+  companyName: string;
+  companyLinkedinUrl: string;
+  location: string;
+  postedAt: string;
+  applyUrl: string;
+  descriptionText: string;
+  seniorityLevel: string;
+  employmentType: string;
+  jobFunction: string;
+  industries: string;
+  // Add unique identifier for better tracking
+  uniqueId?: string;
+}
 
-  if (existingStyle) {
-    existingStyle.remove();
-  }
-
-  const style = document.createElement("style");
-  style.id = styleId;
-  style.innerHTML = `
-    /* Force Geoapify theming with highest specificity */
-    .geoapify-autocomplete-input,
-    .geoapify-autocomplete-input input,
-    [data-geoapify] input,
-    .geoapify-location-input input,
-    .geoapify-autocomplete-input input[type="text"] {
-      background-color: hsl(var(--background)) !important;
-      color: hsl(var(--foreground)) !important;
-      border: 1px solid hsl(var(--border)) !important;
-      border-radius: calc(var(--radius) - 2px) !important;
-      padding: 8px 12px !important;
-      font-size: 14px !important;
-      height: 40px !important;
-      box-sizing: border-box !important;
-    }
-    
-    @media (max-width: 768px) {
-      .geoapify-autocomplete-input,
-      .geoapify-autocomplete-input input,
-      [data-geoapify] input,
-      .geoapify-location-input input {
-        height: 36px !important;
-        font-size: 14px !important;
-        padding: 6px 12px !important;
-      }
-    }
-    
-    .geoapify-autocomplete-input:focus,
-    .geoapify-autocomplete-input input:focus,
-    [data-geoapify] input:focus,
-    .geoapify-location-input input:focus {
-      background-color: hsl(var(--background)) !important;
-      color: hsl(var(--foreground)) !important;
-      border-color: hsl(var(--ring)) !important;
-      outline: 2px solid hsl(var(--ring)) !important;
-      outline-offset: 2px !important;
-    }
-    
-    .geoapify-autocomplete-items,
-    .geoapify-autocomplete-dropdown,
-    .geoapify-autocomplete-container .geoapify-autocomplete-items {
-      background-color: hsl(var(--popover)) !important;
-      color: hsl(var(--popover-foreground)) !important;
-      border: 1px solid hsl(var(--border)) !important;
-      border-radius: calc(var(--radius) - 2px) !important;
-      box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1) !important;
-      z-index: 1000 !important;
-    }
-    
-    .geoapify-autocomplete-item {
-      background-color: hsl(var(--popover)) !important;
-      color: hsl(var(--popover-foreground)) !important;
-      padding: 8px 12px !important;
-      border: none !important;
-    }
-    
-    .geoapify-autocomplete-item:hover,
-    .geoapify-autocomplete-item.geoapify-autocomplete-item-active,
-    .geoapify-autocomplete-item[aria-selected="true"] {
-      background-color: hsl(var(--accent)) !important;
-      color: hsl(var(--accent-foreground)) !important;
-    }
-
-    /* Custom dropdown button fixes */
-    .custom-multi-select {
-      position: relative;
-    }
-    
-    .custom-multi-select-trigger {
-      display: flex;
-      min-height: 40px;
-      width: 100%;
-      align-items: center;
-      justify-content: space-between;
-      border-radius: calc(var(--radius) - 2px);
-      border: 1px solid hsl(var(--border));
-      background-color: hsl(var(--background));
-      padding: 8px 12px;
-      font-size: 14px;
-      line-height: 1.4;
-      color: hsl(var(--foreground));
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-    
-    @media (max-width: 768px) {
-      .custom-multi-select-trigger {
-        min-height: 36px;
-        padding: 6px 10px;
-        font-size: 14px;
-      }
-    }
-    
-    .custom-multi-select-trigger:hover {
-      background-color: hsl(var(--accent));
-      color: hsl(var(--accent-foreground));
-    }
-    
-    .custom-multi-select-trigger:focus {
-      outline: 2px solid hsl(var(--ring));
-      outline-offset: 2px;
-    }
-    
-    .custom-multi-select-content {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 4px;
-      flex: 1;
-      align-items: center;
-    }
-    
-    .custom-multi-select-tag {
-      display: inline-flex;
-      align-items: center;
-      background-color: hsl(var(--primary));
-      color: hsl(var(--primary-foreground));
-      padding: 2px 8px;
-      border-radius: calc(var(--radius) - 4px);
-      font-size: 12px;
-      font-weight: 500;
-    }
-    
-    @media (max-width: 768px) {
-      .custom-multi-select-tag {
-        padding: 1px 6px;
-        font-size: 11px;
-      }
-    }
-    
-    .custom-multi-select-tag-remove {
-      margin-left: 4px;
-      cursor: pointer;
-      opacity: 0.7;
-    }
-    
-    .custom-multi-select-tag-remove:hover {
-      opacity: 1;
-    }
-    
-    .custom-multi-select-placeholder {
-      color: hsl(var(--muted-foreground));
-      font-size: 14px;
-    }
-    
-    .custom-multi-select-chevron {
-      opacity: 0.5;
-      width: 16px;
-      height: 16px;
-      margin-left: 8px;
-      flex-shrink: 0;
-    }
-  `;
-
-  document.head.appendChild(style);
-};
-
-// Framer Motion Loading Overlay Component
-const LoadingOverlay = ({ show }) => (
-  <AnimatePresence>
-    {show && (
+// Enhanced Loading Skeleton
+const JobResultsLoadingSkeleton = () => (
+  <div className="space-y-6">
+    {[1, 2, 3, 4, 5].map((index) => (
       <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        transition={{ duration: 0.3 }}
-        className="fixed inset-0 z-[999] flex flex-col items-center justify-center backdrop-blur-lg bg-background/80"
+        key={index}
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: index * 0.1 }}
+        className="glass rounded-xl border border-border/50 shadow-lg"
       >
-        <motion.div
-          className="w-24 h-24 md:w-32 md:h-32 rounded-full bg-gradient-to-br from-blue-500 via-indigo-500 to-violet-600 shadow-2xl"
-          animate={{
-            scale: [1, 1.2, 1],
-            rotate: [0, 180, 360],
-          }}
-          transition={{
-            duration: 2,
-            repeat: Infinity,
-            ease: "easeInOut",
-          }}
-        />
-
-        <motion.p
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="mt-6 text-sm text-muted-foreground tracking-wide"
-        >
-          Fetching the best opportunities…
-        </motion.p>
-
-        <motion.div
-          className="flex gap-1 mt-4"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.4 }}
-        >
-          {[0, 1, 2].map((i) => (
+        <div className="p-6 space-y-4">
+          <div className="flex items-start justify-between">
+            <div className="flex items-center gap-3 flex-1">
+              <motion.div
+                className="w-12 h-12 bg-muted rounded-xl"
+                animate={{ opacity: [0.5, 1, 0.5] }}
+                transition={{ duration: 1.5, repeat: Infinity }}
+              />
+              <div className="flex-1 space-y-2">
+                <motion.div
+                  className="h-6 w-3/4 bg-muted rounded"
+                  animate={{ opacity: [0.5, 1, 0.5] }}
+                  transition={{ duration: 1.5, repeat: Infinity, delay: 0.2 }}
+                />
+                <motion.div
+                  className="h-4 w-1/2 bg-muted rounded"
+                  animate={{ opacity: [0.5, 1, 0.5] }}
+                  transition={{ duration: 1.5, repeat: Infinity, delay: 0.4 }}
+                />
+              </div>
+            </div>
             <motion.div
-              key={i}
-              className="w-2 h-2 bg-blue-500 rounded-full"
-              animate={{ y: [0, -10, 0] }}
-              transition={{
-                duration: 0.8,
-                repeat: Infinity,
-                delay: i * 0.2,
-                ease: "easeInOut",
-              }}
+              className="w-20 h-6 bg-muted rounded-full"
+              animate={{ opacity: [0.5, 1, 0.5] }}
+              transition={{ duration: 1.5, repeat: Infinity, delay: 0.6 }}
             />
-          ))}
-        </motion.div>
+          </div>
+
+          <motion.div
+            className="h-20 w-full bg-muted rounded"
+            animate={{ opacity: [0.5, 1, 0.5] }}
+            transition={{ duration: 1.5, repeat: Infinity, delay: 0.8 }}
+          />
+
+          <div className="flex gap-2">
+            {[1, 2, 3, 4].map((btnIndex) => (
+              <motion.div
+                key={btnIndex}
+                className="h-9 w-24 bg-muted rounded"
+                animate={{ opacity: [0.5, 1, 0.5] }}
+                transition={{
+                  duration: 1.5,
+                  repeat: Infinity,
+                  delay: 1 + btnIndex * 0.1,
+                }}
+              />
+            ))}
+          </div>
+        </div>
       </motion.div>
-    )}
-  </AnimatePresence>
+    ))}
+  </div>
 );
 
-const JobFinder = () => {
-  const [jobTitle, setJobTitle] = useState("");
-  const [company, setCompany] = useState("");
-  const [selectedLocations, setSelectedLocations] = useState([]);
-  const [jobTypes, setJobTypes] = useState([]);
-  const [workTypes, setWorkTypes] = useState([]);
-  const [experienceLevel, setExperienceLevel] = useState([]);
-  const [postedAt, setPostedAt] = useState("");
-  const [isSearching, setIsSearching] = useState(false);
-  const { toast } = useToast();
-  const navigate = useNavigate();
-  const { user } = useAuth();
-  const { checkUsageLimit, refreshUsage } = useUsageTracking();
+// Enhanced Job Card Component
+const JobCard = ({
+  job,
+  index,
+  onSaveJob,
+  onTailorResume,
+  onGenerateCoverLetter,
+  onAppliedChange,
+  onShare,
+  savedJobs,
+  savingJobs,
+  processingResume,
+  processingCoverLetter,
+  appliedJobs,
+  applyingJobs,
+  user,
+}: {
+  job: JobResult;
+  index: number;
+  onSaveJob: (job: JobResult, index: number) => void;
+  onTailorResume: (job: JobResult, index: number) => void;
+  onGenerateCoverLetter: (job: JobResult, index: number) => void;
+  onAppliedChange: (job: JobResult, index: number, checked: boolean) => void;
+  onShare: (job: JobResult) => void;
+  savedJobs: Set<number>;
+  savingJobs: Set<number>;
+  processingResume: Set<number>;
+  processingCoverLetter: Set<number>;
+  appliedJobs: Set<number>;
+  applyingJobs: Set<number>;
+  user: any;
+}) => {
+  const [isHovered, setIsHovered] = useState(false);
 
-  // Enhanced styling injection with MutationObserver for dynamic content
-  useEffect(() => {
-    // Initial injection
-    injectGeoapifyStyles();
-
-    // Watch for DOM changes to catch dynamically loaded Geoapify elements
-    const observer = new MutationObserver((mutations) => {
-      let shouldReinject = false;
-      mutations.forEach((mutation) => {
-        mutation.addedNodes.forEach((node) => {
-          if (node.nodeType === Node.ELEMENT_NODE) {
-            const element = node as Element;
-            if (
-              element.classList?.contains("geoapify-autocomplete-input") ||
-              element.classList?.contains("geoapify-autocomplete-items") ||
-              element.querySelector?.(".geoapify-autocomplete-input")
-            ) {
-              shouldReinject = true;
-            }
-          }
-        });
+  const formatPostedAt = (posted: string) => {
+    if (posted.includes("-") && posted.length === 10) {
+      const date = new Date(posted);
+      return date.toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
       });
-
-      if (shouldReinject) {
-        setTimeout(injectGeoapifyStyles, 100);
-      }
-    });
-
-    observer.observe(document.body, {
-      childList: true,
-      subtree: true,
-    });
-
-    // Multiple injection attempts to catch all cases
-    const timeouts = [500, 1000, 2000].map((delay) =>
-      setTimeout(injectGeoapifyStyles, delay)
-    );
-
-    return () => {
-      observer.disconnect();
-      timeouts.forEach(clearTimeout);
-      const style = document.getElementById("geoapify-theme-override");
-      if (style) style.remove();
-    };
-  }, []);
-
-  // Options
-  const jobTypeOptions = [
-    { value: "full-time", label: "Full-time" },
-    { value: "part-time", label: "Part-time" },
-    { value: "contract", label: "Contract" },
-    { value: "internship", label: "Internship" },
-    { value: "temporary", label: "Temporary" },
-    { value: "volunteer", label: "Volunteer" },
-  ];
-
-  const workTypeOptions = [
-    { value: "on-site", label: "On-site" },
-    { value: "remote", label: "Remote" },
-    { value: "hybrid", label: "Hybrid" },
-  ];
-
-  const postedAtOptions = [
-    { value: "past-24-hours", label: "Past 24 hours" },
-    { value: "past-week", label: "Past week" },
-    { value: "past-month", label: "Past month" },
-    { value: "any-time", label: "Any time" },
-  ];
-
-  const experienceLevelOptions = [
-    { value: "internship", label: "Internship" },
-    { value: "entry-level", label: "Entry level" },
-    { value: "associate", label: "Associate" },
-    { value: "mid-senior", label: "Mid-Senior level" },
-    { value: "director", label: "Director" },
-    { value: "executive", label: "Executive" },
-  ];
-
-  // Completely rewritten MultiSelectDropdown with proper styling
-  const MultiSelectDropdown = ({
-    options,
-    selectedValues,
-    onSelectionChange,
-    placeholder,
-    className = "",
-    maxDisplayTags = 2,
-  }) => {
-    const [isOpen, setIsOpen] = useState(false);
-
-    const handleToggle = (value) => {
-      const isSelected = selectedValues.includes(value);
-      let newSelection;
-      if (isSelected) {
-        newSelection = selectedValues.filter((item) => item !== value);
-      } else {
-        newSelection = [...selectedValues, value];
-      }
-      onSelectionChange(newSelection);
-    };
-
-    const removeItem = (valueToRemove, e) => {
-      e.stopPropagation();
-      const newSelection = selectedValues.filter(
-        (item) => item !== valueToRemove
-      );
-      onSelectionChange(newSelection);
-    };
-
-    const getSelectedLabels = () => {
-      return selectedValues
-        .map((value) => options.find((option) => option.value === value)?.label)
-        .filter(Boolean);
-    };
-
-    return (
-      <div className={`custom-multi-select ${className}`}>
-        <Popover open={isOpen} onOpenChange={setIsOpen}>
-          <PopoverTrigger asChild>
-            <div
-              className="custom-multi-select-trigger"
-              role="button"
-              tabIndex={0}
-              onClick={() => setIsOpen(!isOpen)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  setIsOpen(!isOpen);
-                }
-              }}
-            >
-              <div className="custom-multi-select-content">
-                {selectedValues.length === 0 ? (
-                  <span className="custom-multi-select-placeholder">
-                    {placeholder}
-                  </span>
-                ) : selectedValues.length <= maxDisplayTags ? (
-                  getSelectedLabels().map((label, index) => (
-                    <span key={index} className="custom-multi-select-tag">
-                      {label}
-                      <span
-                        className="custom-multi-select-tag-remove"
-                        onClick={(e) => removeItem(selectedValues[index], e)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter" || e.key === " ") {
-                            e.preventDefault();
-                            removeItem(selectedValues[index], e);
-                          }
-                        }}
-                        role="button"
-                        tabIndex={0}
-                        aria-label={`Remove ${label}`}
-                      >
-                        <X size={12} />
-                      </span>
-                    </span>
-                  ))
-                ) : (
-                  <span className="text-sm">
-                    {selectedValues.length} selected
-                  </span>
-                )}
-              </div>
-              <ChevronDown className="custom-multi-select-chevron" />
-            </div>
-          </PopoverTrigger>
-          <PopoverContent
-            className="w-full p-0 z-50"
-            align="start"
-            side="bottom"
-            sideOffset={4}
-            avoidCollisions={false}
-          >
-            <div className="max-h-60 overflow-y-auto">
-              {options.map((option) => (
-                <div
-                  key={option.value}
-                  className="flex items-center space-x-3 px-4 py-3 hover:bg-accent cursor-pointer"
-                  onClick={() => handleToggle(option.value)}
-                >
-                  <Checkbox
-                    checked={selectedValues.includes(option.value)}
-                    onChange={() => {}}
-                    className="h-4 w-4"
-                  />
-                  <span className="text-sm">{option.label}</span>
-                </div>
-              ))}
-            </div>
-          </PopoverContent>
-        </Popover>
-      </div>
-    );
+    }
+    return posted;
   };
 
-  // Form submit handler (unchanged)
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const formatPostedDate = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffTime = Math.abs(now.getTime() - date.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-    if (!jobTitle.trim()) {
-      toast({
-        title: "Job Title Required",
-        description: "Please enter a job title to search for jobs.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (checkUsageLimit("job_searches_used")) {
-      toast({
-        title: "Usage Limit Reached",
-        description:
-          "You have reached your job search limit for this plan. Please upgrade to continue.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsSearching(true);
-
-    try {
-      const searchParams = {
-        jobTitle: jobTitle.trim(),
-        company: company.trim() || undefined,
-        locations: selectedLocations.map((loc) => loc.name),
-        location:
-          selectedLocations.length > 0
-            ? selectedLocations.map((loc) => loc.name).join(", ")
-            : undefined,
-        jobTypes,
-        jobType: jobTypes.length > 0 ? jobTypes.join(", ") : undefined,
-        workTypes,
-        workType: workTypes.length > 0 ? workTypes.join(", ") : undefined,
-        experienceLevel,
-        experienceLevels:
-          experienceLevel.length > 0 ? experienceLevel.join(", ") : undefined,
-        postedAt: postedAt || undefined,
-      };
-
-      const cleanParams = Object.fromEntries(
-        Object.entries(searchParams).filter(
-          ([_, v]) => v !== undefined && v !== ""
-        )
-      );
-
-      const payload = {
-        user_id: user?.id,
-        feature: "job_searches",
-        ...cleanParams,
-      };
-
-      const response = await fetch(
-        "https://n8n.applyforge.cloud/webhook-test/job-search",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(payload),
-        }
-      );
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(errorText || "Failed to search jobs");
-      }
-
-      const responseData = await response.json();
-
-      if (responseData.allowed === false) {
-        toast({
-          title: "Limit Reached",
-          description:
-            responseData.message ||
-            "You've reached your limit for this feature.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      const jobResults = responseData.results || responseData;
-
-      toast({
-        title: "Search Completed",
-        description: `Found ${
-          Array.isArray(jobResults) ? jobResults.length : "several"
-        } job opportunities.`,
-        variant: "default",
-      });
-
-      refreshUsage();
-      sessionStorage.setItem("jobSearchResults", JSON.stringify(jobResults));
-      sessionStorage.setItem("jobSearchParams", JSON.stringify(cleanParams));
-      navigate("/job-results");
-    } catch (error) {
-      toast({
-        title: "Search Failed",
-        description:
-          error.message || "Failed to search for jobs. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSearching(false);
-    }
+    if (diffDays === 1) return "Posted today";
+    if (diffDays <= 7) return `Posted ${diffDays} days ago`;
+    return `Posted ${Math.floor(diffDays / 7)} weeks ago`;
   };
 
-  const clearAllFilters = () => {
-    setJobTitle("");
-    setCompany("");
-    setSelectedLocations([]);
-    setJobTypes([]);
-    setWorkTypes([]);
-    setExperienceLevel([]);
-    setPostedAt("");
-    toast({
-      title: "Filters Cleared",
-      description: "All search filters have been reset.",
-      variant: "default",
-    });
+  const getCompanyInitials = (companyName: string) => {
+    return companyName
+      .split(" ")
+      .map((word) => word.charAt(0))
+      .join("")
+      .substring(0, 2)
+      .toUpperCase();
+  };
+
+  const truncateDescription = (
+    description: string,
+    maxLength: number = 150
+  ) => {
+    if (!description) return "";
+    if (description.length <= maxLength) return description;
+    return description.substring(0, maxLength) + "...";
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <LoadingOverlay show={isSearching} />
-
-      <div className="container mx-auto px-4 py-8 md:py-20">
-        <div className="max-w-4xl mx-auto">
-          <Link to="/">
-            <Button
-              variant="ghost"
-              className="flex items-center gap-2 mb-6 hover:bg-appforge-blue/10"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Back to Home
-            </Button>
-          </Link>
-
-          <div className="text-center mb-6 md:mb-8">
-            <div className="mb-4 md:mb-6 p-3 md:p-4 rounded-xl w-fit mx-auto bg-blue-500/20 text-blue-500">
-              <Search className="w-8 h-8 md:w-12 md:h-12" />
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, x: -100, scale: 0.95 }} // Enhanced exit animation
+      transition={{ duration: 0.3, delay: index * 0.1 }}
+      whileHover={{ y: -4 }}
+      onHoverStart={() => setIsHovered(true)}
+      onHoverEnd={() => setIsHovered(false)}
+      className="group"
+    >
+      <Card className="glass border-border/50 hover:border-blue-200 dark:hover:border-blue-800 transition-all duration-300 hover:shadow-xl overflow-hidden">
+        <CardHeader className="pb-4">
+          <div className="flex items-start justify-between">
+            <div className="flex items-center gap-3 flex-1">
+              <motion.div
+                className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500/20 to-purple-500/20 flex items-center justify-center font-semibold text-blue-600"
+                animate={{ rotate: isHovered ? 5 : 0 }}
+                transition={{ duration: 0.2 }}
+              >
+                {getCompanyInitials(job.companyName || "UN")}
+              </motion.div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between mb-2">
+                  <CardTitle className="text-lg font-semibold truncate group-hover:text-blue-600 transition-colors">
+                    {job.title || "Job Title Not Available"}
+                  </CardTitle>
+                  {/* Share button positioned in header area for desktop */}
+                  <div className="hidden md:flex items-center gap-2">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          onClick={() => onShare(job)}
+                          size="sm"
+                          variant="ghost"
+                          className="opacity-0 group-hover:opacity-100 transition-opacity p-2"
+                        >
+                          <Share2 className="w-4 h-4 text-muted-foreground hover:text-blue-500" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Share job</TooltipContent>
+                    </Tooltip>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Building className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-sm text-muted-foreground font-medium truncate">
+                    {job.companyName || "Company Name Not Available"}
+                  </span>
+                  {job.companyLinkedinUrl && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          asChild
+                          className="p-1 h-auto opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <a
+                            href={job.companyLinkedinUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            <ExternalLink className="w-3 h-3" />
+                          </a>
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>View company LinkedIn</TooltipContent>
+                    </Tooltip>
+                  )}
+                </div>
+              </div>
             </div>
-            <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-3 md:mb-4">
-              Find Your Next <span className="gradient-text">Opportunity</span>
-            </h1>
-            <p className="text-lg md:text-xl text-muted-foreground px-4">
-              Search for jobs that match your skills and preferences
-            </p>
+
+            <div className="flex flex-col items-end gap-2">
+              <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400 text-xs">
+                {formatPostedDate(job.postedAt)}
+              </Badge>
+              {user && (
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id={`applied-${index}`}
+                    checked={appliedJobs.has(index)}
+                    onCheckedChange={(checked) =>
+                      onAppliedChange(job, index, checked as boolean)
+                    }
+                    disabled={applyingJobs.has(index)}
+                  />
+                  <label
+                    htmlFor={`applied-${index}`}
+                    className="text-xs font-medium leading-none cursor-pointer"
+                  >
+                    {applyingJobs.has(index) ? "Saving..." : "Applied"}
+                  </label>
+                </div>
+              )}
+            </div>
+          </div>
+        </CardHeader>
+
+        <CardContent className="pt-0 space-y-4">
+          {/* Job Details */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="flex items-center gap-2 text-sm">
+              <MapPin className="w-4 h-4 text-muted-foreground" />
+              <span className="truncate">
+                {job.location || "Location Not Available"}
+              </span>
+            </div>
+
+            <div className="flex items-center gap-2 text-sm">
+              <Target className="w-4 h-4 text-muted-foreground" />
+              <span className="truncate">
+                {job.seniorityLevel || "Experience Level Not Available"}
+              </span>
+            </div>
           </div>
 
-          <Card className="glass">
-            <CardHeader className="pb-4">
-              <div className="flex items-start md:items-center justify-between flex-col md:flex-row gap-4">
-                <div>
-                  <CardTitle className="flex items-center gap-2 text-lg md:text-xl">
-                    <Briefcase className="h-5 w-5" />
-                    Job Search
-                  </CardTitle>
-                  <CardDescription className="text-sm md:text-base">
-                    Enter your job preferences to find relevant opportunities.
-                    Only job title is required.
-                  </CardDescription>
-                </div>
+          {/* Employment Type and Industry Tags */}
+          <div className="flex flex-wrap gap-2">
+            {job.employmentType && (
+              <Badge variant="outline" className="text-xs">
+                <Briefcase className="w-3 h-3 mr-1" />
+                {job.employmentType}
+              </Badge>
+            )}
+            {job.jobFunction && (
+              <Badge variant="outline" className="text-xs">
+                {job.jobFunction}
+              </Badge>
+            )}
+            {job.industries && (
+              <Badge variant="outline" className="text-xs">
+                {job.industries}
+              </Badge>
+            )}
+          </div>
+
+          {/* Job Description */}
+          {job.descriptionText && (
+            <div className="space-y-2">
+              <h4 className="font-medium text-sm flex items-center gap-2">
+                <FileText className="w-4 h-4 text-purple-500" />
+                Job Description
+              </h4>
+              <div className="p-3 bg-muted/30 rounded-lg border border-border/50">
+                <p
+                  className="text-sm text-muted-foreground leading-relaxed"
+                  dangerouslySetInnerHTML={{
+                    __html: truncateDescription(
+                      job.descriptionText
+                        .replace(/&gt;/g, ">")
+                        .replace(/&lt;/g, "<")
+                    ),
+                  }}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Action Buttons Layout */}
+          <div className="pt-2">
+            {/* Desktop Layout */}
+            <div className="hidden md:flex flex-wrap gap-2">
+              {/* Enhanced Save Job Button */}
+              <motion.div
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
                 <Button
-                  type="button"
-                  variant="outline"
+                  onClick={() => onSaveJob(job, index)}
+                  disabled={savingJobs.has(index)}
                   size="sm"
-                  onClick={clearAllFilters}
-                  className="text-xs md:text-sm w-full md:w-auto"
+                  className={
+                    savedJobs.has(index)
+                      ? "bg-gradient-to-r from-red-500 to-pink-500 text-white hover:from-red-600 hover:to-pink-600 shadow-lg border-0"
+                      : "bg-gradient-to-r from-gray-100 to-gray-200 text-gray-700 hover:from-red-50 hover:to-pink-50 hover:text-red-600 border border-gray-300 shadow-md"
+                  }
                 >
-                  Clear All
+                  {savedJobs.has(index) ? (
+                    <>
+                      <Heart className="w-4 h-4 mr-2 fill-current" />
+                      Saved
+                    </>
+                  ) : (
+                    <>
+                      <Heart className="w-4 h-4 mr-2" />
+                      {savingJobs.has(index) ? "Saving..." : "Save"}
+                    </>
+                  )}
+                </Button>
+              </motion.div>
+
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    onClick={() => onTailorResume(job, index)}
+                    disabled={processingResume.has(index)}
+                    size="sm"
+                    variant="outline"
+                    className="border-blue-500 text-blue-500 hover:bg-blue-500 hover:text-white"
+                  >
+                    {processingResume.has(index) ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <FileText className="w-4 h-4 mr-2" />
+                    )}
+                    Tailor Resume
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  Upload resume to tailor for this job
+                </TooltipContent>
+              </Tooltip>
+
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    onClick={() => onGenerateCoverLetter(job, index)}
+                    disabled={processingCoverLetter.has(index)}
+                    size="sm"
+                    variant="outline"
+                    className="border-green-500 text-green-500 hover:bg-green-500 hover:text-white"
+                  >
+                    {processingCoverLetter.has(index) ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <Upload className="w-4 h-4 mr-2" />
+                    )}
+                    Cover Letter
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  Generate cover letter for this job
+                </TooltipContent>
+              </Tooltip>
+
+              <motion.div
+                className="flex-1"
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                <Button
+                  asChild
+                  size="sm"
+                  className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white"
+                >
+                  <a
+                    href={job.applyUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center justify-center gap-2"
+                  >
+                    Apply Now
+                    <ExternalLink className="w-4 h-4" />
+                  </a>
+                </Button>
+              </motion.div>
+            </div>
+
+            {/* Mobile Layout - Better Spacing and Organization */}
+            <div className="md:hidden space-y-3">
+              {/* First Row: Primary Actions */}
+              <div className="grid grid-cols-2 gap-3">
+                {/* Enhanced Save Job Button for Mobile */}
+                <motion.div
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  <Button
+                    onClick={() => onSaveJob(job, index)}
+                    disabled={savingJobs.has(index)}
+                    size="sm"
+                    className={
+                      savedJobs.has(index)
+                        ? "w-full bg-gradient-to-r from-red-500 to-pink-500 text-white hover:from-red-600 hover:to-pink-600 shadow-lg border-0"
+                        : "w-full bg-gradient-to-r from-gray-100 to-gray-200 text-gray-700 hover:from-red-50 hover:to-pink-50 hover:text-red-600 border border-gray-300 shadow-md"
+                    }
+                  >
+                    {savedJobs.has(index) ? (
+                      <>
+                        <Heart className="w-4 h-4 mr-1 fill-current" />
+                        Saved
+                      </>
+                    ) : (
+                      <>
+                        <Heart className="w-4 h-4 mr-1" />
+                        {savingJobs.has(index) ? "Saving..." : "Save"}
+                      </>
+                    )}
+                  </Button>
+                </motion.div>
+
+                <Button
+                  onClick={() => onShare(job)}
+                  size="sm"
+                  variant="outline"
+                  className="w-full"
+                >
+                  <Share2 className="w-4 h-4 mr-1" />
+                  Share
                 </Button>
               </div>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <form onSubmit={handleSubmit} className="space-y-4 md:space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-                  <div className="md:col-span-1">
-                    <Label htmlFor="jobTitle" className="text-sm md:text-base">
-                      Job Title *
-                    </Label>
-                    <Input
-                      id="jobTitle"
-                      value={jobTitle}
-                      onChange={(e) => setJobTitle(e.target.value)}
-                      placeholder="e.g., Software Engineer, Product Manager"
-                      required
-                      className="mt-1 h-10"
-                    />
-                  </div>
 
-                  <div className="md:col-span-1">
-                    <Label htmlFor="company" className="text-sm md:text-base">
-                      Company
-                    </Label>
-                    <div className="relative">
-                      <Building className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                      <Input
-                        id="company"
-                        value={company}
-                        onChange={(e) => setCompany(e.target.value)}
-                        placeholder="e.g., Google, Microsoft"
-                        className="mt-1 pl-10 h-10"
-                      />
-                    </div>
-                  </div>
+              {/* Second Row: AI Tools */}
+              <div className="grid grid-cols-2 gap-3">
+                <Button
+                  onClick={() => onTailorResume(job, index)}
+                  disabled={processingResume.has(index)}
+                  size="sm"
+                  variant="outline"
+                  className="w-full border-blue-500 text-blue-500 hover:bg-blue-500 hover:text-white"
+                >
+                  {processingResume.has(index) ? (
+                    <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                  ) : (
+                    <FileText className="w-4 h-4 mr-1" />
+                  )}
+                  <span className="text-xs">Resume</span>
+                </Button>
 
-                  <div className="md:col-span-2">
-                    <Label className="text-sm md:text-base">Locations</Label>
-                    <div className="mt-1">
-                      <GeoapifyLocationInput
-                        onLocationsChange={setSelectedLocations}
-                        placeholder="Type to search cities, states, or 'Remote'"
-                        maxSelections={10}
-                      />
-                    </div>
-                  </div>
+                <Button
+                  onClick={() => onGenerateCoverLetter(job, index)}
+                  disabled={processingCoverLetter.has(index)}
+                  size="sm"
+                  variant="outline"
+                  className="w-full border-green-500 text-green-500 hover:bg-green-500 hover:text-white"
+                >
+                  {processingCoverLetter.has(index) ? (
+                    <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                  ) : (
+                    <Upload className="w-4 h-4 mr-1" />
+                  )}
+                  <span className="text-xs">Cover</span>
+                </Button>
+              </div>
 
-                  <div className="md:col-span-1">
-                    <Label className="text-sm md:text-base">Job Type</Label>
-                    <MultiSelectDropdown
-                      options={jobTypeOptions}
-                      selectedValues={jobTypes}
-                      onSelectionChange={setJobTypes}
-                      placeholder="Select job types"
-                      className="mt-1"
-                    />
-                  </div>
-
-                  <div className="md:col-span-1">
-                    <Label className="text-sm md:text-base">Work Type</Label>
-                    <MultiSelectDropdown
-                      options={workTypeOptions}
-                      selectedValues={workTypes}
-                      onSelectionChange={setWorkTypes}
-                      placeholder="Select work types"
-                      className="mt-1"
-                    />
-                  </div>
-
-                  <div className="md:col-span-1">
-                    <Label htmlFor="postedAt" className="text-sm md:text-base">
-                      Date Posted
-                    </Label>
-                    <div className="relative">
-                      <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4 z-10" />
-                      <Select value={postedAt} onValueChange={setPostedAt}>
-                        <SelectTrigger className="mt-1 pl-10 h-10">
-                          <SelectValue placeholder="Select time range" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {postedAtOptions.map((option) => (
-                            <SelectItem key={option.value} value={option.value}>
-                              {option.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-
-                  <div className="md:col-span-1">
-                    <Label className="text-sm md:text-base">
-                      Experience Level
-                    </Label>
-                    <MultiSelectDropdown
-                      options={experienceLevelOptions}
-                      selectedValues={experienceLevel}
-                      onSelectionChange={setExperienceLevel}
-                      placeholder="Select experience levels"
-                      className="mt-1"
-                    />
-                  </div>
-                </div>
-
-                <div className="bg-muted/50 rounded-lg p-3 md:p-4">
-                  <h4 className="text-sm font-medium mb-2">Search Summary:</h4>
-                  <div className="text-xs md:text-sm text-muted-foreground space-y-1">
-                    <p>
-                      • Job Title:{" "}
-                      <span className="font-medium">
-                        {jobTitle || "Not specified"}
-                      </span>
-                    </p>
-                    {company && (
-                      <p>
-                        • Company:{" "}
-                        <span className="font-medium">{company}</span>
-                      </p>
-                    )}
-                    {selectedLocations.length > 0 && (
-                      <p>
-                        • Locations:{" "}
-                        <span className="font-medium">
-                          {selectedLocations.map((l) => l.name).join(", ")}
-                        </span>
-                      </p>
-                    )}
-                    {jobTypes.length > 0 && (
-                      <p>
-                        • Job Types:{" "}
-                        <span className="font-medium">
-                          {jobTypes.join(", ")}
-                        </span>
-                      </p>
-                    )}
-                    {workTypes.length > 0 && (
-                      <p>
-                        • Work Types:{" "}
-                        <span className="font-medium">
-                          {workTypes.join(", ")}
-                        </span>
-                      </p>
-                    )}
-                    {experienceLevel.length > 0 && (
-                      <p>
-                        • Experience:{" "}
-                        <span className="font-medium">
-                          {experienceLevel.join(", ")}
-                        </span>
-                      </p>
-                    )}
-                    {postedAt && (
-                      <p>
-                        • Posted:{" "}
-                        <span className="font-medium">
-                          {
-                            postedAtOptions.find(
-                              (opt) => opt.value === postedAt
-                            )?.label
-                          }
-                        </span>
-                      </p>
-                    )}
-                  </div>
-                </div>
-
-                <div className="pt-2 md:pt-4">
-                  <Button
-                    type="submit"
-                    disabled={isSearching || !jobTitle.trim()}
-                    className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 h-11"
-                    size="lg"
+              {/* Third Row: Apply Button - Full Width */}
+              <motion.div
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                <Button
+                  asChild
+                  size="sm"
+                  className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white h-11"
+                >
+                  <a
+                    href={job.applyUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center justify-center gap-2"
                   >
-                    <Search className="w-4 h-4 mr-2" />
-                    {isSearching ? "Searching Jobs..." : "Search Jobs"}
-                  </Button>
-                </div>
-              </form>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    </div>
+                    <ExternalLink className="w-4 h-4" />
+                    Apply Now
+                  </a>
+                </Button>
+              </motion.div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </motion.div>
   );
 };
 
-export default JobFinder;
+// Stats Component
+const JobResultsStats = ({ jobCount }: { jobCount: number }) => (
+  <motion.div
+    initial={{ opacity: 0, y: 20 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ delay: 0.2 }}
+    className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8"
+  >
+    <Card className="glass border-border/50">
+      <CardContent className="p-4 text-center">
+        <div className="flex items-center justify-center mb-2">
+          <Search className="w-5 h-5 text-blue-500" />
+        </div>
+        <div className="text-2xl font-bold text-blue-600">{jobCount}</div>
+        <div className="text-xs text-muted-foreground">Jobs Found</div>
+      </CardContent>
+    </Card>
+
+    <Card className="glass border-border/50">
+      <CardContent className="p-4 text-center">
+        <div className="flex items-center justify-center mb-2">
+          <TrendingUp className="w-5 h-5 text-green-500" />
+        </div>
+        <div className="text-2xl font-bold text-green-600">Fresh</div>
+        <div className="text-xs text-muted-foreground">Opportunities</div>
+      </CardContent>
+    </Card>
+
+    <Card className="glass border-border/50">
+      <CardContent className="p-4 text-center">
+        <div className="flex items-center justify-center mb-2">
+          <Target className="w-5 h-5 text-purple-500" />
+        </div>
+        <div className="text-2xl font-bold text-purple-600">Matched</div>
+        <div className="text-xs text-muted-foreground">Your Search</div>
+      </CardContent>
+    </Card>
+
+    <Card className="glass border-border/50">
+      <CardContent className="p-4 text-center">
+        <div className="flex items-center justify-center mb-2">
+          <Award className="w-5 h-5 text-orange-500" />
+        </div>
+        <div className="text-2xl font-bold text-orange-600">Ready</div>
+        <div className="text-xs text-muted-foreground">To Apply</div>
+      </CardContent>
+    </Card>
+  </motion.div>
+);
+
+const JobResults: React.FC = () => {
+  const [jobResults, setJobResults] = useState<JobResult[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [savedJobs, setSavedJobs] = useState<Set<number>>(new Set());
+  const [savingJobs, setSavingJobs] = useState<Set<number>>(new Set());
+  const [processingResume, setProcessingResume] = useState<Set<number>>(
+    new Set()
+  );
+  const [processingCoverLetter, setProcessingCoverLetter] = useState<
+    Set<number>
+  >(new Set());
+  const [appliedJobs, setAppliedJobs] = useState<Set<number>>(new Set());
+  const [applyingJobs, setApplyingJobs] = useState<Set<number>>(new Set());
+  const [searchTerm, setSearchTerm] = useState("");
+  const [sortBy, setSortBy] = useState<"date" | "company" | "title">("date");
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const { user } = useAuth();
+
+  useEffect(() => {
+    const results = sessionStorage.getItem("jobSearchResults");
+    if (results) {
+      try {
+        const parsedResults = JSON.parse(results);
+        console.log("Loaded job results:", parsedResults);
+        const jobsArray = Array.isArray(parsedResults)
+          ? parsedResults
+          : [parsedResults];
+
+        // Add unique identifiers to jobs for better tracking
+        const jobsWithIds = jobsArray.map((job, index) => ({
+          ...job,
+          uniqueId: `${job.title}-${job.companyName}-${index}-${Date.now()}`,
+        }));
+
+        setJobResults(jobsWithIds);
+
+        if (user && jobsWithIds.length > 0) {
+          saveJobSearchResults(jobsWithIds);
+        }
+      } catch (error) {
+        console.error("Error parsing job results:", error);
+        setJobResults([]);
+      }
+    } else {
+      navigate("/job-finder");
+    }
+    setLoading(false);
+  }, [navigate, user]);
+
+  const saveJobSearchResults = async (jobs: JobResult[]) => {
+    if (!user) return;
+
+    try {
+      const jobSearchData = jobs.map((job) => ({
+        user_id: user.id,
+        job_title: job.title || "Unknown",
+        company_name: job.companyName || "Unknown",
+        location: job.location || "Unknown",
+        experience_level: job.seniorityLevel || "Not specified",
+        job_type: job.employmentType || "Not specified",
+        work_type: "Not specified",
+        apply_link: job.applyUrl || "",
+        company_linkedin_url: job.companyLinkedinUrl || null,
+        posted_at: job.postedAt || new Date().toISOString(),
+        job_description: job.descriptionText || null,
+        seniority_level: job.seniorityLevel || null,
+        employment_type: job.employmentType || null,
+        job_function: job.jobFunction || null,
+        industries: job.industries || null,
+      }));
+
+      const { error } = await supabase
+        .from("job_search_results")
+        .insert(jobSearchData);
+
+      if (error) {
+        console.error("Error saving job search results:", error);
+        toast({
+          title: "Storage Error",
+          description:
+            "Jobs found but failed to save. You can still view the results.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Error in saveJobSearchResults:", error);
+      toast({
+        title: "Storage Error",
+        description:
+          "Jobs found but failed to save. You can still view the results.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleSaveJob = async (job: JobResult, index: number) => {
+    if (!user) {
+      toast({
+        title: "Authentication Required",
+        description: "Please log in to save jobs.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSavingJobs((prev) => new Set(prev).add(index));
+
+    // FIXED ISSUE 2: Better handling of unsaving jobs
+    if (savedJobs.has(index)) {
+      try {
+        // Remove from database - improved query to ensure proper deletion
+        const { existingSavedJobs, error: fetchError } = await supabase
+          .from("saved_jobs")
+          .select("id")
+          .eq("user_id", user.id)
+          .eq("job_title", job.title)
+          .eq("company_name", job.companyName)
+          .eq("apply_url", job.applyUrl);
+
+        if (fetchError) throw fetchError;
+
+        if (existingSavedJobs && existingSavedJobs.length > 0) {
+          // Delete all matching records (in case of duplicates)
+          const idsToDelete = existingSavedJobs.map((record) => record.id);
+          const { error: deleteError } = await supabase
+            .from("saved_jobs")
+            .delete()
+            .in("id", idsToDelete);
+
+          if (deleteError) throw deleteError;
+        }
+
+        // Remove from local state
+        setSavedJobs((prev) => {
+          const newSet = new Set(prev);
+          newSet.delete(index);
+          return newSet;
+        });
+
+        toast({
+          title: "Job Removed ✅",
+          description: "Job has been removed from your saved jobs.",
+        });
+      } catch (error) {
+        console.error("Error removing saved job:", error);
+        toast({
+          title: "Error",
+          description: "Failed to remove job. Please try again.",
+          variant: "destructive",
+        });
+      } finally {
+        setSavingJobs((prev) => {
+          const newSet = new Set(prev);
+          newSet.delete(index);
+          return newSet;
+        });
+      }
+      return;
+    }
+
+    // Save job logic
+    try {
+      const jobData = {
+        user_id: user.id,
+        job_title: job.title || "",
+        company_name: job.companyName || "",
+        job_location: job.location || "",
+        job_link: job.jobLink || null,
+        company_linkedin_url: job.companyLinkedinUrl || null,
+        posted_at: job.postedAt || "",
+        apply_url: job.applyUrl || "",
+        job_description: job.descriptionText || null,
+        seniority_level: job.seniorityLevel || null,
+        employment_type: job.employmentType || null,
+        job_function: job.jobFunction || null,
+        industries: job.industries || null,
+      };
+
+      const { error } = await supabase.from("saved_jobs").insert(jobData);
+
+      if (error) {
+        if (error.code === "23505") {
+          setSavedJobs((prev) => new Set(prev).add(index));
+          toast({
+            title: "Already Saved",
+            description: "This job is already in your saved jobs.",
+          });
+        } else {
+          throw error;
+        }
+      } else {
+        setSavedJobs((prev) => new Set(prev).add(index));
+        toast({
+          title: "Job Saved ✅",
+          description: "Job has been added to your saved jobs.",
+        });
+      }
+    } catch (error) {
+      console.error("Error saving job:", error);
+      toast({
+        title: "Error",
+        description: "Failed to save job. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setSavingJobs((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(index);
+        return newSet;
+      });
+    }
+  };
+
+  const handleTailorResume = async (job: JobResult, index: number) => {
+    if (!user) {
+      toast({
+        title: "Authentication Required",
+        description: "Please log in to tailor resumes.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".pdf,.docx";
+    input.onchange = async (event) => {
+      const file = (event.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+
+      setProcessingResume((prev) => new Set(prev).add(index));
+
+      try {
+        const base64Resume = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => {
+            const result = reader.result as string;
+            resolve(result.split(",")[1]);
+          };
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+
+        const response = await fetch(
+          "https://primary-production-800d.up.railway.app/webhook-test/tailor-resume",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              resume: base64Resume,
+              jobDescription: job.descriptionText,
+              fileType: file.type === "application/pdf" ? "pdf" : "docx",
+            }),
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error("Failed to tailor resume");
+        }
+
+        const tailoredResumeUrl = await response.text();
+
+        if (tailoredResumeUrl) {
+          const { error } = await supabase.from("tailored_resumes").insert({
+            user_id: user.id,
+            job_description: job.descriptionText,
+            resume_data: tailoredResumeUrl,
+            title: `${user.email?.split("@")[0] || "User"} - ${job.title}`,
+            file_type: "pdf",
+          });
+
+          if (error) {
+            console.error("Error saving tailored resume:", error);
+          }
+
+          const a = document.createElement("a");
+          a.href = tailoredResumeUrl;
+          a.download = `${user.email?.split("@")[0] || "User"}-${
+            job.title
+          }.pdf`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+
+          toast({
+            title: "Resume Tailored! 🎉",
+            description:
+              "Your tailored resume has been generated and downloaded!",
+          });
+        }
+      } catch (error) {
+        console.error("Error tailoring resume:", error);
+        toast({
+          title: "Error",
+          description: "Failed to tailor resume. Please try again.",
+          variant: "destructive",
+        });
+      } finally {
+        setProcessingResume((prev) => {
+          const newSet = new Set(prev);
+          newSet.delete(index);
+          return newSet;
+        });
+      }
+    };
+    input.click();
+  };
+
+  const handleGenerateCoverLetter = async (job: JobResult, index: number) => {
+    if (!user) {
+      toast({
+        title: "Authentication Required",
+        description: "Please log in to generate cover letters.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".pdf,.docx";
+    input.onchange = async (event) => {
+      const file = (event.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+
+      setProcessingCoverLetter((prev) => new Set(prev).add(index));
+
+      try {
+        const base64Resume = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => {
+            const result = reader.result as string;
+            resolve(result.split(",")[1]);
+          };
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+
+        const response = await fetch(
+          "https://primary-production-800d.up.railway.app/webhook-test/generate-cover-letter",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              resume: base64Resume,
+              jobDescription: job.descriptionText,
+              companyName: job.companyName,
+              positionTitle: job.title,
+              fileType: file.type === "application/pdf" ? "pdf" : "docx",
+            }),
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error("Failed to generate cover letter");
+        }
+
+        const coverLetterUrl = await response.text();
+
+        if (coverLetterUrl) {
+          const { error } = await supabase.from("cover_letters").insert({
+            user_id: user.id,
+            job_description: job.descriptionText,
+            company_name: job.companyName,
+            position_title: job.title,
+            cover_letter_url: coverLetterUrl,
+            original_resume_name: file.name,
+            file_type: "pdf",
+          });
+
+          if (error) {
+            console.error("Error saving cover letter:", error);
+          }
+
+          const a = document.createElement("a");
+          a.href = coverLetterUrl;
+          a.download = `cover-letter-${job.companyName}-${job.title}.pdf`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+
+          toast({
+            title: "Cover Letter Generated! 🎉",
+            description:
+              "Your personalized cover letter has been generated and downloaded!",
+          });
+        }
+      } catch (error) {
+        console.error("Error generating cover letter:", error);
+        toast({
+          title: "Error",
+          description: "Failed to generate cover letter. Please try again.",
+          variant: "destructive",
+        });
+      } finally {
+        setProcessingCoverLetter((prev) => {
+          const newSet = new Set(prev);
+          newSet.delete(index);
+          return newSet;
+        });
+      }
+    };
+    input.click();
+  };
+
+  // FIXED ISSUE 1: Enhanced job removal from results when applied
+  const handleAppliedChange = async (
+    job: JobResult,
+    index: number,
+    checked: boolean
+  ) => {
+    if (!user) {
+      toast({
+        title: "Authentication Required",
+        description: "Please log in to mark jobs as applied.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (checked) {
+      setAppliedJobs((prev) => new Set(prev).add(index));
+      setApplyingJobs((prev) => new Set(prev).add(index));
+
+      try {
+        const appliedJobData = {
+          user_id: user.id,
+          job_title: job.title || "Unknown Job",
+          company_name: job.companyName || "Unknown Company",
+          job_location: job.location || "Location Not Available",
+          job_link: job.jobLink || null,
+          company_linkedin_url: job.companyLinkedinUrl || null,
+          posted_at: job.postedAt || new Date().toISOString().slice(0, 10),
+          apply_url: job.applyUrl || "",
+          job_description: job.descriptionText || null,
+          seniority_level: job.seniorityLevel || null,
+          employment_type: job.employmentType || null,
+          job_function: job.jobFunction || null,
+          industries: job.industries || null,
+        };
+
+        const { error } = await supabase
+          .from("applied_jobs")
+          .insert(appliedJobData);
+
+        if (error) {
+          throw error;
+        }
+
+        // FIXED: Immediately remove job from results using uniqueId for better tracking
+        setJobResults((prevResults) => {
+          return prevResults.filter((_, jobIndex) => jobIndex !== index);
+        });
+
+        // Also remove from any saved jobs state if it was saved
+        setSavedJobs((prev) => {
+          const newSet = new Set(prev);
+          newSet.delete(index);
+          return newSet;
+        });
+
+        toast({
+          title: "Job Applied Successfully! ✅",
+          description: "Job has been moved to your applied jobs list.",
+        });
+      } catch (error) {
+        console.error("Error moving job to applied:", error);
+        toast({
+          title: "Error",
+          description: "Failed to save applied job. Please try again.",
+          variant: "destructive",
+        });
+
+        // Revert the applied state if there was an error
+        setAppliedJobs((prev) => {
+          const newSet = new Set(prev);
+          newSet.delete(index);
+          return newSet;
+        });
+      } finally {
+        setApplyingJobs((prev) => {
+          const newSet = new Set(prev);
+          newSet.delete(index);
+          return newSet;
+        });
+      }
+    }
+  };
+
+  const handleShare = (job: JobResult) => {
+    if (navigator.share) {
+      navigator.share({
+        title: `${job.title} at ${job.companyName}`,
+        text: `Check out this job opportunity: ${job.title} at ${job.companyName}`,
+        url: job.applyUrl,
+      });
+    } else {
+      navigator.clipboard.writeText(job.applyUrl);
+      toast({
+        title: "Link Copied",
+        description: "Job link copied to clipboard.",
+      });
+    }
+  };
+
+  const filteredJobs = jobResults.filter(
+    (job) =>
+      job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      job.companyName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      job.location.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const sortedJobs = [...filteredJobs].sort((a, b) => {
+    switch (sortBy) {
+      case "company":
+        return a.companyName.localeCompare(b.companyName);
+      case "title":
+        return a.title.localeCompare(b.title);
+      case "date":
+      default:
+        return new Date(b.postedAt).getTime() - new Date(a.postedAt).getTime();
+    }
+  });
+
+  if (loading) {
+    return (
+      <TooltipProvider>
+        <div className="min-h-screen bg-background">
+          <div className="container mx-auto px-4 py-8">
+            <div className="max-w-6xl mx-auto">
+              <JobResultsLoadingSkeleton />
+            </div>
+          </div>
+        </div>
+      </TooltipProvider>
+    );
+  }
+
+  return (
+    <TooltipProvider>
+      <div className="min-h-screen bg-background">
+        <div className="container mx-auto px-4 py-8">
+          <div className="max-w-6xl mx-auto">
+            {/* Enhanced Header */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mb-8"
+            >
+              {/* Navigation Buttons */}
+              <div className="flex flex-col sm:flex-row gap-2 mb-6">
+                <Button
+                  variant="ghost"
+                  onClick={() => navigate("/")}
+                  className="hover:bg-blue-500/10 justify-start"
+                >
+                  <Home className="w-4 h-4 mr-2" />
+                  Back to Home
+                </Button>
+                <Button
+                  variant="ghost"
+                  onClick={() => navigate("/job-finder")}
+                  className="hover:bg-blue-500/10 justify-start"
+                >
+                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  Back to Search
+                </Button>
+              </div>
+
+              <div className="text-center mb-8">
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ delay: 0.2, type: "spring" }}
+                  className="mx-auto w-16 h-16 bg-gradient-to-br from-blue-500/20 to-purple-500/20 rounded-full flex items-center justify-center mb-4"
+                >
+                  <Search className="w-8 h-8 text-blue-600" />
+                </motion.div>
+
+                <motion.h1
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3 }}
+                  className="text-4xl md:text-5xl font-bold mb-4"
+                >
+                  Job Search <span className="gradient-text">Results</span>
+                </motion.h1>
+
+                <motion.p
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.4 }}
+                  className="text-xl text-muted-foreground"
+                >
+                  {jobResults.length}{" "}
+                  {jobResults.length === 1 ? "opportunity" : "opportunities"}{" "}
+                  found
+                </motion.p>
+              </div>
+
+              {/* Job Results Stats */}
+              <JobResultsStats jobCount={jobResults.length} />
+
+              {/* Search and Filter Controls */}
+              {jobResults.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.5 }}
+                  className="flex flex-col sm:flex-row gap-4 mb-6"
+                >
+                  <div className="flex-1 relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <motion.input
+                      whileFocus={{ scale: 1.02 }}
+                      type="text"
+                      placeholder="Search job results..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="w-full pl-10 pr-4 py-2 border border-border rounded-lg bg-background/50 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      onClick={() =>
+                        setSortBy(
+                          sortBy === "date"
+                            ? "company"
+                            : sortBy === "company"
+                            ? "title"
+                            : "date"
+                        )
+                      }
+                      className="flex items-center gap-2"
+                    >
+                      <Filter className="w-4 h-4" />
+                      Sort by{" "}
+                      {sortBy === "date"
+                        ? "Date"
+                        : sortBy === "company"
+                        ? "Company"
+                        : "Title"}
+                    </Button>
+                  </div>
+                </motion.div>
+              )}
+            </motion.div>
+
+            {/* Content */}
+            <AnimatePresence mode="wait">
+              {sortedJobs.length === 0 ? (
+                <motion.div
+                  key="empty"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  className="text-center py-16"
+                >
+                  <Card className="glass border-border/50 shadow-xl max-w-lg mx-auto">
+                    <CardContent className="pt-8 pb-8 text-center">
+                      <motion.div
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        transition={{ delay: 0.2, type: "spring" }}
+                        className="mx-auto w-20 h-20 bg-muted/30 rounded-full flex items-center justify-center mb-6"
+                      >
+                        <Search className="w-10 h-10 text-muted-foreground" />
+                      </motion.div>
+
+                      <h3 className="text-2xl font-semibold mb-3">
+                        {searchTerm ? "No Matching Jobs" : "All Jobs Applied!"}
+                      </h3>
+
+                      <p className="text-muted-foreground mb-6">
+                        {searchTerm
+                          ? `No jobs found matching "${searchTerm}". Try a different search term.`
+                          : "Great job! You've applied to all available positions. Start a new search to find more opportunities."}
+                      </p>
+
+                      <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                        {searchTerm ? (
+                          <Button
+                            variant="outline"
+                            onClick={() => setSearchTerm("")}
+                          >
+                            Clear Search
+                          </Button>
+                        ) : (
+                          <Button
+                            onClick={() => navigate("/job-finder")}
+                            className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
+                          >
+                            <Search className="w-4 h-4 mr-2" />
+                            Search Again
+                          </Button>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="results"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="space-y-6"
+                >
+                  <AnimatePresence>
+                    {sortedJobs.map((job, index) => (
+                      <JobCard
+                        key={
+                          job.uniqueId ||
+                          `${job.title}-${job.companyName}-${index}`
+                        }
+                        job={job}
+                        index={index}
+                        onSaveJob={handleSaveJob}
+                        onTailorResume={handleTailorResume}
+                        onGenerateCoverLetter={handleGenerateCoverLetter}
+                        onAppliedChange={handleAppliedChange}
+                        onShare={handleShare}
+                        savedJobs={savedJobs}
+                        savingJobs={savingJobs}
+                        processingResume={processingResume}
+                        processingCoverLetter={processingCoverLetter}
+                        appliedJobs={appliedJobs}
+                        applyingJobs={applyingJobs}
+                        user={user}
+                      />
+                    ))}
+                  </AnimatePresence>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Continue Search CTA */}
+            {sortedJobs.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.8 }}
+                className="mt-12 text-center"
+              >
+                <Card className="glass border-border/50 shadow-lg">
+                  <CardContent className="p-8">
+                    <Sparkles className="w-12 h-12 mx-auto mb-4 text-blue-500" />
+                    <h3 className="text-xl font-semibold mb-2">
+                      Found what you're looking for?
+                    </h3>
+                    <p className="text-muted-foreground mb-4">
+                      Start a new search to discover more opportunities or
+                      refine your current search
+                    </p>
+                    <Button
+                      onClick={() => navigate("/job-finder")}
+                      className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
+                    >
+                      <Search className="w-4 h-4 mr-2" />
+                      Start New Search
+                    </Button>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            )}
+          </div>
+        </div>
+      </div>
+    </TooltipProvider>
+  );
+};
+
+export default JobResults;
