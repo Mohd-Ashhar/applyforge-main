@@ -1,18 +1,18 @@
-
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
-import Logo from '@/components/ui/Logo';
-import NavigationMenu from './header/NavigationMenu';
-import UserDropdown from './header/UserDropdown';
-import AuthButtons from './header/AuthButtons';
-import { useHeaderScrollBehavior } from './header/HeaderScrollBehavior';
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import Logo from "@/components/ui/Logo";
+import NavigationMenu from "./header/NavigationMenu";
+import UserDropdown from "./header/UserDropdown";
+import AuthButtons from "./header/AuthButtons";
+import { useHeaderScrollBehavior } from "./header/HeaderScrollBehavior";
+import { motion, AnimatePresence } from "framer-motion";
 
 const DashboardHeader = () => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
-  const [userPlan, setUserPlan] = useState<string>('Free');
+  const [userPlan, setUserPlan] = useState<string>("Free");
   const { isVisible } = useHeaderScrollBehavior();
 
   useEffect(() => {
@@ -23,80 +23,117 @@ const DashboardHeader = () => {
 
   const fetchUserPlan = async () => {
     if (!user?.email) return;
-    
+
     try {
       const { data, error } = await supabase
-        .from('profiles')
-        .select('plan')
-        .eq('email', user.email)
+        .from("profiles")
+        .select("plan")
+        .eq("email", user.email)
         .single();
 
       if (error) {
-        console.error('Error fetching user plan:', error);
+        console.error("Error fetching user plan:", error);
         return;
       }
 
-      setUserPlan(data?.plan || 'Free');
+      setUserPlan(data?.plan || "Free");
     } catch (error) {
-      console.error('Error fetching user plan:', error);
+      console.error("Error fetching user plan:", error);
     }
   };
 
   const handleSignOut = async () => {
     try {
       await signOut();
-      navigate('/');
+      navigate("/");
     } catch (error) {
-      console.error('Error signing out:', error);
+      console.error("Error signing out:", error);
     }
   };
 
-  // For logged-in users
-  if (user) {
-    return (
-      <>
-        {/* Add padding to body to account for header height */}
-        <div className="h-14 md:h-16" />
-        <header className={`
-          fixed top-0 left-0 right-0 z-[9999] w-full
-          transition-all duration-300 ease-in-out
-          ${isVisible ? 'translate-y-0' : '-translate-y-full md:translate-y-0'}
-          backdrop-blur-xl bg-background/80 supports-[backdrop-filter]:bg-background/60
-          border-b border-border/50 shadow-lg shadow-background/10
-        `}>
-          <div className="container mx-auto px-3 md:px-4 h-14 md:h-16 flex items-center justify-between max-w-full">
-            {/* Logo Section - Always show tagline */}
-            <Logo className="flex-shrink-0" showTagline={true} />
-            
-            {/* Desktop Navigation - Hidden on mobile */}
-            <NavigationMenu />
+  // Motion variants for smooth header animation
+  const headerVariants = {
+    visible: {
+      y: 0,
+      opacity: 1,
+      pointerEvents: "auto",
+      boxShadow: "0 2px 8px rgb(0 0 0 / 0.1)",
+    },
+    hidden: {
+      y: "-100%",
+      opacity: 0,
+      pointerEvents: "none",
+      boxShadow: "none",
+    },
+  };
 
-            {/* Modern User Dropdown */}
-            <UserDropdown 
-              user={user} 
-              userPlan={userPlan} 
-              onSignOut={handleSignOut} 
-            />
-          </div>
-        </header>
-      </>
-    );
-  }
-
-  // For non-logged-in users
   return (
     <>
-      {/* Add padding to body to account for header height */}
+      {/* Padding to offset fixed/ sticky header height */}
       <div className="h-14 md:h-16" />
-      <header className="sticky md:sticky top-0 left-0 right-0 z-[9999] w-full backdrop-blur-xl bg-background/80 supports-[backdrop-filter]:bg-background/60 border-b border-border/50 shadow-lg shadow-background/10">
-        <div className="container mx-auto px-3 md:px-4 h-14 md:h-16 flex items-center justify-between max-w-full">
-          {/* Logo - Always show tagline */}
-          <Logo className="flex-shrink-0" showTagline={true} />
 
-          {/* Auth Buttons - Only show these for non-logged-in users */}
-          <AuthButtons />
-        </div>
-      </header>
+      <AnimatePresence>
+        {user ? (
+          <motion.header
+            key="logged-in-header"
+            initial="hidden"
+            animate={isVisible ? "visible" : "hidden"}
+            exit="hidden"
+            variants={headerVariants}
+            transition={{ duration: 0.35, ease: "easeInOut" }}
+            className="fixed top-0 left-0 right-0 z-[9999] w-full backdrop-blur-xl bg-background/90 supports-[backdrop-filter]:bg-background/70 border-b border-border/50"
+          >
+            <div className="container mx-auto max-w-full px-4 md:px-8 h-14 md:h-16 flex items-center justify-between gap-4">
+              {/* Logo with tagline */}
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.2 }}
+              >
+                <Logo className="flex-shrink-0" showTagline={true} />
+              </motion.div>
+
+              {/* Desktop Navigation, with fade-in animation */}
+              <motion.nav
+                className="hidden md:flex flex-1 justify-center"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.35 }}
+                aria-label="Primary navigation"
+              >
+                <NavigationMenu />
+              </motion.nav>
+
+              {/* User dropdown with subtle fade-in */}
+              <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.4 }}
+              >
+                <UserDropdown
+                  user={user}
+                  userPlan={userPlan}
+                  onSignOut={handleSignOut}
+                />
+              </motion.div>
+            </div>
+          </motion.header>
+        ) : (
+          <motion.header
+            key="logged-out-header"
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.3, ease: "easeInOut" }}
+            className="sticky top-0 left-0 right-0 z-[9999] w-full backdrop-blur-xl bg-background/90 supports-[backdrop-filter]:bg-background/70 border-b border-border/50 shadow-sm"
+          >
+            <div className="container mx-auto max-w-full px-4 md:px-8 h-14 md:h-16 flex items-center justify-between gap-4">
+              <Logo className="flex-shrink-0" showTagline={true} />
+              <AuthButtons />
+            </div>
+          </motion.header>
+        )}
+      </AnimatePresence>
     </>
   );
 };

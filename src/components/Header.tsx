@@ -1,13 +1,13 @@
-import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Button } from "@/components/ui/button"
-import { useAuth } from '@/contexts/AuthContext';
-import { 
-  FileText, 
-  Upload, 
-  Bookmark, 
-  CreditCard, 
-  MessageSquare, 
+import React from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { useAuth } from "@/contexts/AuthContext";
+import {
+  FileText,
+  Upload,
+  Bookmark,
+  CreditCard,
+  MessageSquare,
   User,
   LogOut,
   Briefcase,
@@ -15,16 +15,18 @@ import {
   Menu,
   Star,
   Shield,
-  X
-} from 'lucide-react';
-import { 
+  X,
+  ExternalLink,
+  Share2,
+} from "lucide-react";
+import {
   NavigationMenu,
   NavigationMenuContent,
   NavigationMenuItem,
   NavigationMenuLink,
   NavigationMenuList,
   NavigationMenuTrigger,
-} from "@/components/ui/navigation-menu"
+} from "@/components/ui/navigation-menu";
 import {
   Sheet,
   SheetContent,
@@ -32,8 +34,9 @@ import {
   SheetTitle,
   SheetTrigger,
   SheetClose,
-} from "@/components/ui/sheet"
-import Logo from '@/components/ui/Logo';
+} from "@/components/ui/sheet";
+import Logo from "@/components/ui/Logo";
+import { motion } from "framer-motion";
 
 const Header = () => {
   const { user, signOut } = useAuth();
@@ -43,194 +46,200 @@ const Header = () => {
     if (user) {
       signOut();
     } else {
-      navigate('/auth');
+      navigate("/auth");
     }
   };
 
   const handleSignUp = () => {
-    navigate('/auth?mode=signup');
+    navigate("/auth?mode=signup");
   };
 
   const handleProtectedNavigation = (path: string) => {
     if (!user) {
-      navigate('/auth');
+      navigate("/auth");
     } else {
       navigate(path);
     }
   };
 
   const handleFeedback = () => {
-    navigate('/feedback');
+    navigate("/feedback");
   };
 
-  // Dashboard header for logged-in users
+  // Animation variants for fade + scale on menu items
+  const itemVariants = {
+    initial: { opacity: 0, y: 10 },
+    animate: { opacity: 1, y: 0 },
+  };
+
   if (user) {
     return (
-      <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container mx-auto flex items-center justify-between h-16 px-4">
-          <Logo />
+      <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 shadow-md shadow-background/10">
+        <div className="container mx-auto max-w-full px-6 md:px-12 h-16 flex items-center justify-between gap-6">
+          {/* Logo */}
+          <motion.div
+            initial="initial"
+            animate="animate"
+            variants={itemVariants}
+          >
+            <Logo />
+          </motion.div>
 
           {/* Desktop Navigation */}
-          <nav className="hidden lg:flex items-center space-x-1">
-            <Link 
-              to="/tailored-resumes" 
-              className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium hover:bg-muted/50 hover:scale-105 transition-all duration-200 hover:text-primary"
-            >
-              <FileText className="w-4 h-4" />
-              Tailored Resumes
-            </Link>
-            
-            <Link 
-              to="/saved-cover-letters" 
-              className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium hover:bg-muted/50 hover:scale-105 transition-all duration-200 hover:text-primary"
-            >
-              <Upload className="w-4 h-4" />
-              Cover Letters
-            </Link>
-            
-            <Link 
-              to="/saved-jobs" 
-              className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium hover:bg-muted/50 hover:scale-105 transition-all duration-200 hover:text-primary"
-            >
-              <Bookmark className="w-4 h-4" />
-              Saved Jobs
-            </Link>
-
-            <Link 
-              to="/applied-jobs" 
-              className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium hover:bg-muted/50 hover:scale-105 transition-all duration-200 hover:text-primary"
-            >
-              <CheckCircle className="w-4 h-4" />
-              Applied Jobs
-            </Link>
-
-            <Link 
-              to="/one-click-tailoring" 
-              className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium hover:bg-muted/50 hover:scale-105 transition-all duration-200 hover:text-primary"
-            >
-              <Briefcase className="w-4 h-4" />
-              One-Click Tailoring
-            </Link>
-            
-            <Link 
-              to="/pricing"
-              className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium hover:bg-muted/50 hover:scale-105 transition-all duration-200 hover:text-primary"
-            >
-              <CreditCard className="w-4 h-4" />
-              Pricing
-            </Link>
-            
-            <button 
-              onClick={handleFeedback}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium hover:bg-muted/50 hover:scale-105 transition-all duration-200 hover:text-primary"
-            >
-              <MessageSquare className="w-4 h-4" />
-              Feedback
-            </button>
-          </nav>
+          <NavigationMenu
+            className="hidden lg:flex flex-1 max-w-5xl justify-center"
+            aria-label="Primary navigation"
+          >
+            <NavigationMenuList className="flex space-x-2">
+              {[
+                {
+                  label: "Tailored Resumes",
+                  icon: FileText,
+                  to: "/tailored-resumes",
+                },
+                {
+                  label: "Cover Letters",
+                  icon: Upload,
+                  to: "/saved-cover-letters",
+                },
+                {
+                  label: "Saved Jobs",
+                  icon: Bookmark,
+                  to: "/saved-jobs",
+                },
+                {
+                  label: "Applied Jobs",
+                  icon: CheckCircle,
+                  to: "/applied-jobs",
+                },
+                {
+                  label: "One-Click Tailoring",
+                  icon: Briefcase,
+                  to: "/one-click-tailoring",
+                },
+                {
+                  label: "Pricing",
+                  icon: CreditCard,
+                  to: "/pricing",
+                },
+              ].map(({ label, icon: Icon, to }) => (
+                <NavigationMenuItem key={to}>
+                  <NavigationMenuLink
+                    asChild
+                    className="flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-medium text-muted-foreground hover:bg-muted/50 hover:text-primary hover:scale-105 transition-all duration-200"
+                  >
+                    <Link to={to} tabIndex={0} aria-label={label}>
+                      <Icon className="w-4 h-4" />
+                      {label}
+                    </Link>
+                  </NavigationMenuLink>
+                </NavigationMenuItem>
+              ))}
+              <NavigationMenuItem>
+                <button
+                  onClick={handleFeedback}
+                  className="flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-medium text-muted-foreground hover:bg-muted/50 hover:text-primary hover:scale-105 transition-all duration-200"
+                  aria-label="Feedback"
+                  type="button"
+                >
+                  <MessageSquare className="w-4 h-4" />
+                  Feedback
+                </button>
+              </NavigationMenuItem>
+            </NavigationMenuList>
+          </NavigationMenu>
 
           {/* Mobile Menu and User Controls */}
           <div className="flex items-center space-x-3">
+            {/* User Email and Icon */}
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="hidden sm:flex items-center gap-2 text-sm max-w-[140px] truncate"
+            >
+              <User className="w-4 h-4 text-primary" />
+              <span title={user.email} className="truncate">
+                {user.email}
+              </span>
+            </motion.div>
+
             {/* Mobile Menu */}
             <Sheet>
               <SheetTrigger asChild>
-                <Button variant="ghost" size="sm" className="lg:hidden hover:scale-105 transition-transform duration-200">
-                  <Menu className="h-5 w-5" />
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="lg:hidden p-2 hover:scale-110 transition-transform duration-300"
+                  aria-label="Open menu"
+                >
+                  <Menu className="w-5 h-5" />
                 </Button>
               </SheetTrigger>
               <SheetContent side="right" className="w-80 sm:w-96">
                 <SheetHeader className="mb-6">
-                  <SheetTitle className="text-xl font-bold gradient-text">Navigation</SheetTitle>
+                  <SheetTitle className="text-xl font-bold gradient-text">
+                    Navigation
+                  </SheetTitle>
                 </SheetHeader>
-                <div className="space-y-3">
-                  <SheetClose asChild>
-                    <Link 
-                      to="/tailored-resumes" 
-                      className="flex items-center gap-3 p-4 rounded-xl hover:bg-muted/50 transition-all duration-200 hover:scale-105"
-                    >
-                      <FileText className="w-5 h-5 text-primary" />
-                      <span className="font-medium">Tailored Resumes</span>
-                    </Link>
-                  </SheetClose>
-                  
-                  <SheetClose asChild>
-                    <Link 
-                      to="/saved-cover-letters" 
-                      className="flex items-center gap-3 p-4 rounded-xl hover:bg-muted/50 transition-all duration-200 hover:scale-105"
-                    >
-                      <Upload className="w-5 h-5 text-primary" />
-                      <span className="font-medium">Cover Letters</span>
-                    </Link>
-                  </SheetClose>
-                  
-                  <SheetClose asChild>
-                    <Link 
-                      to="/saved-jobs" 
-                      className="flex items-center gap-3 p-4 rounded-xl hover:bg-muted/50 transition-all duration-200 hover:scale-105"
-                    >
-                      <Bookmark className="w-5 h-5 text-primary" />
-                      <span className="font-medium">Saved Jobs</span>
-                    </Link>
-                  </SheetClose>
 
+                <nav className="flex flex-col space-y-1">
+                  {[
+                    {
+                      label: "Tailored Resumes",
+                      icon: FileText,
+                      to: "/tailored-resumes",
+                    },
+                    {
+                      label: "Cover Letters",
+                      icon: Upload,
+                      to: "/saved-cover-letters",
+                    },
+                    { label: "Saved Jobs", icon: Bookmark, to: "/saved-jobs" },
+                    {
+                      label: "Applied Jobs",
+                      icon: CheckCircle,
+                      to: "/applied-jobs",
+                    },
+                    {
+                      label: "One-Click Tailoring",
+                      icon: Briefcase,
+                      to: "/one-click-tailoring",
+                    },
+                    { label: "Pricing", icon: CreditCard, to: "/pricing" },
+                  ].map(({ label, icon: Icon, to }) => (
+                    <SheetClose asChild key={to}>
+                      <Link
+                        to={to}
+                        className="flex items-center gap-3 py-3 px-5 rounded-xl hover:bg-muted/50 transition transform hover:scale-105 duration-200"
+                      >
+                        <Icon className="w-5 h-5 text-primary" />
+                        <span className="font-medium">{label}</span>
+                      </Link>
+                    </SheetClose>
+                  ))}
                   <SheetClose asChild>
-                    <Link 
-                      to="/applied-jobs" 
-                      className="flex items-center gap-3 p-4 rounded-xl hover:bg-muted/50 transition-all duration-200 hover:scale-105"
-                    >
-                      <CheckCircle className="w-5 h-5 text-primary" />
-                      <span className="font-medium">Applied Jobs</span>
-                    </Link>
-                  </SheetClose>
-
-                  <SheetClose asChild>
-                    <Link 
-                      to="/one-click-tailoring" 
-                      className="flex items-center gap-3 p-4 rounded-xl hover:bg-muted/50 transition-all duration-200 hover:scale-105"
-                    >
-                      <Briefcase className="w-5 h-5 text-primary" />
-                      <span className="font-medium">One-Click Tailoring</span>
-                    </Link>
-                  </SheetClose>
-                  
-                  <SheetClose asChild>
-                    <Link 
-                      to="/pricing"
-                      className="flex items-center gap-3 p-4 rounded-xl hover:bg-muted/50 transition-all duration-200 hover:scale-105"
-                    >
-                      <CreditCard className="w-5 h-5 text-primary" />
-                      <span className="font-medium">Pricing</span>
-                    </Link>
-                  </SheetClose>
-                  
-                  <SheetClose asChild>
-                    <button 
+                    <button
                       onClick={handleFeedback}
-                      className="flex items-center gap-3 p-4 rounded-xl hover:bg-muted/50 transition-all duration-200 hover:scale-105 w-full text-left"
+                      className="flex items-center gap-3 py-3 px-5 rounded-xl hover:bg-muted/50 transition transform hover:scale-105 duration-200 w-full text-left"
+                      type="button"
                     >
                       <MessageSquare className="w-5 h-5 text-primary" />
                       <span className="font-medium">Feedback</span>
                     </button>
                   </SheetClose>
-                </div>
+                </nav>
               </SheetContent>
             </Sheet>
 
-            {/* User Info */}
-            <div className="hidden sm:flex items-center gap-2 text-sm">
-              <User className="w-4 h-4 text-primary" />
-              <span className="text-muted-foreground max-w-32 truncate">
-                {user.email}
-              </span>
-            </div>
-            
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={handleAuthAction} 
-              className="hover:scale-105 transition-transform duration-200 shadow-lg hover:shadow-xl"
+            {/* Log out button */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleAuthAction}
+              className="flex items-center gap-1 whitespace-nowrap shadow hover:shadow-lg"
+              aria-label="Logout"
             >
-              <LogOut className="w-4 h-4 mr-2" />
+              <LogOut className="w-4 h-4" />
               <span className="hidden sm:inline">Log out</span>
             </Button>
           </div>
@@ -239,214 +248,122 @@ const Header = () => {
     );
   }
 
-  // Enhanced header for non-logged-in users
+  // Non-logged-in header with advanced styling and menu
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-        {/* Logo */}
-        <Logo />
+    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 shadow-md shadow-background/10">
+      <div className="container mx-auto max-w-full px-6 md:px-12 h-16 flex items-center justify-between gap-6">
+        <motion.div
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.15 }}
+        >
+          <Logo />
+        </motion.div>
 
-        {/* Desktop Navigation */}
-        <NavigationMenu className="hidden md:flex">
-          <NavigationMenuList className="space-x-2">
+        <NavigationMenu className="hidden md:flex" aria-label="Main navigation">
+          <NavigationMenuList className="flex space-x-4">
             <NavigationMenuItem>
-              <NavigationMenuTrigger className="text-sm font-medium hover:text-primary transition-all duration-200 bg-transparent hover:bg-muted/50 rounded-xl px-4 py-2">
-                Features
-              </NavigationMenuTrigger>
-              <NavigationMenuContent>
-                <div className="grid gap-3 p-6 w-[400px] lg:w-[500px] lg:grid-cols-2">
-                  <div className="grid gap-1">
-                    <NavigationMenuLink 
-                      onClick={() => handleProtectedNavigation('/ai-resume-tailor')}
-                      className="block select-none space-y-1 rounded-xl p-4 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground cursor-pointer hover:scale-105 transition-transform duration-200"
-                    >
-                      <div className="flex items-center gap-2 text-sm font-medium leading-none">
-                        <FileText className="w-4 h-4 text-primary" />
-                        AI Resume Tailor
-                      </div>
-                      <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
-                        Customize your resume for specific job applications with AI assistance.
-                      </p>
-                    </NavigationMenuLink>
-                    <NavigationMenuLink 
-                      onClick={() => handleProtectedNavigation('/cover-letter-generator')}
-                      className="block select-none space-y-1 rounded-xl p-4 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground cursor-pointer hover:scale-105 transition-transform duration-200"
-                    >
-                      <div className="flex items-center gap-2 text-sm font-medium leading-none">
-                        <Upload className="w-4 h-4 text-primary" />
-                        Cover Letter Generator
-                      </div>
-                      <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
-                        Generate compelling cover letters tailored to job requirements.
-                      </p>
-                    </NavigationMenuLink>
-                  </div>
-                  <div className="grid gap-1">
-                    <NavigationMenuLink 
-                      onClick={() => handleProtectedNavigation('/job-finder')}
-                      className="block select-none space-y-1 rounded-xl p-4 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground cursor-pointer hover:scale-105 transition-transform duration-200"
-                    >
-                      <div className="flex items-center gap-2 text-sm font-medium leading-none">
-                        <Briefcase className="w-4 h-4 text-primary" />
-                        Job Finder
-                      </div>
-                      <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
-                        Discover relevant job opportunities that match your skills.
-                      </p>
-                    </NavigationMenuLink>
-                    <NavigationMenuLink 
-                      onClick={() => handleProtectedNavigation('/ats-checker')}
-                      className="block select-none space-y-1 rounded-xl p-4 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground cursor-pointer hover:scale-105 transition-transform duration-200"
-                    >
-                      <div className="flex items-center gap-2 text-sm font-medium leading-none">
-                        <Shield className="w-4 h-4 text-primary" />
-                        ATS Checker
-                      </div>
-                      <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
-                        Optimize your resume to pass Applicant Tracking Systems.
-                      </p>
-                    </NavigationMenuLink>
-                  </div>
-                </div>
-              </NavigationMenuContent>
-            </NavigationMenuItem>
-
-            <NavigationMenuItem>
-              <NavigationMenuLink 
-                href="#how-it-works" 
-                className="group inline-flex h-10 w-max items-center justify-center rounded-xl bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-muted/50 hover:text-primary focus:bg-accent focus:text-accent-foreground focus:outline-none disabled:pointer-events-none disabled:opacity-50"
+              <NavigationMenuLink
+                asChild
+                className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-muted-foreground hover:bg-muted/50 hover:text-primary transition-transform duration-200"
               >
-                How It Works
+                <Link to="/job-finder">Job Finder</Link>
               </NavigationMenuLink>
             </NavigationMenuItem>
-
             <NavigationMenuItem>
-              <NavigationMenuLink 
-                href="#pricing" 
-                className="group inline-flex h-10 w-max items-center justify-center rounded-xl bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-muted/50 hover:text-primary focus:bg-accent focus:text-accent-foreground focus:outline-none disabled:pointer-events-none disabled:opacity-50"
+              <NavigationMenuLink
+                asChild
+                className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-muted-foreground hover:bg-muted/50 hover:text-primary transition-transform duration-200"
               >
-                Pricing
+                <Link to="/pricing">Pricing</Link>
               </NavigationMenuLink>
             </NavigationMenuItem>
-
             <NavigationMenuItem>
-              <NavigationMenuLink 
-                onClick={() => handleProtectedNavigation('/ats-checker')}
-                className="group inline-flex h-10 w-max items-center justify-center rounded-xl bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-muted/50 hover:text-primary focus:bg-accent focus:text-accent-foreground focus:outline-none disabled:pointer-events-none disabled:opacity-50 cursor-pointer"
+              <NavigationMenuLink
+                asChild
+                className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-muted-foreground hover:bg-muted/50 hover:text-primary transition-transform duration-200"
               >
-                <Star className="w-4 h-4 mr-2" />
-                Reviews
+                <Link to="/auth?mode=signup">Sign Up</Link>
               </NavigationMenuLink>
             </NavigationMenuItem>
           </NavigationMenuList>
         </NavigationMenu>
 
-        {/* Mobile Menu and Auth Buttons */}
-        <div className="flex items-center space-x-2 sm:space-x-3">
+        <div className="flex items-center space-x-3">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleAuthAction}
+            className="hover:scale-105 transition-transform duration-200"
+          >
+            Log in
+          </Button>
+          <Button
+            size="sm"
+            className="bg-primary hover:bg-primary/90 text-primary-foreground hover:scale-105 transition-transform duration-200 shadow-lg hover:shadow-xl"
+            onClick={handleSignUp}
+          >
+            Sign up
+          </Button>
+
           {/* Mobile Menu */}
           <Sheet>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="sm" className="md:hidden hover:scale-105 transition-transform duration-200 p-2">
-                <Menu className="h-5 w-5" />
+              <Button
+                variant="ghost"
+                size="sm"
+                className="md:hidden p-2 hover:scale-105 transition-transform duration-200"
+                aria-label="Open menu"
+              >
+                <Menu className="w-5 h-5" />
               </Button>
             </SheetTrigger>
             <SheetContent side="right" className="w-80 sm:w-96">
               <SheetHeader className="mb-6">
-                <SheetTitle className="text-xl font-bold gradient-text">Menu</SheetTitle>
+                <SheetTitle className="text-xl font-bold gradient-text">
+                  Menu
+                </SheetTitle>
               </SheetHeader>
-              <div className="space-y-3">
-                <div className="border-b pb-4 mb-4">
-                  <h3 className="font-semibold text-sm text-muted-foreground mb-3">Features</h3>
-                  <div className="space-y-2">
-                    <SheetClose asChild>
-                      <button
-                        onClick={() => handleProtectedNavigation('/ai-resume-tailor')}
-                        className="flex items-center gap-3 p-3 rounded-xl hover:bg-muted/50 transition-all duration-200 hover:scale-105 w-full text-left"
-                      >
-                        <FileText className="w-5 h-5 text-primary" />
-                        <span className="font-medium">AI Resume Tailor</span>
-                      </button>
-                    </SheetClose>
-                    
-                    <SheetClose asChild>
-                      <button
-                        onClick={() => handleProtectedNavigation('/cover-letter-generator')}
-                        className="flex items-center gap-3 p-3 rounded-xl hover:bg-muted/50 transition-all duration-200 hover:scale-105 w-full text-left"
-                      >
-                        <Upload className="w-5 h-5 text-primary" />
-                        <span className="font-medium">Cover Letter Generator</span>
-                      </button>
-                    </SheetClose>
-                    
-                    <SheetClose asChild>
-                      <button
-                        onClick={() => handleProtectedNavigation('/job-finder')}
-                        className="flex items-center gap-3 p-3 rounded-xl hover:bg-muted/50 transition-all duration-200 hover:scale-105 w-full text-left"
-                      >
-                        <Briefcase className="w-5 h-5 text-primary" />
-                        <span className="font-medium">Job Finder</span>
-                      </button>
-                    </SheetClose>
-                    
-                    <SheetClose asChild>
-                      <button
-                        onClick={() => handleProtectedNavigation('/ats-checker')}
-                        className="flex items-center gap-3 p-3 rounded-xl hover:bg-muted/50 transition-all duration-200 hover:scale-105 w-full text-left"
-                      >
-                        <Shield className="w-5 h-5 text-primary" />
-                        <span className="font-medium">ATS Checker</span>
-                      </button>
-                    </SheetClose>
-                  </div>
-                </div>
-                
+              <nav className="flex flex-col space-y-2">
                 <SheetClose asChild>
-                  <a 
-                    href="#how-it-works"
-                    className="flex items-center gap-3 p-3 rounded-xl hover:bg-muted/50 transition-all duration-200 hover:scale-105"
+                  <Link
+                    to="/job-finder"
+                    className="flex items-center gap-3 py-3 px-5 rounded-xl hover:bg-muted/50 transition transform hover:scale-105 duration-200"
                   >
-                    <span className="font-medium">How It Works</span>
-                  </a>
+                    <Briefcase className="w-5 h-5 text-primary" />
+                    Job Finder
+                  </Link>
                 </SheetClose>
-                
                 <SheetClose asChild>
-                  <a 
-                    href="#pricing"
-                    className="flex items-center gap-3 p-3 rounded-xl hover:bg-muted/50 transition-all duration-200 hover:scale-105"
+                  <Link
+                    to="/pricing"
+                    className="flex items-center gap-3 py-3 px-5 rounded-xl hover:bg-muted/50 transition transform hover:scale-105 duration-200"
                   >
-                    <span className="font-medium">Pricing</span>
-                  </a>
+                    <CreditCard className="w-5 h-5 text-primary" />
+                    Pricing
+                  </Link>
                 </SheetClose>
-                
                 <SheetClose asChild>
-                  <button
-                    onClick={() => handleProtectedNavigation('/ats-checker')}
-                    className="flex items-center gap-3 p-3 rounded-xl hover:bg-muted/50 transition-all duration-200 hover:scale-105 w-full text-left"
+                  <Link
+                    to="/auth?mode=signup"
+                    className="flex items-center gap-3 py-3 px-5 rounded-xl hover:bg-muted/50 transition transform hover:scale-105 duration-200"
                   >
-                    <Star className="w-5 h-5 text-primary" />
-                    <span className="font-medium">Reviews</span>
-                  </button>
+                    <User className="w-5 h-5 text-primary" />
+                    Sign Up
+                  </Link>
                 </SheetClose>
-              </div>
+                <SheetClose asChild>
+                  <Link
+                    to="/auth"
+                    className="flex items-center gap-3 py-3 px-5 rounded-xl hover:bg-muted/50 transition transform hover:scale-105 duration-200"
+                  >
+                    <User className="w-5 h-5 text-primary" />
+                    Log in
+                  </Link>
+                </SheetClose>
+              </nav>
             </SheetContent>
           </Sheet>
-
-          {/* Auth Buttons */}
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={handleAuthAction}
-            className="hover:scale-105 transition-all duration-200 hover:bg-muted/50 text-xs sm:text-sm px-2 sm:px-4"
-          >
-            Log in
-          </Button>
-          <Button 
-            size="sm" 
-            onClick={handleSignUp}
-            className="bg-primary hover:bg-primary/90 text-primary-foreground hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl text-xs sm:text-sm px-2 sm:px-4"
-          >
-            Sign up
-          </Button>
         </div>
       </div>
     </header>
