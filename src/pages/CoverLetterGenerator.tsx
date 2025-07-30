@@ -1017,7 +1017,8 @@ Requirements:
                     transition={{ duration: 0.3 }}
                     layout
                   >
-                    <Card className="bg-gradient-to-r from-green-50/50 to-blue-50/50 dark:from-green-900/20 dark:to-blue-900/20 border border-green-200 dark:border-green-800">
+                    <Card className="bg-gradient-to-r from-slate-800/90 to-slate-700/90 dark:from-slate-800/95 dark:to-slate-700/95 border border-slate-600/50 dark:border-slate-500/60
+">
                       <CardContent className="p-6">
                         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                           <div className="flex-1 min-w-0">

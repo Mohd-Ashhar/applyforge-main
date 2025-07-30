@@ -1,9 +1,9 @@
-import React from "react";
+import React, { memo, useMemo, useState, useRef, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Star, Quote } from "lucide-react";
 import { motion } from "framer-motion";
 
-const testimonials = [
+const TESTIMONIALS = [
   {
     name: "Sarah Chen",
     role: "Software Engineer",
@@ -11,7 +11,7 @@ const testimonials = [
     avatar:
       "https://images.unsplash.com/photo-1494790108755-2616b612b786?w=64&h=64&fit=crop&crop=face",
     content:
-      "AppForge helped me land my dream job at Google! The ATS checker showed exactly what recruiters were looking for, and the tailored resume got me 5x more interviews.",
+      "ApplyForge helped me land my dream job at Google! The ATS checker showed exactly what recruiters were looking for, and the tailored resume got me 5x more interviews.",
     rating: 5,
   },
   {
@@ -31,7 +31,7 @@ const testimonials = [
     avatar:
       "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=64&h=64&fit=crop&crop=face",
     content:
-      "I was struggling with ATS systems until I found AppForge. My resume went from 2% to 89% ATS compatibility. Got hired within 2 weeks!",
+      "I was struggling with ATS systems until I found ApplyForge. My resume went from 2% to 89% ATS compatibility. Got hired within 2 weeks!",
     rating: 5,
   },
   {
@@ -51,7 +51,7 @@ const testimonials = [
     avatar:
       "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=64&h=64&fit=crop&crop=face",
     content:
-      "As someone changing careers, AppForge made it easy to highlight transferable skills. The AI understood exactly how to position my experience.",
+      "As someone changing careers, ApplyForge made it easy to highlight transferable skills. The AI understood exactly how to position my experience.",
     rating: 5,
   },
   {
@@ -64,176 +64,270 @@ const testimonials = [
       "The Pro plan paid for itself after my first job switch. The salary increase from landing a better position was 10x the subscription cost.",
     rating: 5,
   },
-];
+] as const;
 
-const trustedCompanies = [
+// **Reduced to 5 companies - more realistic for a new SaaS**
+const TRUSTED_COMPANIES = [
   "Google",
   "Microsoft",
-  "Meta",
+  "Shopify",
+  "Figma",
   "Amazon",
-  "Apple",
-  "Netflix",
-  "Uber",
-  "Airbnb",
-  "Spotify",
-  "Adobe",
-];
+] as const;
 
 // Animation variants
-const fadeStagger = {
+const containerVariants = {
+  hidden: { opacity: 0 },
   visible: {
-    transition: { staggerChildren: 0.14 },
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1,
+      delayChildren: 0.1,
+    },
   },
 };
 
 const cardVariants = {
-  hidden: { opacity: 0, y: 32 },
-  visible: { opacity: 1, y: 0, transition: { type: "spring", duration: 0.7 } },
+  hidden: { opacity: 0, y: 20 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.5, ease: "easeOut" },
+  },
 };
 
-const Testimonials = () => {
-  return (
-    <section id="testimonials" className="relative py-24 bg-background">
-      {/* Soft background glows for premium feel */}
-      <span className="pointer-events-none absolute left-[-80px] top-10 w-96 h-72 bg-blue-600/15 rounded-full blur-3xl" />
-      <span className="pointer-events-none absolute right-[-50px] bottom-0 w-80 h-44 bg-purple-800/10 rounded-full blur-2xl" />
+// Star Rating Component
+const StarRating = memo(({ rating }: { rating: number }) => (
+  <div className="flex items-center mb-4">
+    {[...Array(rating)].map((_, i) => (
+      <Star key={i} className="w-4 h-4 text-yellow-400 fill-current" />
+    ))}
+  </div>
+));
+StarRating.displayName = "StarRating";
 
-      <div className="container mx-auto px-5 sm:px-10 relative z-10">
+// Enhanced Testimonial Card
+const TestimonialCard = memo(
+  ({
+    testimonial,
+    isMobile = false,
+  }: {
+    testimonial: (typeof TESTIMONIALS)[0];
+    isMobile?: boolean;
+  }) => (
+    <motion.div
+      variants={cardVariants}
+      className={`group ${isMobile ? "w-[85vw] max-w-sm shrink-0" : ""}`}
+      whileHover={
+        !isMobile
+          ? {
+              y: -6,
+              transition: { type: "spring", stiffness: 400, damping: 25 },
+            }
+          : undefined
+      }
+    >
+      <Card className="h-full bg-background/85 backdrop-blur border border-white/10 rounded-2xl p-5 md:p-6 flex flex-col hover:shadow-xl hover:shadow-blue-500/10 hover:border-blue-400/30 transition-all duration-300">
+        {/* Quote Icon */}
+        <Quote className="w-6 h-6 text-blue-400/60 mb-3 shrink-0" />
+
+        {/* Rating */}
+        <StarRating rating={testimonial.rating} />
+
+        {/* Content */}
+        <blockquote className="text-muted-foreground mb-6 leading-relaxed text-sm md:text-base flex-1 line-clamp-4">
+          "{testimonial.content}"
+        </blockquote>
+
+        {/* Author */}
+        <footer className="flex items-center gap-3 mt-auto pt-2 border-t border-white/5">
+          <img
+            src={testimonial.avatar}
+            alt={`${testimonial.name} profile picture`}
+            className="w-10 h-10 md:w-12 md:h-12 rounded-full object-cover border-2 border-white/10 shadow-sm"
+            loading="lazy"
+          />
+          <div className="min-w-0">
+            <cite className="font-semibold text-white text-sm md:text-base not-italic block">
+              {testimonial.name}
+            </cite>
+            <p className="text-xs md:text-sm text-muted-foreground">
+              {testimonial.role} at{" "}
+              <span className="text-blue-400">{testimonial.company}</span>
+            </p>
+          </div>
+        </footer>
+      </Card>
+    </motion.div>
+  )
+);
+TestimonialCard.displayName = "TestimonialCard";
+
+// **Clean Mobile Carousel - NO BLUE DOTS**
+const MobileCarousel = memo(
+  ({ testimonials }: { testimonials: typeof TESTIMONIALS }) => {
+    const scrollRef = useRef<HTMLDivElement>(null);
+    const [currentIndex, setCurrentIndex] = useState(0);
+
+    // Auto-scroll functionality
+    useEffect(() => {
+      const interval = setInterval(() => {
+        if (scrollRef.current) {
+          const { scrollLeft, scrollWidth, clientWidth } = scrollRef.current;
+          const maxScroll = scrollWidth - clientWidth;
+          const cardWidth = window.innerWidth * 0.85 + 16; // 85vw + gap
+
+          if (scrollLeft >= maxScroll - 10) {
+            scrollRef.current.scrollTo({ left: 0, behavior: "smooth" });
+            setCurrentIndex(0);
+          } else {
+            const nextScroll = scrollLeft + cardWidth;
+            scrollRef.current.scrollTo({
+              left: nextScroll,
+              behavior: "smooth",
+            });
+            setCurrentIndex(
+              Math.min(
+                testimonials.length - 1,
+                Math.round(nextScroll / cardWidth)
+              )
+            );
+          }
+        }
+      }, 5000);
+
+      return () => clearInterval(interval);
+    }, [testimonials.length]);
+
+    const handleScroll = () => {
+      if (scrollRef.current) {
+        const cardWidth = window.innerWidth * 0.85 + 16;
+        const newIndex = Math.round(scrollRef.current.scrollLeft / cardWidth);
+        setCurrentIndex(newIndex);
+      }
+    };
+
+    return (
+      <div className="relative">
+        {/* **REMOVED: Blue cylindrical dots section completely** */}
+
+        {/* Clean Scrollable Container */}
+        <div
+          ref={scrollRef}
+          onScroll={handleScroll}
+          className="flex gap-4 overflow-x-auto scrollbar-hide snap-x snap-mandatory pb-4 px-4"
+          style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+        >
+          {testimonials.map((testimonial) => (
+            <div key={testimonial.name} className="snap-start">
+              <TestimonialCard testimonial={testimonial} isMobile={true} />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+);
+MobileCarousel.displayName = "MobileCarousel";
+
+// **Enhanced Trust Badges - Fewer Companies, Better Layout**
+const TrustBadges = memo(() => (
+  <motion.div
+    initial={{ opacity: 0, y: 20 }}
+    whileInView={{ opacity: 1, y: 0 }}
+    transition={{ duration: 0.6, ease: "easeOut" }}
+    viewport={{ once: true }}
+    className="mt-16 md:mt-20"
+  >
+    <div className="text-center mb-8">
+      <h3 className="text-lg md:text-xl font-semibold mb-2 text-white">
+        Trusted by Professionals at
+      </h3>
+    </div>
+
+    {/* **Single row layout for 5 companies - looks more balanced** */}
+    <div className="flex flex-wrap justify-center items-center gap-4 md:gap-8">
+      {TRUSTED_COMPANIES.map((company) => (
+        <div
+          key={company}
+          className="text-center px-4 py-3 rounded-lg bg-background/30 border border-white/5 hover:border-white/10 transition-all duration-300"
+        >
+          <span className="text-sm md:text-base font-medium text-muted-foreground hover:text-blue-400/90 transition-colors cursor-default whitespace-nowrap">
+            {company}
+          </span>
+        </div>
+      ))}
+    </div>
+  </motion.div>
+));
+TrustBadges.displayName = "TrustBadges";
+
+const Testimonials = memo(() => {
+  const testimonialsList = useMemo(() => TESTIMONIALS, []);
+
+  return (
+    <section
+      id="testimonials"
+      className="relative py-20 md:py-24 bg-gradient-to-br from-background via-slate-900/40 to-background overflow-hidden"
+    >
+      {/* Background Effects */}
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute left-[-80px] top-10 w-96 h-72 bg-blue-600/10 rounded-full blur-3xl" />
+        <div className="absolute right-[-50px] bottom-0 w-80 h-44 bg-purple-600/10 rounded-full blur-2xl" />
+      </div>
+
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         {/* Section Header */}
         <motion.header
-          initial={{ opacity: 0, y: 30 }}
+          initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, type: "spring" }}
+          transition={{ duration: 0.6, ease: "easeOut" }}
           viewport={{ once: true }}
-          className="text-center mb-16"
+          className="text-center mb-12 md:mb-16"
         >
-          <h2 className="text-4xl md:text-5xl font-bold mb-6">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-4 md:mb-6">
             Loved by{" "}
-            <span className="bg-gradient-to-r from-blue-400 via-blue-500 to-appforge-blue bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-blue-400 via-blue-500 to-purple-400 bg-clip-text text-transparent">
               10,000+
             </span>{" "}
             Job Seekers
           </h2>
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            See how AppForge has helped professionals land their dream jobs at
+          <p className="text-sm sm:text-base md:text-lg lg:text-xl text-muted-foreground max-w-2xl mx-auto">
+            See how ApplyForge has helped professionals land their dream jobs at
             top companies
           </p>
         </motion.header>
 
-        {/* Responsive: grid on desktop, swipeable on mobile */}
+        {/* Testimonials Display */}
         <motion.div
-          className="relative"
-          variants={fadeStagger}
+          variants={containerVariants}
           initial="hidden"
           whileInView="visible"
-          viewport={{ once: true, margin: "-120px" }}
+          viewport={{ once: true, margin: "-50px" }}
+          className="relative"
         >
-          {/* Horizontal scroll on mobile */}
-          <div className="md:hidden -mx-4 px-4 overflow-x-auto scroll-snap-x snap-mandatory flex gap-5 pb-3 scrollbar-thin scrollbar-thumb-appforge-blue/60 scrollbar-thumb-rounded">
-            {testimonials.map((item, idx) => (
-              <motion.div
-                key={item.name}
-                variants={cardVariants}
-                className="snap-start flex-shrink-0 w-[320px] transition-shadow duration-200 hover:shadow-xl"
-              >
-                <Card className="h-full glass bg-background/70 backdrop-blur border border-white/10 rounded-2xl group px-5 pt-6 pb-4 flex flex-col min-h-[320px]">
-                  <Quote className="w-8 h-8 text-appforge-blue/40 mb-4" />
-                  <div className="flex items-center mb-3">
-                    {[...Array(item.rating)].map((_, i) => (
-                      <Star
-                        key={i}
-                        className="w-4 h-4 text-yellow-400 fill-current"
-                      />
-                    ))}
-                  </div>
-                  <p className="text-muted-foreground mb-6 leading-relaxed line-clamp-5">
-                    "{item.content}"
-                  </p>
-                  <div className="flex items-center mt-auto space-x-3">
-                    <img
-                      src={item.avatar}
-                      alt={item.name}
-                      className="w-11 h-11 rounded-full object-cover border-2 border-background"
-                    />
-                    <div>
-                      <div className="font-semibold text-white">
-                        {item.name}
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        {item.role} at {item.company}
-                      </div>
-                    </div>
-                  </div>
-                </Card>
-              </motion.div>
-            ))}
+          {/* Mobile: Clean Carousel (No Blue Dots) */}
+          <div className="block md:hidden">
+            <MobileCarousel testimonials={testimonialsList} />
           </div>
 
-          {/* Desktop grid */}
-          <div className="hidden md:grid md:grid-cols-2 lg:grid-cols-3 gap-7">
-            {testimonials.map((item, idx) => (
-              <motion.div key={item.name} variants={cardVariants}>
-                <Card className="glass bg-background/70 backdrop-blur border border-white/10 rounded-2xl group px-7 pt-7 pb-5 flex flex-col min-h-[320px] hover:shadow-lg transition-shadow duration-200">
-                  <Quote className="w-8 h-8 text-appforge-blue/40 mb-4" />
-                  <div className="flex items-center mb-3">
-                    {[...Array(item.rating)].map((_, i) => (
-                      <Star
-                        key={i}
-                        className="w-4 h-4 text-yellow-400 fill-current"
-                      />
-                    ))}
-                  </div>
-                  <p className="text-muted-foreground mb-6 leading-relaxed line-clamp-5">
-                    "{item.content}"
-                  </p>
-                  <div className="flex items-center mt-auto space-x-3">
-                    <img
-                      src={item.avatar}
-                      alt={item.name}
-                      className="w-12 h-12 rounded-full object-cover border-2 border-background"
-                    />
-                    <div>
-                      <div className="font-semibold text-white">
-                        {item.name}
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        {item.role} at {item.company}
-                      </div>
-                    </div>
-                  </div>
-                </Card>
-              </motion.div>
+          {/* Desktop: Grid */}
+          <div className="hidden md:grid md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
+            {testimonialsList.map((testimonial) => (
+              <TestimonialCard
+                key={testimonial.name}
+                testimonial={testimonial}
+              />
             ))}
           </div>
         </motion.div>
 
         {/* Trust Badges */}
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.34, duration: 0.8, type: "spring" }}
-          viewport={{ once: true }}
-          className="mt-16"
-        >
-          <div className="text-center mb-8">
-            <h3 className="text-2xl font-bold mb-3 text-white tracking-tight">
-              Trusted by Professionals at
-            </h3>
-          </div>
-          <div className="flex flex-wrap justify-center items-center gap-6 sm:gap-8 opacity-80">
-            {trustedCompanies.map((company, idx) => (
-              <span
-                key={company}
-                className="text-lg font-medium sm:text-xl tracking-wide px-2 py-1 rounded transition-colors cursor-default hover:text-appforge-blue/90 duration-150 select-none"
-              >
-                {company}
-              </span>
-            ))}
-          </div>
-        </motion.div>
+        <TrustBadges />
       </div>
     </section>
   );
-};
+});
 
+Testimonials.displayName = "Testimonials";
 export default Testimonials;

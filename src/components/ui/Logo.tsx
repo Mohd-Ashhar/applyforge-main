@@ -1,7 +1,6 @@
-
-import React from 'react';
-import { Link } from 'react-router-dom';
-import { Zap } from 'lucide-react';
+import React from "react";
+import { Link } from "react-router-dom";
+import { Zap } from "lucide-react";
 
 interface LogoProps {
   className?: string;
@@ -9,13 +8,15 @@ interface LogoProps {
   linkTo?: string;
 }
 
-const Logo: React.FC<LogoProps> = ({ 
-  className = "", 
-  showTagline = true, 
-  linkTo = "/" 
+const Logo: React.FC<LogoProps> = ({
+  className = "",
+  showTagline = true,
+  linkTo = "/",
 }) => {
   const logoContent = (
-    <div className={`flex items-center space-x-3 group hover:scale-105 transition-all duration-300 ${className}`}>
+    <div
+      className={`flex items-center space-x-3 group hover:scale-105 transition-all duration-300 ${className}`}
+    >
       <div className="relative">
         <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 via-purple-600 to-pink-600 flex items-center justify-center shadow-xl group-hover:shadow-2xl group-hover:shadow-blue-500/30 transition-all duration-300">
           <Zap className="w-6 h-6 text-white" />

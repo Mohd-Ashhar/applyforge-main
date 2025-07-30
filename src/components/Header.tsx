@@ -13,11 +13,10 @@ import {
   Briefcase,
   CheckCircle,
   Menu,
+  Zap,
+  Settings,
   Star,
-  Shield,
-  X,
-  ExternalLink,
-  Share2,
+  DollarSign,
 } from "lucide-react";
 import {
   NavigationMenu,
@@ -64,6 +63,33 @@ const Header = () => {
 
   const handleFeedback = () => {
     navigate("/feedback");
+  };
+
+  // Smooth scroll to section function
+  const scrollToSection = (sectionId: string) => {
+    // First, navigate to home page if we're not there
+    if (window.location.pathname !== "/") {
+      navigate("/");
+      // Wait for navigation to complete, then scroll
+      setTimeout(() => {
+        const element = document.getElementById(sectionId);
+        if (element) {
+          element.scrollIntoView({
+            behavior: "smooth",
+            block: "start",
+          });
+        }
+      }, 100);
+    } else {
+      // If we're already on home page, scroll immediately
+      const element = document.getElementById(sectionId);
+      if (element) {
+        element.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      }
+    }
   };
 
   // Animation variants for fade + scale on menu items
@@ -163,7 +189,7 @@ const Header = () => {
               </span>
             </motion.div>
 
-            {/* Mobile Menu */}
+            {/* Mobile Menu - Only for signed-in users */}
             <Sheet>
               <SheetTrigger asChild>
                 <Button
@@ -248,123 +274,92 @@ const Header = () => {
     );
   }
 
-  // Non-logged-in header with advanced styling and menu
+  // SEO-Optimized non-logged-in header with smooth scrolling for ALL sections
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 shadow-md shadow-background/10">
-      <div className="container mx-auto max-w-full px-6 md:px-12 h-16 flex items-center justify-between gap-6">
+      <div className="container mx-auto max-w-full px-4 md:px-12 h-16 flex items-center justify-between gap-4">
+        {/* Logo */}
         <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.15 }}
+          className="shrink-0"
         >
           <Logo />
         </motion.div>
 
-        <NavigationMenu className="hidden md:flex" aria-label="Main navigation">
+        {/* SEO-Optimized Desktop Navigation with Smooth Scrolling */}
+        <NavigationMenu
+          className="hidden md:flex flex-1 justify-center"
+          aria-label="Main navigation"
+        >
           <NavigationMenuList className="flex space-x-4">
             <NavigationMenuItem>
-              <NavigationMenuLink
-                asChild
-                className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-muted-foreground hover:bg-muted/50 hover:text-primary transition-transform duration-200"
+              <button
+                onClick={() => scrollToSection("features")}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-muted-foreground hover:bg-muted/50 hover:text-primary transition-all duration-200 hover:scale-105"
+                aria-label="ApplyForge Features - AI Resume Optimization"
               >
-                <Link to="/job-finder">Job Finder</Link>
-              </NavigationMenuLink>
+                <Zap className="w-4 h-4" />
+                Features
+              </button>
             </NavigationMenuItem>
             <NavigationMenuItem>
-              <NavigationMenuLink
-                asChild
-                className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-muted-foreground hover:bg-muted/50 hover:text-primary transition-transform duration-200"
+              <button
+                onClick={() => scrollToSection("how-it-works")}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-muted-foreground hover:bg-muted/50 hover:text-primary transition-all duration-200 hover:scale-105"
+                aria-label="How ApplyForge Works - AI Career Process"
               >
-                <Link to="/pricing">Pricing</Link>
-              </NavigationMenuLink>
+                <Settings className="w-4 h-4" />
+                How It Works
+              </button>
             </NavigationMenuItem>
             <NavigationMenuItem>
-              <NavigationMenuLink
-                asChild
-                className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-muted-foreground hover:bg-muted/50 hover:text-primary transition-transform duration-200"
+              <button
+                onClick={() => scrollToSection("testimonials")}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-muted-foreground hover:bg-muted/50 hover:text-primary transition-all duration-200 hover:scale-105"
+                aria-label="ApplyForge Reviews - Customer Success Stories"
               >
-                <Link to="/auth?mode=signup">Sign Up</Link>
-              </NavigationMenuLink>
+                <Star className="w-4 h-4" />
+                Reviews
+              </button>
+            </NavigationMenuItem>
+            <NavigationMenuItem>
+              <button
+                onClick={() => scrollToSection("pricing")}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-muted-foreground hover:bg-muted/50 hover:text-primary transition-all duration-200 hover:scale-105"
+                aria-label="ApplyForge Pricing - AI Career Plans"
+              >
+                <DollarSign className="w-4 h-4" />
+                Pricing
+              </button>
             </NavigationMenuItem>
           </NavigationMenuList>
         </NavigationMenu>
 
-        <div className="flex items-center space-x-3">
+        {/* Auth Buttons - Clean layout for all screen sizes */}
+        <motion.div
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.25 }}
+          className="flex items-center gap-2 md:gap-3 shrink-0"
+        >
           <Button
             variant="ghost"
             size="sm"
             onClick={handleAuthAction}
-            className="hover:scale-105 transition-transform duration-200"
+            className="text-sm font-medium hover:bg-muted/50 hover:scale-105 transition-all duration-200 px-3 md:px-4"
           >
             Log in
           </Button>
           <Button
             size="sm"
-            className="bg-primary hover:bg-primary/90 text-primary-foreground hover:scale-105 transition-transform duration-200 shadow-lg hover:shadow-xl"
+            className="text-sm font-medium bg-primary hover:bg-primary/90 text-primary-foreground hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl px-3 md:px-4"
             onClick={handleSignUp}
           >
             Sign up
           </Button>
-
-          {/* Mobile Menu */}
-          <Sheet>
-            <SheetTrigger asChild>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="md:hidden p-2 hover:scale-105 transition-transform duration-200"
-                aria-label="Open menu"
-              >
-                <Menu className="w-5 h-5" />
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="right" className="w-80 sm:w-96">
-              <SheetHeader className="mb-6">
-                <SheetTitle className="text-xl font-bold gradient-text">
-                  Menu
-                </SheetTitle>
-              </SheetHeader>
-              <nav className="flex flex-col space-y-2">
-                <SheetClose asChild>
-                  <Link
-                    to="/job-finder"
-                    className="flex items-center gap-3 py-3 px-5 rounded-xl hover:bg-muted/50 transition transform hover:scale-105 duration-200"
-                  >
-                    <Briefcase className="w-5 h-5 text-primary" />
-                    Job Finder
-                  </Link>
-                </SheetClose>
-                <SheetClose asChild>
-                  <Link
-                    to="/pricing"
-                    className="flex items-center gap-3 py-3 px-5 rounded-xl hover:bg-muted/50 transition transform hover:scale-105 duration-200"
-                  >
-                    <CreditCard className="w-5 h-5 text-primary" />
-                    Pricing
-                  </Link>
-                </SheetClose>
-                <SheetClose asChild>
-                  <Link
-                    to="/auth?mode=signup"
-                    className="flex items-center gap-3 py-3 px-5 rounded-xl hover:bg-muted/50 transition transform hover:scale-105 duration-200"
-                  >
-                    <User className="w-5 h-5 text-primary" />
-                    Sign Up
-                  </Link>
-                </SheetClose>
-                <SheetClose asChild>
-                  <Link
-                    to="/auth"
-                    className="flex items-center gap-3 py-3 px-5 rounded-xl hover:bg-muted/50 transition transform hover:scale-105 duration-200"
-                  >
-                    <User className="w-5 h-5 text-primary" />
-                    Log in
-                  </Link>
-                </SheetClose>
-              </nav>
-            </SheetContent>
-          </Sheet>
-        </div>
+        </motion.div>
       </div>
     </header>
   );

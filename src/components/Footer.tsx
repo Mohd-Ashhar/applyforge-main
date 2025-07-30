@@ -1,168 +1,261 @@
-import React from "react";
-import { Twitter, Linkedin, Github, Mail } from "lucide-react";
+import React, { memo } from "react";
+import {
+  Twitter,
+  Linkedin,
+  Github,
+  Mail,
+  ExternalLink,
+  ArrowUpRight,
+} from "lucide-react";
+import { motion } from "framer-motion";
 import Logo from "@/components/ui/Logo";
 
-const Footer = () => {
+// Animation variants
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1,
+      delayChildren: 0.1,
+    },
+  },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.5, ease: "easeOut" },
+  },
+};
+
+// Enhanced Social Icon Component
+const SocialIcon = memo(
+  ({
+    Icon,
+    href,
+    label,
+  }: {
+    Icon: React.ElementType;
+    href: string;
+    label: string;
+  }) => (
+    <motion.a
+      href={href}
+      aria-label={label}
+      className="group relative p-2.5 rounded-xl bg-white/5 border border-white/10 hover:border-blue-400/50 transition-all duration-300 hover:bg-blue-500/10"
+      whileHover={{ scale: 1.05, y: -2 }}
+      whileTap={{ scale: 0.95 }}
+      target="_blank"
+      rel="noopener noreferrer"
+    >
+      <Icon className="w-5 h-5 text-muted-foreground group-hover:text-blue-400 transition-colors duration-300" />
+      <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-blue-500/20 to-purple-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 -z-10" />
+    </motion.a>
+  )
+);
+SocialIcon.displayName = "SocialIcon";
+
+// Enhanced Link Component
+const FooterLink = memo(
+  ({
+    href,
+    children,
+    external = false,
+  }: {
+    href: string;
+    children: React.ReactNode;
+    external?: boolean;
+  }) => (
+    <motion.a
+      href={href}
+      className="group flex items-center gap-1 text-muted-foreground hover:text-blue-400 transition-all duration-300 text-sm py-1"
+      whileHover={{ x: 4 }}
+      target={external ? "_blank" : undefined}
+      rel={external ? "noopener noreferrer" : undefined}
+    >
+      <span>{children}</span>
+      {external && (
+        <ArrowUpRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+      )}
+    </motion.a>
+  )
+);
+FooterLink.displayName = "FooterLink";
+
+const Footer = memo(() => {
+  const currentYear = new Date().getFullYear();
+
+  const footerSections = [
+    {
+      title: "Product",
+      links: [
+        { label: "ATS Checker", href: "/ats-checker" },
+        { label: "Resume Tailor", href: "/ai-resume-tailor" },
+        { label: "Cover Letters", href: "/cover-letter-generator" },
+        { label: "Job Finder", href: "/job-finder" },
+        { label: "Templates", href: "/templates" },
+      ],
+    },
+    {
+      title: "Company",
+      links: [
+        { label: "About Us", href: "/about" },
+        { label: "Blog", href: "/blog", external: true },
+        { label: "Careers", href: "/careers" },
+        { label: "Contact", href: "/contact" },
+        { label: "Press Kit", href: "/press", external: true },
+      ],
+    },
+    {
+      title: "Support",
+      links: [
+        { label: "Help Center", href: "/help", external: true },
+        { label: "Community", href: "/community", external: true },
+        { label: "Tutorials", href: "/tutorials", external: true },
+        { label: "API Docs", href: "/docs", external: true },
+        { label: "Status", href: "/status", external: true },
+      ],
+    },
+  ];
+
+  const socialLinks = [
+    { Icon: Twitter, href: "https://twitter.com/applyforge", label: "Twitter" },
+    {
+      Icon: Linkedin,
+      href: "https://linkedin.com/company/applyforge",
+      label: "LinkedIn",
+    },
+    { Icon: Github, href: "https://github.com/applyforge", label: "GitHub" },
+    { Icon: Mail, href: "mailto:hello@applyforge.ai", label: "Email" },
+  ];
+
+  const legalLinks = [
+    { label: "Privacy Policy", href: "/privacy" },
+    { label: "Terms of Service", href: "/terms" },
+    { label: "Cookie Policy", href: "/cookies" },
+  ];
+
   return (
-    <footer className="bg-card/50 border-t border-white/10">
-      <div className="container mx-auto px-4 py-16">
-        <div className="grid md:grid-cols-4 gap-12">
-          {/* Brand */}
-          <div className="space-y-4">
-            <Logo showTagline={true} linkTo="/" />
-            <p className="text-muted-foreground">
-              AI-powered tools that help job seekers land more interviews and
-              get hired faster.
-            </p>
-            <div className="flex space-x-4">
-              <Twitter className="w-5 h-5 text-muted-foreground hover:text-appforge-blue cursor-pointer transition-colors" />
-              <Linkedin className="w-5 h-5 text-muted-foreground hover:text-appforge-blue cursor-pointer transition-colors" />
-              <Github className="w-5 h-5 text-muted-foreground hover:text-appforge-blue cursor-pointer transition-colors" />
-              <Mail className="w-5 h-5 text-muted-foreground hover:text-appforge-blue cursor-pointer transition-colors" />
-            </div>
+    <footer className="relative bg-gradient-to-b from-background via-slate-900/20 to-slate-900/40 border-t border-white/10 overflow-hidden">
+      {/* Background Effects */}
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute left-0 top-0 w-72 h-72 bg-blue-500/5 rounded-full blur-3xl" />
+        <div className="absolute right-0 bottom-0 w-96 h-48 bg-purple-500/5 rounded-full blur-3xl" />
+      </div>
+
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+        <motion.div
+          variants={containerVariants}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: "-50px" }}
+          className="py-16 md:py-20"
+        >
+          {/* Main Footer Content */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8 lg:gap-12">
+            {/* Brand Section - Takes 2 columns on large screens */}
+            <motion.div variants={itemVariants} className="lg:col-span-2">
+              <div className="space-y-6">
+                <Logo showTagline={true} linkTo="/" />
+
+                <p className="text-muted-foreground text-sm md:text-base leading-relaxed max-w-sm">
+                  AI-powered tools that help job seekers land more interviews
+                  and get hired faster. Transform your career today.
+                </p>
+
+                {/* Social Links */}
+                <div className="flex items-center gap-3">
+                  {socialLinks.map((social) => (
+                    <SocialIcon
+                      key={social.label}
+                      Icon={social.Icon}
+                      href={social.href}
+                      label={social.label}
+                    />
+                  ))}
+                </div>
+
+                {/* Newsletter Signup - Mobile Friendly */}
+                <div className="bg-white/5 border border-white/10 rounded-xl p-4 max-w-sm">
+                  <h4 className="font-semibold text-white text-sm mb-2">
+                    Stay Updated
+                  </h4>
+                  <p className="text-xs text-muted-foreground mb-3">
+                    Get job search tips and product updates
+                  </p>
+                  <div className="flex gap-2">
+                    <input
+                      type="email"
+                      placeholder="Enter your email"
+                      className="flex-1 bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-sm text-white placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-400/50"
+                    />
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-300"
+                    >
+                      Subscribe
+                    </motion.button>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+
+            {/* Footer Links */}
+            {footerSections.map((section) => (
+              <motion.div key={section.title} variants={itemVariants}>
+                <h3 className="font-semibold text-white mb-4 text-sm md:text-base">
+                  {section.title}
+                </h3>
+                <div className="space-y-3">
+                  {section.links.map((link) => (
+                    <FooterLink
+                      key={link.label}
+                      href={link.href}
+                      external={link.external}
+                    >
+                      {link.label}
+                    </FooterLink>
+                  ))}
+                </div>
+              </motion.div>
+            ))}
           </div>
 
-          {/* Product */}
-          <div>
-            <h3 className="font-semibold mb-4">Product</h3>
-            <div className="space-y-2">
-              <a
-                href="#"
-                className="block text-muted-foreground hover:text-appforge-blue transition-colors"
-              >
-                ATS Checker
-              </a>
-              <a
-                href="#"
-                className="block text-muted-foreground hover:text-appforge-blue transition-colors"
-              >
-                Resume Tailor
-              </a>
-              <a
-                href="#"
-                className="block text-muted-foreground hover:text-appforge-blue transition-colors"
-              >
-                Cover Letters
-              </a>
-              <a
-                href="#"
-                className="block text-muted-foreground hover:text-appforge-blue transition-colors"
-              >
-                Job Finder
-              </a>
-              <a
-                href="#"
-                className="block text-muted-foreground hover:text-appforge-blue transition-colors"
-              >
-                Templates
-              </a>
-            </div>
-          </div>
+          {/* Bottom Bar */}
+          <motion.div
+            variants={itemVariants}
+            className="mt-16 pt-8 border-t border-white/10"
+          >
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center space-y-4 md:space-y-0">
+              <div className="text-muted-foreground text-sm">
+                © {currentYear} ApplyForge. All rights reserved.
+              </div>
 
-          {/* Company */}
-          <div>
-            <h3 className="font-semibold mb-4">Company</h3>
-            <div className="space-y-2">
-              <a
-                href="#"
-                className="block text-muted-foreground hover:text-appforge-blue transition-colors"
-              >
-                About Us
-              </a>
-              <a
-                href="#"
-                className="block text-muted-foreground hover:text-appforge-blue transition-colors"
-              >
-                Blog
-              </a>
-              <a
-                href="#"
-                className="block text-muted-foreground hover:text-appforge-blue transition-colors"
-              >
-                Careers
-              </a>
-              <a
-                href="#"
-                className="block text-muted-foreground hover:text-appforge-blue transition-colors"
-              >
-                Contact
-              </a>
-              <a
-                href="#"
-                className="block text-muted-foreground hover:text-appforge-blue transition-colors"
-              >
-                Press Kit
-              </a>
+              <div className="flex flex-wrap gap-6 text-sm">
+                {legalLinks.map((link) => (
+                  <FooterLink key={link.label} href={link.href}>
+                    {link.label}
+                  </FooterLink>
+                ))}
+              </div>
             </div>
-          </div>
 
-          {/* Support */}
-          <div>
-            <h3 className="font-semibold mb-4">Support</h3>
-            <div className="space-y-2">
-              <a
-                href="#"
-                className="block text-muted-foreground hover:text-appforge-blue transition-colors"
-              >
-                Help Center
-              </a>
-              <a
-                href="#"
-                className="block text-muted-foreground hover:text-appforge-blue transition-colors"
-              >
-                Community
-              </a>
-              <a
-                href="#"
-                className="block text-muted-foreground hover:text-appforge-blue transition-colors"
-              >
-                Tutorials
-              </a>
-              <a
-                href="#"
-                className="block text-muted-foreground hover:text-appforge-blue transition-colors"
-              >
-                API Docs
-              </a>
-              <a
-                href="#"
-                className="block text-muted-foreground hover:text-appforge-blue transition-colors"
-              >
-                Status
-              </a>
+            {/* Additional Info for Mobile */}
+            <div className="mt-6 pt-6 border-t border-white/5 md:hidden">
+              <p className="text-xs text-muted-foreground text-center">
+                Made with ❤️ for job seekers worldwide
+              </p>
             </div>
-          </div>
-        </div>
-
-        {/* Bottom Bar */}
-        <div className="mt-12 pt-8 border-t border-white/10 flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
-          <div className="text-muted-foreground text-sm">
-            © 2024 ApplyForge. All rights reserved.
-          </div>
-          <div className="flex space-x-6 text-sm">
-            <a
-              href="#"
-              className="text-muted-foreground hover:text-appforge-blue transition-colors"
-            >
-              Privacy Policy
-            </a>
-            <a
-              href="#"
-              className="text-muted-foreground hover:text-appforge-blue transition-colors"
-            >
-              Terms of Service
-            </a>
-            <a
-              href="#"
-              className="text-muted-foreground hover:text-appforge-blue transition-colors"
-            >
-              Cookie Policy
-            </a>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
       </div>
     </footer>
   );
-};
+});
 
+Footer.displayName = "Footer";
 export default Footer;

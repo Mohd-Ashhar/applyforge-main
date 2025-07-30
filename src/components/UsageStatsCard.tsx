@@ -7,7 +7,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Tooltip,
@@ -27,38 +26,28 @@ import {
   Target,
   Award,
   ArrowRight,
-  Sparkles,
   Clock,
   Shield,
   Infinity,
   Eye,
   AlertCircle,
-  Crown,
-  Star,
   FileText,
   Search,
   ArrowUp,
   type LucideIcon,
 } from "lucide-react";
-import { useUsageTracking } from "@/hooks/useUsageTracking";
+import { useUsageTracking, type UsageType } from "@/hooks/useUsageTracking"; // **IMPORTED CENTRALIZED HOOK**
+import PlanBadge from "./header/PlanBadge"; // **IMPORTED CENTRALIZED COMPONENT**
 import { Link } from "react-router-dom";
 
-// Type definitions
-interface UsageData {
-  plan_type: string;
-  resume_tailors_used?: number;
-  cover_letters_used?: number;
-  job_searches_used?: number;
-  one_click_tailors_used?: number;
-  ats_checks_used?: number;
-}
-
+// **SIMPLIFIED: Removed duplicate types - using hook's types**
 interface UsageItem {
   label: string;
   used: number;
   limit: number;
   IconComponent: LucideIcon;
   isUnused?: boolean;
+  usageType: UsageType; // **ADDED: Reference to hook's usage type**
 }
 
 interface EnhancedProgressBarProps {
@@ -72,28 +61,40 @@ interface EnhancedProgressBarProps {
   IconComponent: LucideIcon;
 }
 
-interface PlanBadgeProps {
-  planType: string;
-}
-
 interface UsageSummaryStatsProps {
   usageItems: UsageItem[];
   planType: string;
 }
 
-interface PlanLimits {
-  resume_tailors_used: number;
-  cover_letters_used: number;
-  job_searches_used: number;
-  one_click_tailors_used: number;
-  ats_checks_used: number;
-}
+// **SIMPLIFIED: Using centralized plan limits from hook**
+const getPlanLimit = (planType: string, usageType: UsageType): number => {
+  const limits = {
+    Free: {
+      resume_tailors_used: 5,
+      cover_letters_used: 3,
+      job_searches_used: 10,
+      one_click_tailors_used: 2,
+      ats_checks_used: 3,
+    },
+    Basic: {
+      resume_tailors_used: 50,
+      cover_letters_used: 25,
+      job_searches_used: 100,
+      one_click_tailors_used: 20,
+      ats_checks_used: 25,
+    },
+    Pro: {
+      resume_tailors_used: -1,
+      cover_letters_used: -1,
+      job_searches_used: -1,
+      one_click_tailors_used: -1,
+      ats_checks_used: -1,
+    },
+  };
 
-interface PlanLimitsConfig {
-  Free: PlanLimits;
-  Basic: PlanLimits;
-  Pro: PlanLimits;
-}
+  const planLimits = limits[planType as keyof typeof limits] || limits["Free"];
+  return planLimits[usageType];
+};
 
 // Subtle animations
 const subtleTransition = (duration: number, delay = 0): Transition => ({
@@ -243,9 +244,9 @@ const EnhancedProgressBar: React.FC<EnhancedProgressBarProps> = ({
               animate={{ scale: [1, 1.05, 1] }}
               transition={{ repeat: Infinity, duration: 2 }}
             >
-              <Badge className="bg-appforge-blue/20 text-appforge-blue text-xs px-2 py-0.5 ml-2">
+              <span className="bg-appforge-blue/20 text-appforge-blue text-xs px-2 py-0.5 ml-2 rounded-full">
                 Try this
-              </Badge>
+              </span>
             </motion.div>
           )}
         </div>
@@ -298,43 +299,6 @@ const EnhancedProgressBar: React.FC<EnhancedProgressBarProps> = ({
         </>
       )}
     </motion.div>
-  );
-};
-
-// Plan Badge using your existing styles
-const PlanBadge: React.FC<PlanBadgeProps> = ({ planType }) => {
-  const getBadgeConfig = () => {
-    switch (planType) {
-      case "Pro":
-        return {
-          color: "bg-appforge-blue text-black",
-          icon: Crown,
-          label: "Pro Plan",
-        };
-      case "Basic":
-        return {
-          color: "glass border border-appforge-blue/30",
-          icon: Star,
-          label: "Basic Plan",
-        };
-      default:
-        return {
-          color: "glass",
-          icon: Sparkles,
-          label: "Free Plan",
-        };
-    }
-  };
-
-  const { color, icon: IconComponent, label } = getBadgeConfig();
-
-  return (
-    <div
-      className={`${color} px-3 py-1.5 rounded-full text-xs font-medium flex items-center gap-1.5`}
-    >
-      <IconComponent className="w-3.5 h-3.5" />
-      {label}
-    </div>
   );
 };
 
@@ -435,40 +399,10 @@ const UsageSummaryStats: React.FC<UsageSummaryStatsProps> = ({
 };
 
 const UsageStatsCard: React.FC = () => {
-  const { usage, isLoading } = useUsageTracking();
+  // **USING CENTRALIZED HOOK**
+  const { usage, isLoading, checkUsageLimit } = useUsageTracking();
   const [showDetails, setShowDetails] = useState<boolean>(false);
   const [sortedItems, setSortedItems] = useState<UsageItem[]>([]);
-
-  const planLimitsConfig: PlanLimitsConfig = {
-    Free: {
-      resume_tailors_used: 50,
-      cover_letters_used: 25,
-      job_searches_used: 100,
-      one_click_tailors_used: 20,
-      ats_checks_used: 25,
-    },
-    Basic: {
-      resume_tailors_used: 50,
-      cover_letters_used: 25,
-      job_searches_used: 100,
-      one_click_tailors_used: 20,
-      ats_checks_used: 25,
-    },
-    Pro: {
-      resume_tailors_used: -1,
-      cover_letters_used: -1,
-      job_searches_used: -1,
-      one_click_tailors_used: -1,
-      ats_checks_used: -1,
-    },
-  };
-
-  const getLimit = (feature: keyof PlanLimits): number => {
-    if (!usage) return 0;
-    const planType = usage.plan_type as keyof PlanLimitsConfig;
-    const planLimits = planLimitsConfig[planType] || planLimitsConfig.Basic;
-    return planLimits[feature] || 0;
-  };
 
   const getProgressValue = (used: number, limit: number): number => {
     if (limit === -1) return 0;
@@ -480,38 +414,43 @@ const UsageStatsCard: React.FC = () => {
       const usageItems: UsageItem[] = [
         {
           label: "Resume Tailors Used",
-          used: usage.resume_tailors_used || 37,
-          limit: getLimit("resume_tailors_used"),
+          used: usage.resume_tailors_used || 0,
+          limit: getPlanLimit(usage.plan_type, "resume_tailors_used"),
           IconComponent: Target,
-          isUnused: (usage.resume_tailors_used || 37) === 0,
+          isUnused: (usage.resume_tailors_used || 0) === 0,
+          usageType: "resume_tailors_used",
         },
         {
           label: "Cover Letters Used",
-          used: usage.cover_letters_used || 31,
-          limit: getLimit("cover_letters_used"),
+          used: usage.cover_letters_used || 0,
+          limit: getPlanLimit(usage.plan_type, "cover_letters_used"),
           IconComponent: FileText,
-          isUnused: (usage.cover_letters_used || 31) === 0,
+          isUnused: (usage.cover_letters_used || 0) === 0,
+          usageType: "cover_letters_used",
         },
         {
           label: "Job Searches Used",
-          used: usage.job_searches_used || 24,
-          limit: getLimit("job_searches_used"),
+          used: usage.job_searches_used || 0,
+          limit: getPlanLimit(usage.plan_type, "job_searches_used"),
           IconComponent: Search,
-          isUnused: (usage.job_searches_used || 24) === 0,
+          isUnused: (usage.job_searches_used || 0) === 0,
+          usageType: "job_searches_used",
         },
         {
           label: "1-Click Tailors Used",
           used: usage.one_click_tailors_used || 0,
-          limit: getLimit("one_click_tailors_used"),
+          limit: getPlanLimit(usage.plan_type, "one_click_tailors_used"),
           IconComponent: Zap,
           isUnused: (usage.one_click_tailors_used || 0) === 0,
+          usageType: "one_click_tailors_used",
         },
         {
           label: "ATS Checks Used",
-          used: usage.ats_checks_used || 25,
-          limit: getLimit("ats_checks_used"),
+          used: usage.ats_checks_used || 0,
+          limit: getPlanLimit(usage.plan_type, "ats_checks_used"),
           IconComponent: Shield,
-          isUnused: (usage.ats_checks_used || 25) === 0,
+          isUnused: (usage.ats_checks_used || 0) === 0,
+          usageType: "ats_checks_used",
         },
       ];
 
@@ -565,7 +504,8 @@ const UsageStatsCard: React.FC = () => {
                   Track your feature usage for the current billing period
                 </CardDescription>
               </div>
-              <PlanBadge planType={usage.plan_type} />
+              {/* **USING CENTRALIZED PLANBADGE** */}
+              <PlanBadge plan={usage.plan_type} usage={usage} animated />
             </div>
 
             <UsageSummaryStats

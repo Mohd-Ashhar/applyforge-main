@@ -1,4 +1,4 @@
-import React from "react";
+import React, { memo, useCallback, useRef, useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
 import {
   FileText,
@@ -14,9 +14,10 @@ import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
 
-const features = [
+// Move constants outside component to prevent re-creation
+const FEATURES = [
   {
-    icon: <Target className="w-7 h-7" />,
+    icon: Target,
     iconBg: "from-blue-600/90 to-blue-400/70",
     title: "ATS Resume Checker",
     description:
@@ -31,7 +32,7 @@ const features = [
     implemented: true,
   },
   {
-    icon: <FileText className="w-7 h-7" />,
+    icon: FileText,
     iconBg: "from-blue-500/90 to-indigo-400/70",
     title: "AI Resume Tailor",
     description:
@@ -46,7 +47,7 @@ const features = [
     implemented: true,
   },
   {
-    icon: <Mail className="w-7 h-7" />,
+    icon: Mail,
     iconBg: "from-fuchsia-600/80 to-blue-400/50",
     title: "Cover Letter Generator",
     description:
@@ -61,7 +62,7 @@ const features = [
     implemented: true,
   },
   {
-    icon: <Search className="w-7 h-7" />,
+    icon: Search,
     iconBg: "from-emerald-500/90 to-cyan-400/70",
     title: "Smart Job Finder",
     description:
@@ -76,7 +77,7 @@ const features = [
     implemented: true,
   },
   {
-    icon: <Zap className="w-7 h-7" />,
+    icon: Zap,
     iconBg: "from-yellow-400/80 to-orange-500/60",
     title: "One-Click Tailoring",
     description:
@@ -87,7 +88,7 @@ const features = [
     implemented: true,
   },
   {
-    icon: <Bot className="w-7 h-7" />,
+    icon: Bot,
     iconBg: "from-purple-500/90 to-indigo-600/60",
     title: "Auto-Apply Agent",
     description:
@@ -97,270 +98,369 @@ const features = [
     clickable: true,
     implemented: false,
   },
-];
+] as const;
 
-// Animation variants
-const fadeStagger = {
-  show: {
-    transition: { staggerChildren: 0.115 },
-  },
-};
-
-const cardVariants = {
-  hidden: { opacity: 0, y: 28 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } },
-};
-
-const stats = [
+const STATS = [
   {
     value: "95%",
     label: "ATS Pass Rate",
     from: "from-green-400",
     to: "to-green-500",
-    shadow: "shadow-green-500/20",
   },
   {
     value: "3x",
     label: "More Interviews",
     from: "from-blue-400",
     to: "to-blue-600",
-    shadow: "shadow-blue-500/20",
   },
   {
     value: "10min",
     label: "Avg Setup Time",
     from: "from-purple-400",
     to: "to-pink-500",
-    shadow: "shadow-purple-500/20",
   },
-];
+] as const;
 
-const Features = () => {
+// Simplified animation variants
+const containerVariants = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.05, // Reduced from 0.08
+      delayChildren: 0.05, // Reduced from 0.1
+    },
+  },
+};
+
+const cardVariants = {
+  hidden: { opacity: 0, y: 10 }, // Reduced from y: 15
+  show: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.3, ease: "easeOut" }, // Reduced from 0.4
+  },
+};
+
+// Optimized Feature Card with reduced complexity
+const FeatureCard = memo(
+  ({
+    feature,
+    onFeatureClick,
+    isMobile = false,
+  }: {
+    feature: (typeof FEATURES)[0];
+    onFeatureClick: (path?: string, implemented?: boolean) => void;
+    isMobile?: boolean;
+  }) => {
+    const Icon = feature.icon;
+
+    const handleClick = useCallback(() => {
+      if (feature.clickable) {
+        onFeatureClick(feature.path, feature.implemented);
+      }
+    }, [feature.clickable, feature.path, feature.implemented, onFeatureClick]);
+
+    return (
+      <motion.div
+        variants={cardVariants}
+        whileHover={
+          !isMobile
+            ? { y: -4, transition: { duration: 0.2 } } // Simplified hover animation
+            : undefined
+        }
+        className="group"
+      >
+        <Card
+          className={`relative ${
+            isMobile ? "p-5 w-80" : "p-6 md:p-8"
+          } bg-background/85 backdrop-blur-sm border border-white/10 rounded-2xl transition-all duration-200 hover:border-blue-400/50 hover:shadow-lg ${
+            feature.clickable
+              ? "cursor-pointer active:scale-[0.98]"
+              : "cursor-default"
+          } ${feature.comingSoon ? "ring-1 ring-purple-400/40" : ""} ${
+            isMobile ? "min-h-[350px] shrink-0" : ""
+          }`}
+          onClick={handleClick}
+          tabIndex={feature.clickable ? 0 : -1}
+          role={feature.clickable ? "button" : undefined}
+        >
+          {/* Coming Soon Badge */}
+          {feature.comingSoon && (
+            <div className="absolute top-3 right-3 bg-purple-500 text-white text-xs font-semibold px-2.5 py-1 rounded-full">
+              Coming Soon
+            </div>
+          )}
+
+          {/* Icon */}
+          <div
+            className={`inline-flex ${isMobile ? "p-3" : "p-4 md:p-5"} ${
+              isMobile ? "mb-4" : "mb-6 md:mb-8"
+            } rounded-xl bg-gradient-to-br ${
+              feature.iconBg
+            } text-white transition-transform duration-200 group-hover:scale-105`}
+          >
+            <Icon
+              className={`${isMobile ? "w-5 h-5" : "w-6 h-6 md:w-7 md:h-7"}`}
+            />
+          </div>
+
+          {/* Title */}
+          <h3
+            className={`${
+              isMobile ? "text-lg" : "text-xl md:text-2xl"
+            } font-bold ${isMobile ? "mb-3" : "mb-4 md:mb-5"} leading-tight ${
+              feature.comingSoon ? "text-purple-400" : "text-blue-200"
+            }`}
+          >
+            {feature.title}
+          </h3>
+
+          {/* Description */}
+          <p
+            className={`text-muted-foreground ${
+              isMobile ? "mb-4 text-sm" : "mb-6 md:mb-8 text-sm md:text-base"
+            } leading-relaxed ${isMobile ? "line-clamp-2" : "line-clamp-3"}`}
+          >
+            {feature.description}
+          </p>
+
+          {/* Benefits */}
+          <ul
+            className={`${isMobile ? "space-y-2" : "space-y-2 md:space-y-3"}`}
+          >
+            {feature.benefits.map((benefit) => (
+              <li
+                key={benefit}
+                className={`flex items-center gap-2 ${
+                  isMobile ? "text-sm" : "text-sm md:text-base"
+                } font-medium text-slate-300`}
+              >
+                <CheckCircle
+                  className={`${
+                    isMobile ? "w-4 h-4" : "w-4 h-4 md:w-5 md:h-5"
+                  } text-green-400 shrink-0`}
+                />
+                <span>{benefit}</span>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      </motion.div>
+    );
+  }
+);
+
+FeatureCard.displayName = "FeatureCard";
+
+// Optimized Mobile Carousel with better performance
+const MobileCarousel = memo(
+  ({
+    features,
+    onFeatureClick,
+  }: {
+    features: typeof FEATURES;
+    onFeatureClick: (path?: string, implemented?: boolean) => void;
+  }) => {
+    const scrollRef = useRef<HTMLDivElement>(null);
+    const intervalRef = useRef<NodeJS.Timeout>();
+    const [isUserScrolling, setIsUserScrolling] = useState(false);
+
+    // Optimized auto-scroll with user interaction detection
+    useEffect(() => {
+      const startAutoScroll = () => {
+        intervalRef.current = setInterval(() => {
+          if (!isUserScrolling && scrollRef.current) {
+            const { scrollLeft, scrollWidth, clientWidth } = scrollRef.current;
+            const maxScroll = scrollWidth - clientWidth;
+            const cardWidth = 320 + 16;
+
+            if (scrollLeft >= maxScroll - 10) {
+              scrollRef.current.scrollTo({ left: 0, behavior: "smooth" });
+            } else {
+              const nextScroll = scrollLeft + cardWidth;
+              scrollRef.current.scrollTo({
+                left: nextScroll,
+                behavior: "smooth",
+              });
+            }
+          }
+        }, 4000);
+      };
+
+      startAutoScroll();
+      return () => {
+        if (intervalRef.current) {
+          clearInterval(intervalRef.current);
+        }
+      };
+    }, [isUserScrolling]);
+
+    // Handle user scroll interaction
+    const handleScrollStart = useCallback(() => {
+      setIsUserScrolling(true);
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    }, []);
+
+    const handleScrollEnd = useCallback(() => {
+      const timer = setTimeout(() => setIsUserScrolling(false), 2000);
+      return () => clearTimeout(timer);
+    }, []);
+
+    return (
+      <div className="relative">
+        <div
+          ref={scrollRef}
+          onTouchStart={handleScrollStart}
+          onTouchEnd={handleScrollEnd}
+          onMouseDown={handleScrollStart}
+          onMouseUp={handleScrollEnd}
+          className="flex gap-4 overflow-x-auto scrollbar-hide snap-x snap-mandatory pb-4 px-4"
+          style={{
+            scrollbarWidth: "none",
+            msOverflowStyle: "none",
+          }}
+        >
+          {features.map((feature) => (
+            <div key={feature.title} className="snap-start">
+              <FeatureCard
+                feature={feature}
+                onFeatureClick={onFeatureClick}
+                isMobile={true}
+              />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+);
+
+MobileCarousel.displayName = "MobileCarousel";
+
+// Simplified Stats Component
+const StatsSection = memo(() => (
+  <div className="mt-12 md:mt-20 bg-background/80 backdrop-blur-sm border border-white/10 rounded-xl px-4 md:px-8 py-4 md:py-10">
+    <div className="grid grid-cols-3 gap-4 md:gap-10 text-center">
+      {STATS.map((stat) => (
+        <div key={stat.label} className="flex flex-col items-center">
+          <span
+            className={`mb-1 md:mb-2 text-lg sm:text-xl md:text-3xl lg:text-4xl font-extrabold bg-gradient-to-r ${stat.from} ${stat.to} bg-clip-text text-transparent`}
+          >
+            {stat.value}
+          </span>
+          <span className="text-muted-foreground text-xs sm:text-sm md:text-base font-medium leading-tight">
+            {stat.label}
+          </span>
+        </div>
+      ))}
+    </div>
+  </div>
+));
+
+StatsSection.displayName = "StatsSection";
+
+const Features = memo(() => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const handleFeatureClick = (path?: string, implemented = false) => {
-    if (!user) {
-      navigate("/auth");
-      return;
-    }
-    if (!implemented) {
-      toast({
-        title: "Coming Soon",
-        description:
-          "This feature is currently under development and will be available soon!",
-      });
-      return;
-    }
-    if (path) navigate(path);
-  };
+  const handleFeatureClick = useCallback(
+    (path?: string, implemented = false) => {
+      if (!user) {
+        navigate("/auth");
+        return;
+      }
+
+      if (!implemented) {
+        toast({
+          title: "Coming Soon",
+          description:
+            "This feature is currently under development and will be available soon!",
+          duration: 3000,
+        });
+        return;
+      }
+
+      if (path) {
+        navigate(path);
+      }
+    },
+    [user, navigate, toast]
+  );
 
   return (
     <section
       id="features"
-      className="relative py-24 bg-gradient-to-br from-background via-slate-900/60 to-background"
+      className="relative py-16 md:py-20 bg-gradient-to-br from-background via-slate-900/60 to-background overflow-hidden"
     >
-      {/* Background glows */}
+      {/* Simplified Background Effects */}
       <div className="pointer-events-none absolute inset-0">
-        <div className="absolute top-1/3 left-[8vw] w-52 h-52 bg-blue-500/5 rounded-full blur-3xl" />
-        <div className="absolute right-[10vw] bottom-[7vw] w-60 h-44 bg-purple-500/10 rounded-3xl blur-3xl" />
+        <div className="absolute top-1/3 left-[8vw] w-52 h-52 bg-blue-500/5 rounded-full blur-2xl" />
+        <div className="absolute right-[10vw] bottom-[7vw] w-60 h-44 bg-purple-500/5 rounded-3xl blur-2xl" />
       </div>
 
-      <div className="container mx-auto px-5 sm:px-6 md:px-10 relative z-10">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         {/* Section Header */}
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, type: "spring" }}
-          viewport={{ once: true }}
-          className="text-center max-w-screen-sm mx-auto mb-16"
-        >
-          <h2 className="text-4xl md:text-5xl font-bold mb-5 leading-tight tracking-tight">
+        <div className="text-center max-w-3xl mx-auto mb-12 md:mb-16">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-4 md:mb-6 leading-tight">
             Powerful Features for{" "}
-            <span className="bg-gradient-to-r from-blue-400 via-blue-500 to-purple-400 bg-clip-text text-transparent drop-shadow-lg">
+            <span className="bg-gradient-to-r from-blue-400 via-blue-500 to-purple-400 bg-clip-text text-transparent">
               Job Success
             </span>
           </h2>
-          <p className="text-lg md:text-xl text-muted-foreground mx-auto">
+          <p className="text-sm sm:text-base md:text-lg lg:text-xl text-muted-foreground px-4">
             Everything you need to optimize your job search and land interviews
             faster
           </p>
-        </motion.div>
+        </div>
 
-        {/* Features Grid - mobile: horizontal scroll carousel + desktop grid */}
+        {/* Features Display */}
         <motion.div
-          className="relative"
-          variants={fadeStagger}
+          variants={containerVariants}
           initial="hidden"
           whileInView="show"
-          viewport={{ once: true, margin: "-120px" }}
+          viewport={{ once: true, margin: "-100px" }}
         >
-          {/* Horizontal scroll on mobile */}
-          <div className="md:hidden -mx-4 px-4 overflow-x-auto scroll-snap-x snap-mandatory flex gap-5 scrollbar-thin scrollbar-thumb-appforge-blue scrollbar-thumb-rounded-md">
-            {features.map((feature) => (
-              <motion.div
+          {/* Mobile: Carousel */}
+          <div className="block sm:hidden">
+            <MobileCarousel
+              features={FEATURES}
+              onFeatureClick={handleFeatureClick}
+            />
+          </div>
+
+          {/* Tablet: 2 Column Grid */}
+          <div className="hidden sm:grid md:hidden grid-cols-2 gap-4">
+            {FEATURES.map((feature) => (
+              <FeatureCard
                 key={feature.title}
-                variants={cardVariants}
-                className="snap-start flex-shrink-0 w-80"
-                whileHover={{
-                  y: -8,
-                  boxShadow: "0 12px 36px rgba(80,120,255,0.12)",
-                }}
-                transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                role={feature.clickable ? "button" : undefined}
-                tabIndex={feature.clickable ? 0 : -1}
-                onClick={() =>
-                  feature.clickable &&
-                  handleFeatureClick(feature.path, feature.implemented)
-                }
-              >
-                <Card
-                  className={`p-6 glass border border-white/10 rounded-2xl relative group overflow-hidden ${
-                    feature.comingSoon
-                      ? "ring-2 ring-purple-400/40 ring-inset"
-                      : "hover:border-blue-400"
-                  }`}
-                >
-                  {feature.comingSoon && (
-                    <motion.div
-                      className="absolute top-4 right-4 bg-purple-500 text-white text-xs px-3 py-1 rounded-full drop-shadow-lg"
-                      initial={{ scale: 0.8, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                    >
-                      Coming Soon
-                    </motion.div>
-                  )}
-                  <div
-                    className={`mb-6 p-4 rounded-xl bg-gradient-to-br ${feature.iconBg} shadow-xl text-white group-hover:scale-110 transition-transform duration-300`}
-                  >
-                    {feature.icon}
-                  </div>
-                  <h3
-                    className={`text-2xl font-semibold mb-4 leading-snug ${
-                      feature.comingSoon
-                        ? "text-purple-400 group-hover:text-purple-300"
-                        : "text-blue-200 group-hover:text-blue-400"
-                    } transition-colors`}
-                  >
-                    {feature.title}
-                  </h3>
-                  <p className="text-muted-foreground mb-5 leading-relaxed text-sm">
-                    {feature.description}
-                  </p>
-                  <ul className="space-y-1">
-                    {feature.benefits.map((benefit, idx) => (
-                      <li
-                        key={idx}
-                        className="flex items-center gap-2 text-sm font-medium text-slate-300"
-                      >
-                        <CheckCircle className="w-4 h-4 text-green-400 flex-shrink-0" />
-                        {benefit}
-                      </li>
-                    ))}
-                  </ul>
-                </Card>
-              </motion.div>
+                feature={feature}
+                onFeatureClick={handleFeatureClick}
+              />
             ))}
           </div>
 
-          {/* Desktop grid */}
-          <div className="hidden md:grid md:grid-cols-2 lg:grid-cols-3 gap-10">
-            {features.map((feature, idx) => (
-              <motion.div
+          {/* Desktop: 3 Column Grid */}
+          <div className="hidden md:grid lg:grid-cols-3 md:grid-cols-2 gap-6 lg:gap-8">
+            {FEATURES.map((feature) => (
+              <FeatureCard
                 key={feature.title}
-                variants={cardVariants}
-                whileHover={{
-                  y: -10,
-                  boxShadow: "0 10px 40px rgba(80, 120, 255, 0.12)",
-                }}
-                transition={{ type: "spring", stiffness: 400, damping: 22 }}
-                role={feature.clickable ? "button" : undefined}
-                tabIndex={feature.clickable ? 0 : -1}
-                onClick={() =>
-                  feature.clickable &&
-                  handleFeatureClick(feature.path, feature.implemented)
-                }
-              >
-                <Card
-                  className={`p-8 glass border border-white/10 rounded-2xl relative group overflow-hidden ${
-                    feature.comingSoon
-                      ? "ring-2 ring-purple-400/40 ring-inset"
-                      : "hover:border-blue-400"
-                  }`}
-                >
-                  {feature.comingSoon && (
-                    <motion.div
-                      className="absolute top-5 right-5 bg-purple-500 text-white text-xs font-semibold px-3 py-1 rounded-full drop-shadow"
-                      initial={{ scale: 0.7, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                    >
-                      Coming Soon
-                    </motion.div>
-                  )}
-                  <div
-                    className={`mb-8 p-5 rounded-xl bg-gradient-to-br ${feature.iconBg} shadow-lg text-white group-hover:scale-110 transition-transform duration-300`}
-                  >
-                    {feature.icon}
-                  </div>
-                  <h3
-                    className={`text-2xl font-bold mb-5 leading-snug ${
-                      feature.comingSoon
-                        ? "text-purple-400 group-hover:text-purple-300"
-                        : "text-blue-200 group-hover:text-blue-400"
-                    } transition-colors`}
-                  >
-                    {feature.title}
-                  </h3>
-                  <p className="text-muted-foreground mb-8 leading-relaxed text-base">
-                    {feature.description}
-                  </p>
-                  <div className="space-y-3">
-                    {feature.benefits.map((benefit, idx) => (
-                      <div
-                        key={idx}
-                        className="flex items-center space-x-3 text-base font-semibold text-slate-300"
-                      >
-                        <CheckCircle className="w-5 h-5 text-green-400 flex-shrink-0" />
-                        <span>{benefit}</span>
-                      </div>
-                    ))}
-                  </div>
-                </Card>
-              </motion.div>
+                feature={feature}
+                onFeatureClick={handleFeatureClick}
+              />
             ))}
           </div>
         </motion.div>
 
         {/* Stats Section */}
-        <motion.div
-          initial={{ opacity: 0, y: 24 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.35, duration: 0.6, ease: "easeOut" }}
-          viewport={{ once: true, margin: "-70px" }}
-          className="mt-24 bg-background/80 backdrop-blur-md shadow-2xl glass border border-white/10 rounded-2xl px-7 py-10"
-        >
-          <div className="grid md:grid-cols-3 gap-10 text-center">
-            {stats.map((s) => (
-              <div key={s.label} className="flex flex-col items-center">
-                <span
-                  className={`
-                    mb-2 text-4xl md:text-5xl font-extrabold bg-gradient-to-r ${s.from} ${s.to} bg-clip-text text-transparent
-                    drop-shadow-xl ${s.shadow}
-                  `}
-                >
-                  {s.value}
-                </span>
-                <span className="text-muted-foreground text-base md:text-lg">
-                  {s.label}
-                </span>
-              </div>
-            ))}
-          </div>
-        </motion.div>
+        <StatsSection />
       </div>
     </section>
   );
-};
+});
 
+Features.displayName = "Features";
 export default Features;

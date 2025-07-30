@@ -11,4 +11,8 @@ User-agent: facebookexternalhit
 Allow: /
 
 User-agent: *
+Disallow: /api/
+Disallow: /dashboard/
+Disallow: /login/
+Disallow: /account/
 Allow: /

@@ -12,7 +12,7 @@ const GeoapifyLocationInput = ({
   const [isLoading, setIsLoading] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
-const API_KEY = import.meta.env.VITE_GEOAPIFY_API_KEY;
+  const API_KEY = import.meta.env.VITE_GEOAPIFY_API_KEY;
 
   // Debounced search function
   useEffect(() => {
