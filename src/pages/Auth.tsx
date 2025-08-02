@@ -17,7 +17,7 @@ import {
   CheckCircle,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import Logo from "@/components/ui/Logo"; // Import your Logo component
+import Logo from "@/components/ui/Logo";
 
 // Simple Form Field
 const FormField = memo(
@@ -123,9 +123,10 @@ const Auth = memo(() => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  // **UPDATED: Redirect to dashboard after successful authentication**
   useEffect(() => {
     if (user) {
-      navigate("/");
+      navigate("/"); // This now goes to Dashboard
     }
   }, [user, navigate]);
 
@@ -171,7 +172,7 @@ const Auth = memo(() => {
               title: "Welcome back!",
               description: "You have been signed in successfully.",
             });
-            navigate("/");
+            // **Navigation handled by useEffect above**
           } else {
             toast({
               title: "Sign in failed",
@@ -208,7 +209,7 @@ const Auth = memo(() => {
         setLoading(false);
       }
     },
-    [formData, isLogin, validateForm, signIn, signUp, toast, navigate]
+    [formData, isLogin, validateForm, signIn, signUp, toast]
   );
 
   const handleOAuthSignIn = useCallback(
@@ -228,6 +229,7 @@ const Auth = memo(() => {
             variant: "destructive",
           });
         }
+        // **Navigation handled by useEffect above**
       } catch (error) {
         toast({
           title: "OAuth error",
@@ -250,11 +252,11 @@ const Auth = memo(() => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Enhanced Back Button - Fixed position */}
+      {/* **UPDATED: Back button goes to landing page** */}
       <div className="fixed top-6 left-6 z-10">
         <Button
           variant="ghost"
-          onClick={() => navigate("/")}
+          onClick={() => navigate("/landing")}
           className="text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-all duration-200 rounded-lg px-3 py-2 group"
         >
           <ArrowLeft className="w-4 h-4 mr-2 group-hover:-translate-x-0.5 transition-transform" />
@@ -264,12 +266,12 @@ const Auth = memo(() => {
 
       <div className="min-h-screen flex items-center justify-center p-4 pt-20">
         <div className="w-full max-w-md">
-          {/* Logo - Using your Logo component */}
+          {/* Logo */}
           <div className="flex items-center justify-center mb-8">
             <Logo
-              linkTo={null} // Disable link on auth page
+              linkTo={null}
               showTagline={true}
-              className="pointer-events-none" // Disable interactions on auth page
+              className="pointer-events-none"
             />
           </div>
 
