@@ -49,13 +49,15 @@ import {
   Globe,
   CheckCircle,
   BadgeCheck,
+  TrendingUp,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useUsageTracking } from "@/hooks/useUsageTracking";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import GeoapifyLocationInput from "@/components/Geoapify";
 
-// Create a CSS file approach for Geoapify
+// Enhanced CSS injection for better theming
 const injectGeoapifyStyles = () => {
   const styleId = "geoapify-theme-override";
   let existingStyle = document.getElementById(styleId);
@@ -77,20 +79,19 @@ const injectGeoapifyStyles = () => {
       color: hsl(var(--foreground)) !important;
       border: 1px solid hsl(var(--border)) !important;
       border-radius: calc(var(--radius) - 2px) !important;
-      padding: 8px 12px !important;
+      padding: 6px 12px !important;
       font-size: 14px !important;
-      height: 40px !important;
+      height: 36px !important;
       box-sizing: border-box !important;
     }
     
-    @media (max-width: 768px) {
+    @media (min-width: 768px) {
       .geoapify-autocomplete-input,
       .geoapify-autocomplete-input input,
       [data-geoapify] input,
       .geoapify-location-input input {
-        height: 36px !important;
-        font-size: 14px !important;
-        padding: 6px 12px !important;
+        height: 40px !important;
+        padding: 8px 12px !important;
       }
     }
     
@@ -130,21 +131,21 @@ const injectGeoapifyStyles = () => {
       color: hsl(var(--accent-foreground)) !important;
     }
 
-    /* Custom dropdown button fixes */
+    /* Enhanced custom dropdown button fixes for mobile */
     .custom-multi-select {
       position: relative;
     }
     
     .custom-multi-select-trigger {
       display: flex;
-      min-height: 40px;
+      min-height: 36px;
       width: 100%;
       align-items: center;
       justify-content: space-between;
       border-radius: calc(var(--radius) - 2px);
       border: 1px solid hsl(var(--border));
       background-color: hsl(var(--background));
-      padding: 8px 12px;
+      padding: 6px 10px;
       font-size: 14px;
       line-height: 1.4;
       color: hsl(var(--foreground));
@@ -152,11 +153,10 @@ const injectGeoapifyStyles = () => {
       transition: all 0.2s;
     }
     
-    @media (max-width: 768px) {
+    @media (min-width: 768px) {
       .custom-multi-select-trigger {
-        min-height: 36px;
-        padding: 6px 10px;
-        font-size: 14px;
+        min-height: 40px;
+        padding: 8px 12px;
       }
     }
     
@@ -183,16 +183,16 @@ const injectGeoapifyStyles = () => {
       align-items: center;
       background-color: hsl(var(--primary));
       color: hsl(var(--primary-foreground));
-      padding: 2px 8px;
+      padding: 1px 6px;
       border-radius: calc(var(--radius) - 4px);
-      font-size: 12px;
+      font-size: 11px;
       font-weight: 500;
     }
     
-    @media (max-width: 768px) {
+    @media (min-width: 768px) {
       .custom-multi-select-tag {
-        padding: 1px 6px;
-        font-size: 11px;
+        padding: 2px 8px;
+        font-size: 12px;
       }
     }
     
@@ -324,9 +324,8 @@ const JobFinder = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { checkUsageLimit, refreshUsage } = useUsageTracking();
+  const { refreshUsage } = useUsageTracking();
 
-  // Enhanced styling injection with MutationObserver for dynamic content
   // Enhanced styling injection with MutationObserver for dynamic content
   useEffect(() => {
     // Initial injection
@@ -337,7 +336,7 @@ const JobFinder = () => {
       let shouldReinject = false;
       mutations.forEach((mutation) => {
         mutation.addedNodes.forEach((node) => {
-          // ✅ FIX: Properly type check and cast to Element
+          // Fixed: Properly type check and cast to Element
           if (node.nodeType === Node.ELEMENT_NODE) {
             const element = node as Element; // Cast to Element type
             if (
@@ -414,6 +413,44 @@ const JobFinder = () => {
     });
   };
 
+  // FIXED: Helper function with proper error handling
+  const getCurrentUserVersion = async (userId) => {
+    try {
+      // Check if user_usage record exists first
+      const { data, error } = await supabase
+        .from("user_usage")
+        .select("*") // Select all columns to see what's available
+        .eq("user_id", userId)
+        .single();
+
+      if (error) {
+        console.error("Error getting user usage record:", error);
+
+        // If no record exists, return 0 as default version
+        if (error.code === "PGRST116") {
+          console.log("No user_usage record found, using default version 0");
+          return 0;
+        }
+
+        return 0; // Default version for any error
+      }
+
+      // Check if the version column exists on the returned data
+      if (data && "version" in data && typeof data.version === "number") {
+        return data.version;
+      }
+
+      // If version column doesn't exist, return 0 as default
+      console.log(
+        "Version column not found in user_usage table, using default version 0"
+      );
+      return 0;
+    } catch (error) {
+      console.error("Error in getCurrentUserVersion:", error);
+      return 0;
+    }
+  };
+
   // Load sample data
   const loadSampleData = () => {
     setJobTitle("Senior Software Engineer");
@@ -439,7 +476,7 @@ const JobFinder = () => {
     return Object.values(newValidation).every(Boolean);
   };
 
-  // Completely rewritten MultiSelectDropdown with proper styling
+  // Enhanced MultiSelectDropdown with proper mobile styling
   const MultiSelectDropdown = ({
     options,
     selectedValues,
@@ -564,7 +601,7 @@ const JobFinder = () => {
     );
   };
 
-  // Form submit handler (enhanced)
+  // FIXED: Form submit handler with proper usage limit enforcement
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -577,11 +614,10 @@ const JobFinder = () => {
       return;
     }
 
-    if (checkUsageLimit("job_searches_used")) {
+    if (!user) {
       toast({
-        title: "Usage Limit Reached",
-        description:
-          "You have reached your job search limit for this plan. Please upgrade to continue.",
+        title: "Authentication Required",
+        description: "Please log in to search for jobs.",
         variant: "destructive",
       });
       return;
@@ -592,6 +628,75 @@ const JobFinder = () => {
     simulateLoadingStages();
 
     try {
+      // ✅ CRITICAL FIX: Check usage limits FIRST
+      const currentVersion = await getCurrentUserVersion(user.id);
+
+      const { data: usageData, error: usageError } = await supabase.rpc(
+        "increment_usage_secure",
+        {
+          p_target_user_id: user.id,
+          p_usage_type: "job_searches_used",
+          p_increment_amount: 1,
+          p_current_version: currentVersion,
+          p_audit_metadata: {
+            action: "job_search",
+            job_title: jobTitle,
+            company: company || "any",
+            locations: selectedLocations.map((loc) => loc.name),
+            job_types: jobTypes,
+            work_types: workTypes,
+            experience_level: experienceLevel,
+            posted_at: postedAt || "any_time",
+          },
+        }
+      );
+
+      if (usageError) {
+        // Handle specific limit exceeded error
+        if (usageError.message.includes("Usage limit exceeded")) {
+          toast({
+            title: "Usage Limit Reached 📊",
+            description:
+              "You've reached your job search limit for your current plan. Upgrade to continue searching for unlimited opportunities!",
+            variant: "destructive",
+            action: (
+              <Button
+                size="sm"
+                onClick={() => navigate("/pricing")}
+                className="bg-primary hover:bg-primary/90"
+              >
+                <TrendingUp className="w-4 h-4 mr-1" />
+                Upgrade Plan
+              </Button>
+            ),
+          });
+          return;
+        }
+
+        // Handle version conflict error
+        if (usageError.message.includes("version_conflict")) {
+          toast({
+            title: "Please Try Again",
+            description:
+              "Your usage data was updated by another session. Please try again.",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        // Handle other usage-related errors
+        console.error("Usage increment error:", usageError);
+        toast({
+          title: "Usage Check Failed",
+          description: "Unable to verify your usage limits. Please try again.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // ✅ Only proceed with job search if usage increment succeeded
+      console.log("Usage incremented successfully, proceeding with job search");
+
       const searchParams = {
         jobTitle: jobTitle.trim(),
         company: company.trim() || undefined,
@@ -640,6 +745,7 @@ const JobFinder = () => {
 
       const responseData = await response.json();
 
+      // Check if limit reached (legacy check for API response)
       if (responseData.allowed === false) {
         toast({
           title: "Limit Reached",
@@ -666,10 +772,73 @@ const JobFinder = () => {
       sessionStorage.setItem("jobSearchParams", JSON.stringify(cleanParams));
       navigate("/job-results");
     } catch (error) {
+      console.error("Error searching for jobs:", error);
+
+      // ✅ FIXED: Proper usage limit error handling
+      if (error.message.includes("Usage limit exceeded")) {
+        toast({
+          title: "Usage Limit Reached 📊",
+          description:
+            "You've reached your job search limit for your current plan. Upgrade to continue searching for unlimited opportunities!",
+          variant: "destructive",
+          action: (
+            <Button
+              size="sm"
+              onClick={() => navigate("/pricing")}
+              className="bg-primary hover:bg-primary/90"
+            >
+              <TrendingUp className="w-4 h-4 mr-1" />
+              Upgrade Plan
+            </Button>
+          ),
+        });
+        return; // ✅ Important: Return here to avoid the generic error toast below
+      }
+
+      // Enhanced error handling with specific messages
+      let errorTitle = "Search Failed";
+      let errorDescription = "Failed to search for jobs. Please try again.";
+
+      // ✅ FIXED: More specific error categorization
+      if (
+        error.message.includes("403") ||
+        error.message.includes("Forbidden")
+      ) {
+        errorTitle = "Access Denied";
+        errorDescription =
+          "You don't have permission to use job search with your current plan.";
+      } else if (
+        error.message.includes("401") ||
+        error.message.includes("Unauthorized")
+      ) {
+        errorTitle = "Authentication Error";
+        errorDescription = "Please log in again to continue.";
+      } else if (error.message.includes("version_conflict")) {
+        errorTitle = "Please Try Again";
+        errorDescription =
+          "Your usage data was updated by another session. Please try again.";
+      } else if (
+        error.message.includes("Network") ||
+        error.message.includes("fetch") ||
+        error.message.includes("Failed to fetch")
+      ) {
+        // ✅ FIXED: More specific network error detection
+        errorTitle = "Connection Error";
+        errorDescription =
+          "Please check your internet connection and try again.";
+      } else if (
+        error.message.includes("500") ||
+        error.message.includes("Internal Server Error")
+      ) {
+        errorTitle = "Server Error";
+        errorDescription =
+          "Our servers are experiencing issues. Please try again in a moment.";
+      }
+
+      // ✅ Only show generic error toast for non-usage-limit errors
       toast({
-        title: "Search Failed",
-        description:
-          error.message || "Failed to search for jobs. Please try again.",
+        title: errorTitle,
+        description: errorDescription,
         variant: "destructive",
       });
     } finally {
@@ -733,7 +902,9 @@ const JobFinder = () => {
                 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-3 md:mb-4"
               >
                 Find Your Next{" "}
-                <span className="gradient-text">Opportunity</span>
+                <span className="bg-gradient-to-r from-blue-500 to-purple-600 bg-clip-text text-transparent">
+                  Opportunity
+                </span>
               </motion.h1>
 
               <motion.p
@@ -749,18 +920,18 @@ const JobFinder = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 }}
-                className="flex items-center justify-center gap-6 mt-4 text-sm text-muted-foreground"
+                className="flex flex-col md:flex-row items-center justify-center gap-4 md:gap-6 mt-4 text-sm text-muted-foreground"
               >
                 <div className="flex items-center gap-2">
-                  <Briefcase className="w-4 h-4 text-blue-500" />
+                  <Briefcase className="w-5 h-5 md:w-4 md:h-4 text-blue-500 flex-shrink-0" />
                   <span>1000+ Companies</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Globe className="w-4 h-4 text-green-500" />
+                  <Globe className="w-5 h-5 md:w-4 md:h-4 text-green-500 flex-shrink-0" />
                   <span>Global Opportunities</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <BadgeCheck className="w-4 h-4 text-purple-500" />
+                  <BadgeCheck className="w-5 h-5 md:w-4 md:h-4 text-purple-500 flex-shrink-0" />
                   <span>Verified Listings</span>
                 </div>
               </motion.div>
@@ -776,15 +947,11 @@ const JobFinder = () => {
                   <div className="flex items-start md:items-center justify-between flex-col md:flex-row gap-4">
                     <div>
                       <CardTitle className="flex items-center gap-2 text-lg md:text-xl">
-                        <Briefcase className="h-5 w-5" />
+                        <Briefcase className="h-5 w-5 flex-shrink-0" />
                         Job Search
                       </CardTitle>
-                      <CardDescription className="text-sm md:text-base">
-                        Enter your job preferences to find relevant
-                        opportunities. Only job title is required.
-                      </CardDescription>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-2">
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <Button
@@ -793,7 +960,7 @@ const JobFinder = () => {
                             onClick={loadSampleData}
                             className="text-xs md:text-sm"
                           >
-                            <Sparkles className="w-3 h-3 md:w-4 md:h-4 mr-1 md:mr-2" />
+                            <Sparkles className="w-3 h-3 md:w-4 md:h-4 mr-1 md:mr-2 flex-shrink-0" />
                             Try Example
                           </Button>
                         </TooltipTrigger>
@@ -809,7 +976,7 @@ const JobFinder = () => {
                         onClick={clearAllFilters}
                         className="text-xs md:text-sm"
                       >
-                        <RefreshCw className="w-3 h-3 md:w-4 md:h-4 mr-1 md:mr-2" />
+                        <RefreshCw className="w-3 h-3 md:w-4 md:h-4 mr-1 md:mr-2 flex-shrink-0" />
                         Clear All
                       </Button>
                     </div>
@@ -829,7 +996,7 @@ const JobFinder = () => {
                           Job Title *
                           <Tooltip>
                             <TooltipTrigger>
-                              <Info className="w-4 h-4 text-muted-foreground" />
+                              <Info className="w-4 h-4 text-muted-foreground flex-shrink-0" />
                             </TooltipTrigger>
                             <TooltipContent>
                               <p>
@@ -845,7 +1012,7 @@ const JobFinder = () => {
                             onChange={(e) => setJobTitle(e.target.value)}
                             placeholder="e.g., Software Engineer, Product Manager"
                             required
-                            className={`mt-1 h-10 ${
+                            className={`mt-1 h-9 md:h-10 ${
                               !formValidation.jobTitle
                                 ? "border-destructive"
                                 : ""
@@ -867,7 +1034,7 @@ const JobFinder = () => {
                           Company
                           <Tooltip>
                             <TooltipTrigger>
-                              <Info className="w-4 h-4 text-muted-foreground" />
+                              <Info className="w-4 h-4 text-muted-foreground flex-shrink-0" />
                             </TooltipTrigger>
                             <TooltipContent>
                               <p>Optionally filter by specific company</p>
@@ -875,14 +1042,14 @@ const JobFinder = () => {
                           </Tooltip>
                         </Label>
                         <div className="relative">
-                          <Building className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                          <Building className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4 flex-shrink-0" />
                           <motion.div whileFocus={{ scale: 1.01 }}>
                             <Input
                               id="company"
                               value={company}
                               onChange={(e) => setCompany(e.target.value)}
                               placeholder="e.g., Google, Microsoft"
-                              className="mt-1 pl-10 h-10"
+                              className="mt-1 pl-10 h-9 md:h-10"
                             />
                           </motion.div>
                         </div>
@@ -893,7 +1060,7 @@ const JobFinder = () => {
                           Locations
                           <Tooltip>
                             <TooltipTrigger>
-                              <Info className="w-4 h-4 text-muted-foreground" />
+                              <Info className="w-4 h-4 text-muted-foreground flex-shrink-0" />
                             </TooltipTrigger>
                             <TooltipContent>
                               <p>
@@ -917,7 +1084,7 @@ const JobFinder = () => {
                           Job Type
                           <Tooltip>
                             <TooltipTrigger>
-                              <Info className="w-4 h-4 text-muted-foreground" />
+                              <Info className="w-4 h-4 text-muted-foreground flex-shrink-0" />
                             </TooltipTrigger>
                             <TooltipContent>
                               <p>
@@ -940,7 +1107,7 @@ const JobFinder = () => {
                           Work Type
                           <Tooltip>
                             <TooltipTrigger>
-                              <Info className="w-4 h-4 text-muted-foreground" />
+                              <Info className="w-4 h-4 text-muted-foreground flex-shrink-0" />
                             </TooltipTrigger>
                             <TooltipContent>
                               <p>
@@ -967,7 +1134,7 @@ const JobFinder = () => {
                           Date Posted
                           <Tooltip>
                             <TooltipTrigger>
-                              <Info className="w-4 h-4 text-muted-foreground" />
+                              <Info className="w-4 h-4 text-muted-foreground flex-shrink-0" />
                             </TooltipTrigger>
                             <TooltipContent>
                               <p>Filter by job posting recency</p>
@@ -975,13 +1142,13 @@ const JobFinder = () => {
                           </Tooltip>
                         </Label>
                         <div className="relative">
-                          <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4 z-10" />
+                          <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4 z-10 flex-shrink-0" />
                           <motion.div whileTap={{ scale: 0.98 }}>
                             <Select
                               value={postedAt}
                               onValueChange={setPostedAt}
                             >
-                              <SelectTrigger className="mt-1 pl-10 h-10">
+                              <SelectTrigger className="mt-1 pl-10 h-9 md:h-10">
                                 <SelectValue placeholder="Select time range" />
                               </SelectTrigger>
                               <SelectContent>
@@ -1004,7 +1171,7 @@ const JobFinder = () => {
                           Experience Level
                           <Tooltip>
                             <TooltipTrigger>
-                              <Info className="w-4 h-4 text-muted-foreground" />
+                              <Info className="w-4 h-4 text-muted-foreground flex-shrink-0" />
                             </TooltipTrigger>
                             <TooltipContent>
                               <p>Filter by career level requirements</p>
@@ -1021,6 +1188,7 @@ const JobFinder = () => {
                       </div>
                     </div>
 
+                    {/* Enhanced Search Summary Section - MOBILE OPTIMIZED */}
                     <motion.div
                       className="bg-muted/50 rounded-lg p-3 md:p-4"
                       initial={{ opacity: 0, y: 10 }}
@@ -1028,18 +1196,18 @@ const JobFinder = () => {
                       transition={{ delay: 0.3 }}
                     >
                       <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
-                        <Target className="w-4 h-4 text-blue-500" />
+                        <Target className="w-4 h-4 text-blue-500 flex-shrink-0" />
                         Search Summary:
                       </h4>
                       <div className="text-xs md:text-sm text-muted-foreground space-y-1">
-                        <p>
+                        <p className="break-words">
                           • Job Title:{" "}
                           <span className="font-medium text-foreground">
                             {jobTitle || "Not specified"}
                           </span>
                         </p>
                         {company && (
-                          <p>
+                          <p className="break-words">
                             • Company:{" "}
                             <span className="font-medium text-foreground">
                               {company}
@@ -1047,7 +1215,7 @@ const JobFinder = () => {
                           </p>
                         )}
                         {selectedLocations.length > 0 && (
-                          <p>
+                          <p className="break-words">
                             • Locations:{" "}
                             <span className="font-medium text-foreground">
                               {selectedLocations.map((l) => l.name).join(", ")}
@@ -1055,7 +1223,7 @@ const JobFinder = () => {
                           </p>
                         )}
                         {jobTypes.length > 0 && (
-                          <p>
+                          <p className="break-words">
                             • Job Types:{" "}
                             <span className="font-medium text-foreground">
                               {jobTypes
@@ -1070,7 +1238,7 @@ const JobFinder = () => {
                           </p>
                         )}
                         {workTypes.length > 0 && (
-                          <p>
+                          <p className="break-words">
                             • Work Types:{" "}
                             <span className="font-medium text-foreground">
                               {workTypes
@@ -1085,7 +1253,7 @@ const JobFinder = () => {
                           </p>
                         )}
                         {experienceLevel.length > 0 && (
-                          <p>
+                          <p className="break-words">
                             • Experience:{" "}
                             <span className="font-medium text-foreground">
                               {experienceLevel
@@ -1100,7 +1268,7 @@ const JobFinder = () => {
                           </p>
                         )}
                         {postedAt && (
-                          <p>
+                          <p className="break-words">
                             • Posted:{" "}
                             <span className="font-medium text-foreground">
                               {
@@ -1122,7 +1290,7 @@ const JobFinder = () => {
                         <Button
                           type="submit"
                           disabled={isSearching || !jobTitle.trim()}
-                          className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white h-12 text-lg font-semibold shadow-lg"
+                          className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white h-12 text-lg font-semibold shadow-lg"
                           size="lg"
                         >
                           {isSearching ? (
@@ -1150,18 +1318,19 @@ const JobFinder = () => {
                       </motion.div>
                     </div>
 
+                    {/* Enhanced Trust Indicators - MOBILE OPTIMIZED */}
                     <div className="bg-muted/30 rounded-lg p-4">
-                      <div className="flex items-center justify-center gap-6 text-sm text-muted-foreground">
+                      <div className="flex flex-col md:flex-row items-center justify-center gap-4 md:gap-6 text-sm text-muted-foreground">
                         <div className="flex items-center gap-2">
-                          <Shield className="w-4 h-4 text-green-500" />
+                          <Shield className="w-5 h-5 md:w-4 md:h-4 text-green-500 flex-shrink-0" />
                           <span>Secure Search</span>
                         </div>
                         <div className="flex items-center gap-2">
-                          <Clock className="w-4 h-4 text-blue-500" />
+                          <Clock className="w-5 h-5 md:w-4 md:h-4 text-blue-500 flex-shrink-0" />
                           <span>~15 sec search</span>
                         </div>
                         <div className="flex items-center gap-2">
-                          <Zap className="w-4 h-4 text-purple-500" />
+                          <Zap className="w-5 h-5 md:w-4 md:h-4 text-purple-500 flex-shrink-0" />
                           <span>AI Powered</span>
                         </div>
                       </div>

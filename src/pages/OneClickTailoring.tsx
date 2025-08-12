@@ -1,9 +1,16 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import {
   ArrowLeft,
   FileText,
@@ -16,6 +23,21 @@ import {
   CheckCircle,
   Loader2,
   AlertCircle,
+  Search,
+  RefreshCw,
+  Clock,
+  Users,
+  Target,
+  Zap,
+  Heart,
+  Share2,
+  Trash2,
+  Download,
+  Filter,
+  Plus,
+  Sparkles,
+  TrendingUp,
+  Award,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -44,9 +66,357 @@ interface JobProcessingState {
   applying: Set<string>;
 }
 
+// Enhanced Loading Skeleton
+const LoadingSkeleton = () => (
+  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    {[1, 2, 3, 4, 5, 6].map((index) => (
+      <motion.div
+        key={index}
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: index * 0.1 }}
+        className="glass rounded-xl border border-border/50 shadow-lg"
+      >
+        <div className="p-6 space-y-4">
+          <div className="flex items-center gap-3">
+            <motion.div
+              className="w-12 h-12 bg-muted rounded-xl"
+              animate={{ opacity: [0.5, 1, 0.5] }}
+              transition={{ duration: 1.5, repeat: Infinity }}
+            />
+            <div className="flex-1 space-y-2">
+              <motion.div
+                className="h-4 w-3/4 bg-muted rounded"
+                animate={{ opacity: [0.5, 1, 0.5] }}
+                transition={{ duration: 1.5, repeat: Infinity, delay: 0.2 }}
+              />
+              <motion.div
+                className="h-3 w-1/2 bg-muted rounded"
+                animate={{ opacity: [0.5, 1, 0.5] }}
+                transition={{ duration: 1.5, repeat: Infinity, delay: 0.4 }}
+              />
+            </div>
+          </div>
+          <motion.div
+            className="h-16 w-full bg-muted rounded"
+            animate={{ opacity: [0.5, 1, 0.5] }}
+            transition={{ duration: 1.5, repeat: Infinity, delay: 0.8 }}
+          />
+          <div className="flex gap-2">
+            <motion.div
+              className="h-9 flex-1 bg-muted rounded"
+              animate={{ opacity: [0.5, 1, 0.5] }}
+              transition={{ duration: 1.5, repeat: Infinity, delay: 1 }}
+            />
+            <motion.div
+              className="h-9 w-9 bg-muted rounded"
+              animate={{ opacity: [0.5, 1, 0.5] }}
+              transition={{ duration: 1.5, repeat: Infinity, delay: 1.2 }}
+            />
+          </div>
+        </div>
+      </motion.div>
+    ))}
+  </div>
+);
+
+// Stats Component - Updated with Active Jobs
+const TailoringStats = ({
+  totalJobs,
+  thisWeek,
+  activeJobs,
+  companies,
+}: {
+  totalJobs: number;
+  thisWeek: number;
+  activeJobs: number;
+  companies: number;
+}) => (
+  <motion.div
+    initial={{ opacity: 0, y: 20 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ delay: 0.2 }}
+    className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8"
+  >
+    <Card className="glass border-border/50">
+      <CardContent className="p-4 text-center">
+        <div className="flex items-center justify-center mb-2">
+          <Briefcase className="w-5 h-5 text-blue-500" />
+        </div>
+        <div className="text-2xl font-bold text-blue-600">{totalJobs}</div>
+        <div className="text-xs text-muted-foreground">Total Jobs</div>
+      </CardContent>
+    </Card>
+
+    <Card className="glass border-border/50">
+      <CardContent className="p-4 text-center">
+        <div className="flex items-center justify-center mb-2">
+          <Clock className="w-5 h-5 text-green-500" />
+        </div>
+        <div className="text-2xl font-bold text-green-600">{thisWeek}</div>
+        <div className="text-xs text-muted-foreground">This Week</div>
+      </CardContent>
+    </Card>
+
+    <Card className="glass border-border/50">
+      <CardContent className="p-4 text-center">
+        <div className="flex items-center justify-center mb-2">
+          <TrendingUp className="w-5 h-5 text-orange-500" />
+        </div>
+        <div className="text-2xl font-bold text-orange-600">{activeJobs}</div>
+        <div className="text-xs text-muted-foreground">Active Jobs</div>
+      </CardContent>
+    </Card>
+
+    <Card className="glass border-border/50">
+      <CardContent className="p-4 text-center">
+        <div className="flex items-center justify-center mb-2">
+          <Users className="w-5 h-5 text-purple-500" />
+        </div>
+        <div className="text-2xl font-bold text-purple-600">{companies}</div>
+        <div className="text-xs text-muted-foreground">Companies</div>
+      </CardContent>
+    </Card>
+  </motion.div>
+);
+
+// Enhanced Job Card Component - FIXED BUTTON HOVER STATES
+const TailoringJobCard = ({
+  job,
+  index,
+  processing,
+  onTailorResume,
+  onGenerateCoverLetter,
+  onMarkAsApplied,
+}: {
+  job: SavedJob;
+  index: number;
+  processing: JobProcessingState;
+  onTailorResume: (job: SavedJob) => void;
+  onGenerateCoverLetter: (job: SavedJob) => void;
+  onMarkAsApplied: (jobId: string, checked: boolean) => void;
+}) => {
+  const [isHovered, setIsHovered] = useState(false);
+
+  const getCompanyInitials = (companyName: string) => {
+    return companyName
+      .split(" ")
+      .map((word) => word.charAt(0))
+      .join("")
+      .substring(0, 2)
+      .toUpperCase();
+  };
+
+  const truncateDescription = (
+    description: string,
+    maxLength: number = 120
+  ) => {
+    if (!description) return "";
+    if (description.length <= maxLength) return description;
+    return description.substring(0, maxLength) + "...";
+  };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+    });
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3, delay: index * 0.1 }}
+      whileHover={{ y: -4 }}
+      onHoverStart={() => setIsHovered(true)}
+      onHoverEnd={() => setIsHovered(false)}
+      className="group"
+    >
+      <Card className="glass border-border/50 hover:border-blue-200 dark:hover:border-blue-800 transition-all duration-300 hover:shadow-xl overflow-hidden h-full flex flex-col">
+        <CardHeader className="pb-4">
+          {/* Mark as Applied Checkbox */}
+          <div className="flex items-center gap-3 mb-4">
+            <Checkbox
+              id={`applied-${job.id}`}
+              checked={false}
+              onCheckedChange={(checked) =>
+                checked && onMarkAsApplied(job.id, true)
+              }
+              disabled={processing.applying.has(job.id)}
+              className="flex-shrink-0"
+            />
+            <label
+              htmlFor={`applied-${job.id}`}
+              className="text-sm font-medium cursor-pointer select-none text-muted-foreground"
+            >
+              {processing.applying.has(job.id) ? (
+                <span className="flex items-center gap-2 text-green-600">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Moving to Applied Jobs...
+                </span>
+              ) : (
+                "Mark as Applied"
+              )}
+            </label>
+          </div>
+
+          <div className="flex items-start justify-between">
+            <div className="flex items-center gap-3 flex-1">
+              <motion.div
+                className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500/20 to-purple-500/20 flex items-center justify-center font-semibold text-blue-600"
+                animate={{ rotate: isHovered ? 5 : 0 }}
+                transition={{ duration: 0.2 }}
+              >
+                {getCompanyInitials(job.company_name)}
+              </motion.div>
+              <div className="flex-1 min-w-0">
+                <CardTitle className="text-lg font-semibold truncate group-hover:text-blue-600 transition-colors">
+                  {job.job_title}
+                </CardTitle>
+                <div className="flex items-center gap-2 mt-1">
+                  <Building className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-sm text-muted-foreground font-medium truncate">
+                    {job.company_name}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 mt-4">
+            <MapPin className="w-4 h-4 text-muted-foreground" />
+            <span className="text-sm text-muted-foreground truncate">
+              {job.job_location}
+            </span>
+          </div>
+        </CardHeader>
+
+        <CardContent className="flex-1 flex flex-col justify-between space-y-4 pt-0">
+          {/* Employment Type and Level Tags */}
+          {(job.employment_type || job.seniority_level || job.job_function) && (
+            <div className="flex flex-wrap gap-2">
+              {job.employment_type && (
+                <Badge variant="outline" className="text-xs">
+                  <Briefcase className="w-3 h-3 mr-1" />
+                  {job.employment_type}
+                </Badge>
+              )}
+              {job.seniority_level && (
+                <Badge variant="outline" className="text-xs">
+                  <Target className="w-3 h-3 mr-1" />
+                  {job.seniority_level}
+                </Badge>
+              )}
+              {job.job_function && (
+                <Badge variant="outline" className="text-xs">
+                  {job.job_function}
+                </Badge>
+              )}
+            </div>
+          )}
+
+          {/* Job Description */}
+          {job.job_description && (
+            <div className="space-y-2">
+              <h4 className="font-medium text-sm flex items-center gap-2">
+                <Target className="w-4 h-4 text-purple-500" />
+                Job Description
+              </h4>
+              <div className="p-3 bg-muted/30 rounded-lg border border-border/50">
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  {truncateDescription(job.job_description)}
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Posted Date */}
+          {job.posted_at && (
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <Clock className="w-4 h-4" />
+              <span>Posted {formatDate(job.posted_at)}</span>
+            </div>
+          )}
+
+          {/* Action Buttons - FIXED HOVER STATES ✅ */}
+          <div className="space-y-3 pt-2">
+            <div className="grid grid-cols-2 gap-2">
+              <motion.div
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                <Button
+                  onClick={() => onTailorResume(job)}
+                  disabled={processing.resume.has(job.id)}
+                  variant="outline"
+                  size="sm"
+                  className="w-full border-blue-200 dark:border-blue-700 text-blue-600 hover:bg-blue-600 hover:text-white hover:border-blue-600 transition-all duration-200"
+                >
+                  {processing.resume.has(job.id) ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <FileText className="w-4 h-4 mr-2" />
+                  )}
+                  {processing.resume.has(job.id)
+                    ? "Tailoring..."
+                    : "Tailor Resume"}
+                </Button>
+              </motion.div>
+
+              <motion.div
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                <Button
+                  onClick={() => onGenerateCoverLetter(job)}
+                  disabled={processing.coverLetter.has(job.id)}
+                  variant="outline"
+                  size="sm"
+                  className="w-full border-green-200 dark:border-green-700 text-green-600 hover:bg-green-600 hover:text-white hover:border-green-600 transition-all duration-200"
+                >
+                  {processing.coverLetter.has(job.id) ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <Upload className="w-4 h-4 mr-2" />
+                  )}
+                  {processing.coverLetter.has(job.id)
+                    ? "Generating..."
+                    : "Cover Letter"}
+                </Button>
+              </motion.div>
+            </div>
+
+            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+              <Button
+                asChild
+                className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white"
+                size="sm"
+              >
+                <a
+                  href={job.apply_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center justify-center gap-2"
+                >
+                  <ExternalLink className="w-4 h-4" />
+                  Apply Now
+                </a>
+              </Button>
+            </motion.div>
+          </div>
+        </CardContent>
+      </Card>
+    </motion.div>
+  );
+};
+
 const OneClickTailoring = () => {
   const [savedJobs, setSavedJobs] = useState<SavedJob[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [sortBy, setSortBy] = useState<"date" | "company" | "title">("date");
   const [processing, setProcessing] = useState<JobProcessingState>({
     resume: new Set(),
     coverLetter: new Set(),
@@ -55,6 +425,38 @@ const OneClickTailoring = () => {
   const { toast } = useToast();
   const { user } = useAuth();
   const navigate = useNavigate();
+
+  // ✅ FIXED: Move filtered and sorted jobs BEFORE stats calculation
+  // Filtered and sorted jobs
+  const filteredJobs = savedJobs.filter(
+    (job) =>
+      job.job_title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      job.company_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      job.job_location.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const sortedJobs = [...filteredJobs].sort((a, b) => {
+    switch (sortBy) {
+      case "company":
+        return a.company_name.localeCompare(b.company_name);
+      case "title":
+        return a.job_title.localeCompare(b.job_title);
+      case "date":
+      default:
+        return new Date(b.saved_at).getTime() - new Date(a.saved_at).getTime();
+    }
+  });
+
+  // ✅ Statistics calculations - Updated with Active Jobs
+  const stats = {
+    total: savedJobs.length,
+    thisWeek: savedJobs.filter(
+      (job) =>
+        new Date(job.saved_at) >= new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+    ).length,
+    activeJobs: filteredJobs.length, // ✅ Active jobs = currently visible/filtered jobs
+    companies: new Set(savedJobs.map((job) => job.company_name)).size,
+  };
 
   useEffect(() => {
     if (user) {
@@ -114,7 +516,6 @@ const OneClickTailoring = () => {
       updateProcessingState("applying", jobId, "add");
 
       try {
-        // Add to applied_jobs table with proper data structure
         const { error: insertError } = await supabase
           .from("applied_jobs")
           .insert([
@@ -138,7 +539,6 @@ const OneClickTailoring = () => {
 
         if (insertError) throw insertError;
 
-        // Remove from saved jobs
         const { error: deleteError } = await supabase
           .from("saved_jobs")
           .delete()
@@ -201,7 +601,7 @@ const OneClickTailoring = () => {
           const base64Resume = await processFile(file);
 
           const response = await fetch(
-            "https://primary-production-800d.up.railway.app/webhook-test/tailor-resume",
+            "https://n8n.applyforge.cloud/webhook-test/tailor-resume",
             {
               method: "POST",
               headers: { "Content-Type": "application/json" },
@@ -220,30 +620,32 @@ const OneClickTailoring = () => {
           if (!response.ok)
             throw new Error(`HTTP error! status: ${response.status}`);
 
-          const responseData = await response.json();
+          const iframeHtml = await response.text();
 
-          if (responseData.allowed === false) {
+          if (iframeHtml.includes("allowed") && iframeHtml.includes("false")) {
             toast({
               title: "Limit Reached",
-              description:
-                responseData.message ||
-                "You've reached your limit for this feature.",
+              description: "You've reached your limit for this feature.",
               variant: "destructive",
             });
             return;
           }
 
-          const tailoredResumeUrl = responseData.url || responseData;
+          const pdfUrlMatch = iframeHtml.match(/srcdoc="([^"]+)"/);
+          const tailoredResumeUrl = pdfUrlMatch ? pdfUrlMatch[1] : null;
+
+          if (!tailoredResumeUrl) {
+            throw new Error("Could not extract PDF URL from response");
+          }
 
           if (tailoredResumeUrl) {
-            // Fixed insert call - wrap in array and ensure all required fields
             const { error } = await supabase.from("tailored_resumes").insert([
               {
                 user_id: user.id,
                 job_description:
                   job.job_description ||
                   `Job Title: ${job.job_title}\nCompany: ${job.company_name}`,
-                resume_: tailoredResumeUrl, // Make sure this matches your DB column name
+                resume_: tailoredResumeUrl,
                 title: customFileName,
                 file_type: "pdf",
               },
@@ -251,10 +653,8 @@ const OneClickTailoring = () => {
 
             if (error) {
               console.error("Database insert error:", error);
-              // Continue with download even if DB save fails
             }
 
-            // Download file
             const a = document.createElement("a");
             a.href = tailoredResumeUrl;
             a.download = `${customFileName}.pdf`;
@@ -306,7 +706,7 @@ const OneClickTailoring = () => {
           const base64Resume = await processFile(file);
 
           const response = await fetch(
-            "https://primary-production-800d.up.railway.app/webhook-test/generate-cover-letter",
+            "https://n8n.applyforge.cloud/webhook-test/generate-cover-letter",
             {
               method: "POST",
               headers: { "Content-Type": "application/json" },
@@ -327,23 +727,25 @@ const OneClickTailoring = () => {
           if (!response.ok)
             throw new Error(`HTTP error! status: ${response.status}`);
 
-          const responseData = await response.json();
+          const iframeHtml = await response.text();
 
-          if (responseData.allowed === false) {
+          if (iframeHtml.includes("allowed") && iframeHtml.includes("false")) {
             toast({
               title: "Limit Reached",
-              description:
-                responseData.message ||
-                "You've reached your limit for this feature.",
+              description: "You've reached your limit for this feature.",
               variant: "destructive",
             });
             return;
           }
 
-          const coverLetterUrl = responseData.url || responseData;
+          const pdfUrlMatch = iframeHtml.match(/srcdoc="([^"]+)"/);
+          const coverLetterUrl = pdfUrlMatch ? pdfUrlMatch[1] : null;
+
+          if (!coverLetterUrl) {
+            throw new Error("Could not extract PDF URL from response");
+          }
 
           if (coverLetterUrl) {
-            // Fixed insert call - wrap in array and ensure proper field names
             const { error } = await supabase.from("cover_letters").insert([
               {
                 user_id: user.id,
@@ -360,10 +762,8 @@ const OneClickTailoring = () => {
 
             if (error) {
               console.error("Database insert error:", error);
-              // Continue with download even if DB save fails
             }
 
-            // Download file
             const a = document.createElement("a");
             a.href = coverLetterUrl;
             a.download = `${customFileName}.pdf`;
@@ -395,212 +795,279 @@ const OneClickTailoring = () => {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <Card className="w-full max-w-md">
-          <CardContent className="pt-6 text-center">
-            <AlertCircle className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-            <h3 className="text-lg font-semibold mb-2">
-              Authentication Required
-            </h3>
-            <p className="text-muted-foreground mb-6">
-              Please log in to access one-click tailoring features.
-            </p>
-            <Button onClick={() => navigate("/auth")} className="w-full">
-              Login
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
+      <TooltipProvider>
+        <div className="min-h-screen bg-background flex items-center justify-center p-4">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            <Card className="w-full max-w-md glass border-border/50 shadow-xl">
+              <CardContent className="pt-6 text-center">
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ delay: 0.2 }}
+                  className="mx-auto w-16 h-16 bg-orange-500/20 rounded-full flex items-center justify-center mb-4"
+                >
+                  <Zap className="w-8 h-8 text-orange-500" />
+                </motion.div>
+                <h3 className="text-lg font-semibold mb-2">
+                  Authentication Required
+                </h3>
+                <p className="text-muted-foreground mb-6">
+                  Please log in to access one-click tailoring features.
+                </p>
+                <Button
+                  onClick={() => navigate("/auth")}
+                  className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
+                >
+                  Login to Continue
+                </Button>
+              </CardContent>
+            </Card>
+          </motion.div>
+        </div>
+      </TooltipProvider>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-8 max-w-7xl">
-        <div className="space-y-8">
-          <Button
-            variant="ghost"
-            onClick={() => navigate("/")}
-            className="mb-4 hover:bg-primary/10"
+    <TooltipProvider>
+      <div className="min-h-screen bg-background">
+        <div className="container mx-auto px-4 py-8 max-w-7xl">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.5 }}
+            className="space-y-8"
           >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Home
-          </Button>
+            {/* Header */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mb-8"
+            >
+              <Button
+                variant="ghost"
+                onClick={() => navigate("/")}
+                className="flex items-center gap-2 mb-6 hover:bg-orange-500/10 transition-colors"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                Back to Home
+              </Button>
 
-          <div className="text-center space-y-4">
-            <div className="inline-flex p-4 rounded-2xl bg-green-500/20 text-green-500 mb-6">
-              <Briefcase className="w-12 h-12" />
-            </div>
-            <h1 className="text-4xl md:text-5xl font-bold mb-4">
-              One-Click{" "}
-              <span className="bg-gradient-to-r from-blue-500 to-purple-600 bg-clip-text text-transparent">
-                Tailoring
-              </span>
-            </h1>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Tailor resumes and generate cover letters for your saved jobs
-            </p>
-          </div>
-
-          {isLoading ? (
-            <div className="text-center py-12">
-              <Loader2 className="h-12 w-12 animate-spin mx-auto mb-4 text-primary" />
-              <p className="text-muted-foreground">
-                Loading your saved jobs...
-              </p>
-            </div>
-          ) : savedJobs.length === 0 ? (
-            <Card className="max-w-2xl mx-auto">
-              <CardContent className="text-center py-12 space-y-6">
-                <Building className="h-16 w-16 mx-auto text-muted-foreground" />
-                <div className="space-y-2">
-                  <h3 className="text-2xl font-semibold">No Saved Jobs</h3>
-                  <p className="text-muted-foreground text-lg">
-                    You haven't saved any jobs yet. Start by searching for jobs
-                    and saving the ones you're interested in.
-                  </p>
-                </div>
-                <Button
-                  onClick={() => navigate("/job-finder")}
-                  size="lg"
-                  className="mt-6"
+              <div className="text-center mb-8">
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ delay: 0.2, type: "spring" }}
+                  className="mx-auto w-16 h-16 bg-gradient-to-br from-orange-500/20 to-yellow-500/20 rounded-full flex items-center justify-center mb-4"
                 >
-                  Find Jobs
-                </Button>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-              {savedJobs.map((job) => (
-                <Card
-                  key={job.id}
-                  className="group hover:shadow-lg transition-all duration-200 flex flex-col h-full"
+                  <Zap className="w-8 h-8 text-orange-600" />
+                </motion.div>
+
+                <motion.h1
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3 }}
+                  className="text-4xl md:text-5xl font-bold mb-4"
                 >
-                  <CardHeader className="flex-shrink-0">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-3 mb-3">
-                          <Checkbox
-                            id={`applied-${job.id}`}
-                            checked={false}
-                            onCheckedChange={(checked) =>
-                              checked && handleMarkAsApplied(job.id, true)
-                            }
-                            disabled={processing.applying.has(job.id)}
-                            className="flex-shrink-0"
-                          />
-                          <label
-                            htmlFor={`applied-${job.id}`}
-                            className="text-sm font-medium cursor-pointer select-none"
-                          >
-                            {processing.applying.has(job.id) ? (
-                              <span className="flex items-center gap-2 text-blue-600">
-                                <Loader2 className="w-4 h-4 animate-spin" />
-                                Moving to Applied Jobs...
-                              </span>
-                            ) : (
-                              "Mark as Applied"
-                            )}
-                          </label>
-                        </div>
+                  One-Click{" "}
+                  <span className="bg-gradient-to-r from-blue-500 to-purple-600 bg-clip-text text-transparent">
+                    Tailoring
+                  </span>
+                </motion.h1>
 
-                        <CardTitle className="text-xl mb-3 group-hover:text-primary transition-colors leading-tight">
-                          {job.job_title}
-                        </CardTitle>
+                <motion.p
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.4 }}
+                  className="text-xl text-muted-foreground"
+                >
+                  Tailor resumes and generate cover letters for your saved jobs
+                  in single click
+                </motion.p>
+              </div>
 
-                        <div className="space-y-2 text-muted-foreground">
-                          <div className="flex items-center gap-2">
-                            <Building className="w-4 h-4 flex-shrink-0" />
-                            <span className="font-medium truncate">
-                              {job.company_name}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <MapPin className="w-4 h-4 flex-shrink-0" />
-                            <span className="text-sm truncate">
-                              {job.job_location}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
+              {/* Statistics */}
+              <TailoringStats
+                totalJobs={stats.total}
+                thisWeek={stats.thisWeek}
+                activeJobs={stats.activeJobs}
+                companies={stats.companies}
+              />
 
-                      <Badge variant="secondary" className="flex-shrink-0">
-                        <Calendar className="w-3 h-3 mr-1" />
-                        {new Date(job.saved_at).toLocaleDateString()}
-                      </Badge>
-                    </div>
-                  </CardHeader>
+              {/* Search and Filter Controls */}
+              {savedJobs.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.5 }}
+                  className="flex flex-col sm:flex-row gap-4 mb-6"
+                >
+                  <div className="flex-1 relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <motion.input
+                      whileFocus={{ scale: 1.02 }}
+                      type="text"
+                      placeholder="Search jobs to tailor..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="w-full pl-10 pr-4 py-2 border border-border rounded-lg bg-background/50 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    />
+                  </div>
 
-                  <CardContent className="flex-1 flex flex-col justify-between space-y-4">
-                    <div className="flex flex-wrap gap-2">
-                      {job.seniority_level && (
-                        <Badge variant="outline">{job.seniority_level}</Badge>
-                      )}
-                      {job.employment_type && (
-                        <Badge variant="outline">{job.employment_type}</Badge>
-                      )}
-                    </div>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      onClick={() =>
+                        setSortBy(
+                          sortBy === "date"
+                            ? "company"
+                            : sortBy === "company"
+                            ? "title"
+                            : "date"
+                        )
+                      }
+                      className="flex items-center gap-2"
+                    >
+                      <Filter className="w-4 h-4" />
+                      Sort by{" "}
+                      {sortBy === "date"
+                        ? "Date"
+                        : sortBy === "company"
+                        ? "Company"
+                        : "Title"}
+                    </Button>
 
-                    <div className="space-y-3 pt-2">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
                         <Button
-                          onClick={() => handleTailorResume(job)}
-                          disabled={processing.resume.has(job.id)}
                           variant="outline"
-                          size="sm"
-                          className="border-blue-500 text-blue-500 hover:bg-blue-500 hover:text-white transition-colors"
+                          onClick={fetchSavedJobs}
+                          className="px-3"
                         >
-                          {processing.resume.has(job.id) ? (
-                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                          ) : (
-                            <FileText className="w-4 h-4 mr-2" />
-                          )}
-                          {processing.resume.has(job.id)
-                            ? "Tailoring..."
-                            : "Tailor Resume"}
+                          <RefreshCw className="w-4 h-4" />
                         </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Refresh saved jobs</TooltipContent>
+                    </Tooltip>
+                  </div>
+                </motion.div>
+              )}
+            </motion.div>
 
-                        <Button
-                          onClick={() => handleGenerateCoverLetter(job)}
-                          disabled={processing.coverLetter.has(job.id)}
-                          variant="outline"
-                          size="sm"
-                          className="border-green-500 text-green-500 hover:bg-green-500 hover:text-white transition-colors"
-                        >
-                          {processing.coverLetter.has(job.id) ? (
-                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                          ) : (
-                            <Upload className="w-4 h-4 mr-2" />
-                          )}
-                          {processing.coverLetter.has(job.id)
-                            ? "Generating..."
-                            : "Cover Letter"}
-                        </Button>
-                      </div>
-
-                      <Button
-                        asChild
-                        className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
+            {/* Content */}
+            <AnimatePresence mode="wait">
+              {isLoading ? (
+                <LoadingSkeleton />
+              ) : sortedJobs.length === 0 ? (
+                <motion.div
+                  key="empty"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  className="text-center py-16"
+                >
+                  <Card className="glass border-border/50 shadow-xl max-w-lg mx-auto">
+                    <CardContent className="pt-8 pb-8 text-center">
+                      <motion.div
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        transition={{ delay: 0.2, type: "spring" }}
+                        className="mx-auto w-20 h-20 bg-muted/30 rounded-full flex items-center justify-center mb-6"
                       >
-                        <a
-                          href={job.apply_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center justify-center gap-2"
-                        >
-                          Apply Now
-                          <ExternalLink className="w-4 h-4" />
-                        </a>
-                      </Button>
-                    </div>
+                        <Heart className="w-10 h-10 text-muted-foreground" />
+                      </motion.div>
+
+                      <h3 className="text-2xl font-semibold mb-3">
+                        {searchTerm
+                          ? "No Matching Saved Jobs"
+                          : "No Saved Jobs Yet"}
+                      </h3>
+
+                      <p className="text-muted-foreground mb-6">
+                        {searchTerm
+                          ? `No saved jobs found matching "${searchTerm}". Try a different search term.`
+                          : "You haven't saved any jobs yet. Start by finding and saving jobs you're interested in!"}
+                      </p>
+
+                      <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                        {searchTerm ? (
+                          <Button
+                            variant="outline"
+                            onClick={() => setSearchTerm("")}
+                          >
+                            Clear Search
+                          </Button>
+                        ) : (
+                          <Button
+                            onClick={() => navigate("/job-finder")}
+                            className="bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 text-white"
+                          >
+                            <Search className="w-4 h-4 mr-2" />
+                            Find Jobs to Save
+                          </Button>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="results"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+                >
+                  {sortedJobs.map((job, index) => (
+                    <TailoringJobCard
+                      key={job.id}
+                      job={job}
+                      index={index}
+                      processing={processing}
+                      onTailorResume={handleTailorResume}
+                      onGenerateCoverLetter={handleGenerateCoverLetter}
+                      onMarkAsApplied={handleMarkAsApplied}
+                    />
+                  ))}
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Continue Job Search CTA */}
+            {sortedJobs.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.8 }}
+                className="mt-12 text-center"
+              >
+                <Card className="glass border-border/50 shadow-lg">
+                  <CardContent className="p-8">
+                    <Sparkles className="w-12 h-12 mx-auto mb-4 text-orange-500" />
+                    <h3 className="text-xl font-semibold mb-2">
+                      Ready to tailor more applications?
+                    </h3>
+                    <p className="text-muted-foreground mb-4">
+                      Continue your job search and save more positions to tailor
+                    </p>
+                    <Button
+                      onClick={() => navigate("/job-finder")}
+                      className="bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 text-white"
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      Find More Jobs
+                    </Button>
                   </CardContent>
                 </Card>
-              ))}
-            </div>
-          )}
+              </motion.div>
+            )}
+          </motion.div>
         </div>
       </div>
-    </div>
+    </TooltipProvider>
   );
 };
 

@@ -1,30 +1,28 @@
 import React, { memo, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Play, Star, Shield, Zap, Users } from "lucide-react";
-import { useAuth } from "@/contexts/AuthContext";
+import { ArrowRight, Play, Sparkles, Zap, Bot } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 
 const FEATURES = [
-  { icon: "✨", label: "AI Tailor" },
-  { icon: "🎯", label: "ATS Checker" },
-  { icon: "📝", label: "Cover Letters" },
-  { icon: "🔍", label: "Job Finder" },
+  { icon: "🧠", label: "Resume Optimization Agent" },
+  { icon: "✅", label: "ATS Screening Agent" },
+  { icon: "✍️", label: "Cover Letter Crafting Agent" },
+  { icon: "🔎", label: "Job Discovery Agent" },
 ];
 
 const TRUST_ICONS = [
-  { icon: Shield, label: "Secure", color: "text-green-400" },
-  { icon: Zap, label: "Fast", color: "text-yellow-400" },
-  { icon: Users, label: "10K+ Users", color: "text-blue-400" },
+  { icon: Bot, label: "AI-Powered", color: "text-blue-400" },
+  { icon: Sparkles, label: "Optimized by LLMs", color: "text-purple-400" },
+  { icon: Zap, label: "Blazing Fast", color: "text-yellow-400" },
 ];
 
 const Hero = memo(() => {
-  const { user } = useAuth();
   const navigate = useNavigate();
 
   const handleStart = useCallback(() => {
-    navigate(user ? "/tailored-resumes" : "/auth?mode=signup");
-  }, [user, navigate]);
+    navigate("/tailored-resumes");
+  }, [navigate]);
 
   const handleDemo = useCallback(() => {
     document.getElementById("features")?.scrollIntoView({ behavior: "smooth" });
@@ -45,21 +43,7 @@ const Hero = memo(() => {
         transition={{ duration: 0.6, staggerChildren: 0.1 }}
       >
         {/* Social Proof */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-background/80 backdrop-blur border border-white/20 shadow-lg mb-6"
-        >
-          <div className="flex">
-            {[...Array(5)].map((_, i) => (
-              <Star key={i} className="w-3 h-3 text-yellow-400 fill-current" />
-            ))}
-          </div>
-          <span className="text-xs font-medium text-muted-foreground">
-            Trusted by <span className="text-blue-400 font-semibold">10K+</span>{" "}
-            seekers
-          </span>
-        </motion.div>
+        {/* Will Implement in Future */}
 
         {/* Headline */}
         <motion.h1
@@ -68,11 +52,15 @@ const Hero = memo(() => {
           transition={{ delay: 0.1 }}
           className="font-bold text-3xl sm:text-5xl lg:text-6xl mb-6 leading-tight bg-gradient-to-br from-white to-blue-200 bg-clip-text text-transparent"
         >
-          Land Your Dream Job{" "}
+          Get Interviews{" "}
           <span className="bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-            3x Faster
+            3x
           </span>{" "}
-          with AI
+          Faster with Smart{" "}
+          <span className="bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+            AI-Powered
+          </span>{" "}
+          Tools
         </motion.h1>
 
         {/* Enhanced Subtext */}
@@ -82,12 +70,11 @@ const Hero = memo(() => {
           transition={{ delay: 0.2 }}
           className="text-base sm:text-lg text-muted-foreground mb-8 max-w-2xl mx-auto"
         >
-          AI-powered resume optimization, ATS scoring, and cover letter
-          generation
-          <span className="text-blue-400 font-semibold">
-            {" "}
-            in under a minute
-          </span>
+          Optimize resumes, beat ATS systems, craft cover letters, and find your
+          dream job, all{" "}
+          <span className="bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+            in seconds
+          </span>{" "}
         </motion.p>
 
         {/* Trust Indicators */}
@@ -120,7 +107,7 @@ const Hero = memo(() => {
             onClick={handleStart}
             className="px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-2xl font-bold shadow-xl hover:scale-105 transition-all group"
           >
-            {user ? "Start Optimizing" : "Get Started Free"}
+            Start Optimizing
             <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
           </Button>
 

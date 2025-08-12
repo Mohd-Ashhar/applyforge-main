@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -34,7 +34,6 @@ import {
   Award,
   Users,
   Sparkles,
-  Share2,
   Eye,
   AlertCircle,
   Globe,
@@ -43,9 +42,12 @@ import {
   Link as LinkIcon,
   Star,
   FileText,
+  Heart,
+  Plus,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
 
 interface AppliedJob {
   id: string;
@@ -64,10 +66,10 @@ interface AppliedJob {
   industries: string | null;
 }
 
-// Enhanced Loading Skeleton
+// Enhanced Loading Skeleton - 3-column grid
 const LoadingSkeleton = () => (
-  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-    {[1, 2, 3, 4].map((index) => (
+  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    {[1, 2, 3, 4, 5, 6].map((index) => (
       <motion.div
         key={index}
         initial={{ opacity: 0, y: 20 }}
@@ -76,55 +78,40 @@ const LoadingSkeleton = () => (
         className="glass rounded-xl border border-border/50 shadow-lg"
       >
         <div className="p-6 space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3">
+            <motion.div
+              className="w-12 h-12 bg-muted rounded-xl"
+              animate={{ opacity: [0.5, 1, 0.5] }}
+              transition={{ duration: 1.5, repeat: Infinity }}
+            />
+            <div className="flex-1 space-y-2">
               <motion.div
-                className="w-6 h-6 bg-muted rounded-full"
-                animate={{ opacity: [0.5, 1, 0.5] }}
-                transition={{ duration: 1.5, repeat: Infinity }}
-              />
-              <motion.div
-                className="h-4 w-20 bg-muted rounded"
+                className="h-4 w-3/4 bg-muted rounded"
                 animate={{ opacity: [0.5, 1, 0.5] }}
                 transition={{ duration: 1.5, repeat: Infinity, delay: 0.2 }}
               />
+              <motion.div
+                className="h-3 w-1/2 bg-muted rounded"
+                animate={{ opacity: [0.5, 1, 0.5] }}
+                transition={{ duration: 1.5, repeat: Infinity, delay: 0.4 }}
+              />
             </div>
-            <motion.div
-              className="h-6 w-24 bg-muted rounded-full"
-              animate={{ opacity: [0.5, 1, 0.5] }}
-              transition={{ duration: 1.5, repeat: Infinity, delay: 0.4 }}
-            />
           </div>
-
-          <div className="space-y-2">
-            <motion.div
-              className="h-6 w-3/4 bg-muted rounded"
-              animate={{ opacity: [0.5, 1, 0.5] }}
-              transition={{ duration: 1.5, repeat: Infinity, delay: 0.6 }}
-            />
-            <motion.div
-              className="h-4 w-1/2 bg-muted rounded"
-              animate={{ opacity: [0.5, 1, 0.5] }}
-              transition={{ duration: 1.5, repeat: Infinity, delay: 0.8 }}
-            />
-          </div>
-
           <motion.div
-            className="h-20 w-full bg-muted rounded"
+            className="h-16 w-full bg-muted rounded"
             animate={{ opacity: [0.5, 1, 0.5] }}
-            transition={{ duration: 1.5, repeat: Infinity, delay: 1 }}
+            transition={{ duration: 1.5, repeat: Infinity, delay: 0.8 }}
           />
-
           <div className="flex gap-2">
             <motion.div
               className="h-9 flex-1 bg-muted rounded"
               animate={{ opacity: [0.5, 1, 0.5] }}
-              transition={{ duration: 1.5, repeat: Infinity, delay: 1.2 }}
+              transition={{ duration: 1.5, repeat: Infinity, delay: 1 }}
             />
             <motion.div
-              className="h-9 w-24 bg-muted rounded"
+              className="h-9 w-9 bg-muted rounded"
               animate={{ opacity: [0.5, 1, 0.5] }}
-              transition={{ duration: 1.5, repeat: Infinity, delay: 1.4 }}
+              transition={{ duration: 1.5, repeat: Infinity, delay: 1.2 }}
             />
           </div>
         </div>
@@ -133,7 +120,71 @@ const LoadingSkeleton = () => (
   </div>
 );
 
-// Enhanced Job Application Card
+// Enhanced Status Bar - Matching the attached image design
+const ApplicationStats = ({
+  totalApplications,
+  currentMonth,
+  trackedStatus,
+  activeSearch,
+}: {
+  totalApplications: number;
+  currentMonth: string;
+  trackedStatus: string;
+  activeSearch: string;
+}) => (
+  <motion.div
+    initial={{ opacity: 0, y: 20 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ delay: 0.2 }}
+    className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8"
+  >
+    <Card className="glass border-border/50">
+      <CardContent className="p-4 text-center">
+        <div className="flex items-center justify-center mb-2">
+          <CheckCircle className="w-5 h-5 text-green-500" />
+        </div>
+        <div className="text-2xl font-bold text-green-600">
+          {totalApplications}
+        </div>
+        <div className="text-xs text-muted-foreground">Applications</div>
+      </CardContent>
+    </Card>
+
+    <Card className="glass border-border/50">
+      <CardContent className="p-4 text-center">
+        <div className="flex items-center justify-center mb-2">
+          <TrendingUp className="w-5 h-5 text-blue-500" />
+        </div>
+        <div className="text-2xl font-bold text-blue-600">{currentMonth}</div>
+        <div className="text-xs text-muted-foreground">This Month</div>
+      </CardContent>
+    </Card>
+
+    <Card className="glass border-border/50">
+      <CardContent className="p-4 text-center">
+        <div className="flex items-center justify-center mb-2">
+          <Target className="w-5 h-5 text-purple-500" />
+        </div>
+        <div className="text-2xl font-bold text-purple-600">
+          {trackedStatus}
+        </div>
+        <div className="text-xs text-muted-foreground">Status</div>
+      </CardContent>
+    </Card>
+
+    <Card className="glass border-border/50">
+      <CardContent className="p-4 text-center">
+        <div className="flex items-center justify-center mb-2">
+          <Search className="w-5 h-5 text-orange-500" />
+        </div>
+        <div className="text-2xl font-bold text-orange-600">{activeSearch}</div>
+        <div className="text-xs text-muted-foreground">Search</div>
+      </CardContent>
+    </Card>
+  </motion.div>
+);
+
+// Enhanced Job Application Card - Single View Application button only
 const JobApplicationCard = ({
   job,
   index,
@@ -142,6 +193,7 @@ const JobApplicationCard = ({
   index: number;
 }) => {
   const [isHovered, setIsHovered] = useState(false);
+  const { toast } = useToast();
 
   const formatPostedAt = (posted: string) => {
     if (posted.includes("-") && posted.length === 10) {
@@ -157,7 +209,7 @@ const JobApplicationCard = ({
 
   const truncateDescription = (
     description: string,
-    maxLength: number = 150
+    maxLength: number = 120
   ) => {
     if (!description) return "";
     if (description.length <= maxLength) return description;
@@ -175,25 +227,10 @@ const JobApplicationCard = ({
 
   const formatAppliedDate = (dateString: string) => {
     const date = new Date(dateString);
-    const now = new Date();
-    const diffTime = Math.abs(now.getTime() - date.getTime());
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-    if (diffDays === 1) return "Applied today";
-    if (diffDays <= 7) return `Applied ${diffDays} days ago`;
-    return `Applied ${Math.floor(diffDays / 7)} weeks ago`;
-  };
-
-  const handleShare = () => {
-    if (navigator.share) {
-      navigator.share({
-        title: `${job.job_title} at ${job.company_name}`,
-        text: `Check out this job application: ${job.job_title} at ${job.company_name}`,
-        url: job.apply_url,
-      });
-    } else {
-      navigator.clipboard.writeText(job.apply_url);
-    }
+    return date.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+    });
   };
 
   return (
@@ -206,8 +243,21 @@ const JobApplicationCard = ({
       onHoverEnd={() => setIsHovered(false)}
       className="group"
     >
-      <Card className="glass border-border/50 hover:border-green-200 dark:hover:border-green-800 transition-all duration-300 hover:shadow-xl overflow-hidden">
+      <Card className="glass border-border/50 hover:border-green-200 dark:hover:border-green-800 transition-all duration-300 hover:shadow-xl overflow-hidden h-full flex flex-col">
         <CardHeader className="pb-4">
+          {/* Applied Status Badge */}
+          <div className="flex items-center gap-3 mb-4">
+            <motion.div
+              animate={{ scale: isHovered ? 1.1 : 1 }}
+              transition={{ duration: 0.2 }}
+            >
+              <CheckCircle className="w-5 h-5 text-green-500" />
+            </motion.div>
+            <Badge className="bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400 text-sm">
+              Applied {formatAppliedDate(job.applied_at)}
+            </Badge>
+          </div>
+
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-3 flex-1">
               <motion.div
@@ -218,17 +268,6 @@ const JobApplicationCard = ({
                 {getCompanyInitials(job.company_name)}
               </motion.div>
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-2">
-                  <motion.div
-                    animate={{ scale: isHovered ? 1.1 : 1 }}
-                    transition={{ duration: 0.2 }}
-                  >
-                    <CheckCircle className="w-5 h-5 text-green-500" />
-                  </motion.div>
-                  <Badge className="bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400">
-                    Applied
-                  </Badge>
-                </div>
                 <CardTitle className="text-lg font-semibold truncate group-hover:text-green-600 transition-colors">
                   {job.job_title}
                 </CardTitle>
@@ -237,86 +276,42 @@ const JobApplicationCard = ({
                   <span className="text-sm text-muted-foreground font-medium truncate">
                     {job.company_name}
                   </span>
-                  {job.company_linkedin_url && (
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          asChild
-                          className="p-1 h-auto opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                          <a
-                            href={job.company_linkedin_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                          >
-                            <LinkIcon className="w-3 h-3" />
-                          </a>
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>View company LinkedIn</TooltipContent>
-                    </Tooltip>
-                  )}
                 </div>
               </div>
             </div>
+          </div>
 
-            <div className="flex flex-col items-end gap-2">
-              <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400 text-xs">
-                {formatAppliedDate(job.applied_at)}
-              </Badge>
-              <Tooltip>
-                <TooltipTrigger>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="opacity-0 group-hover:opacity-100 transition-opacity"
-                  >
-                    <MoreVertical className="w-4 h-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>More options</TooltipContent>
-              </Tooltip>
-            </div>
+          <div className="flex items-center gap-2 mt-4">
+            <MapPin className="w-4 h-4 text-muted-foreground" />
+            <span className="text-sm text-muted-foreground truncate">
+              {job.job_location}
+            </span>
           </div>
         </CardHeader>
 
-        <CardContent className="pt-0 space-y-4">
-          {/* Job Details */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="flex items-center gap-2 text-sm">
-              <MapPin className="w-4 h-4 text-muted-foreground" />
-              <span className="truncate">{job.job_location}</span>
+        <CardContent className="flex-1 flex flex-col justify-between space-y-4 pt-0">
+          {/* Employment Type and Level Tags */}
+          {(job.employment_type || job.seniority_level || job.job_function) && (
+            <div className="flex flex-wrap gap-2">
+              {job.employment_type && (
+                <Badge variant="outline" className="text-xs">
+                  <Briefcase className="w-3 h-3 mr-1" />
+                  {job.employment_type}
+                </Badge>
+              )}
+              {job.seniority_level && (
+                <Badge variant="outline" className="text-xs">
+                  <Target className="w-3 h-3 mr-1" />
+                  {job.seniority_level}
+                </Badge>
+              )}
+              {job.job_function && (
+                <Badge variant="outline" className="text-xs">
+                  {job.job_function}
+                </Badge>
+              )}
             </div>
-
-            {job.seniority_level && (
-              <div className="flex items-center gap-2 text-sm">
-                <Target className="w-4 h-4 text-muted-foreground" />
-                <span className="truncate">{job.seniority_level}</span>
-              </div>
-            )}
-          </div>
-
-          {/* Employment Type and Industry Tags */}
-          <div className="flex flex-wrap gap-2">
-            {job.employment_type && (
-              <Badge variant="outline" className="text-xs">
-                <Briefcase className="w-3 h-3 mr-1" />
-                {job.employment_type}
-              </Badge>
-            )}
-            {job.job_function && (
-              <Badge variant="outline" className="text-xs">
-                {job.job_function}
-              </Badge>
-            )}
-            {job.industries && (
-              <Badge variant="outline" className="text-xs">
-                {job.industries}
-              </Badge>
-            )}
-          </div>
+          )}
 
           {/* Job Description */}
           {job.job_description && (
@@ -338,18 +333,16 @@ const JobApplicationCard = ({
           )}
 
           {/* Posted Date */}
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <Clock className="w-4 h-4" />
-            <span>Originally posted {formatPostedAt(job.posted_at)}</span>
-          </div>
+          {job.posted_at && (
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <Clock className="w-4 h-4" />
+              <span>Posted {formatPostedAt(job.posted_at)}</span>
+            </div>
+          )}
 
-          {/* Action Buttons */}
-          <div className="flex gap-2 pt-2">
-            <motion.div
-              className="flex-1"
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-            >
+          {/* Single Action Button - View Application Only */}
+          <div className="space-y-3 pt-2">
+            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
               <Button
                 asChild
                 className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white"
@@ -366,94 +359,7 @@ const JobApplicationCard = ({
                 </a>
               </Button>
             </motion.div>
-
-            {job.job_link && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button asChild variant="outline" size="sm" className="px-3">
-                    <a
-                      href={job.job_link}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      <ExternalLink className="w-4 h-4" />
-                    </a>
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>View original job posting</TooltipContent>
-              </Tooltip>
-            )}
-
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="px-3"
-                  onClick={handleShare}
-                >
-                  <Share2 className="w-4 h-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Share application</TooltipContent>
-            </Tooltip>
           </div>
-        </CardContent>
-      </Card>
-    </motion.div>
-  );
-};
-
-// Stats Component
-const ApplicationStats = ({ jobCount }: { jobCount: number }) => {
-  const currentMonth = new Date().toLocaleDateString("en-US", {
-    month: "long",
-  });
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.2 }}
-      className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8"
-    >
-      <Card className="glass border-border/50">
-        <CardContent className="p-4 text-center">
-          <div className="flex items-center justify-center mb-2">
-            <CheckCircle className="w-5 h-5 text-green-500" />
-          </div>
-          <div className="text-2xl font-bold text-green-600">{jobCount}</div>
-          <div className="text-xs text-muted-foreground">Applications</div>
-        </CardContent>
-      </Card>
-
-      <Card className="glass border-border/50">
-        <CardContent className="p-4 text-center">
-          <div className="flex items-center justify-center mb-2">
-            <TrendingUp className="w-5 h-5 text-blue-500" />
-          </div>
-          <div className="text-2xl font-bold text-blue-600">{currentMonth}</div>
-          <div className="text-xs text-muted-foreground">This Month</div>
-        </CardContent>
-      </Card>
-
-      <Card className="glass border-border/50">
-        <CardContent className="p-4 text-center">
-          <div className="flex items-center justify-center mb-2">
-            <Target className="w-5 h-5 text-purple-500" />
-          </div>
-          <div className="text-2xl font-bold text-purple-600">Tracked</div>
-          <div className="text-xs text-muted-foreground">Status</div>
-        </CardContent>
-      </Card>
-
-      <Card className="glass border-border/50">
-        <CardContent className="p-4 text-center">
-          <div className="flex items-center justify-center mb-2">
-            <Award className="w-5 h-5 text-orange-500" />
-          </div>
-          <div className="text-2xl font-bold text-orange-600">Active</div>
-          <div className="text-xs text-muted-foreground">Search</div>
         </CardContent>
       </Card>
     </motion.div>
@@ -467,6 +373,41 @@ const AppliedJobs: React.FC = () => {
   const [sortBy, setSortBy] = useState<"date" | "company" | "title">("date");
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { toast } = useToast();
+
+  // ✅ FIXED: Move filtered and sorted jobs BEFORE stats calculation
+  // Filtered and sorted jobs
+  const filteredJobs = appliedJobs.filter(
+    (job) =>
+      job.job_title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      job.company_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      job.job_location.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const sortedJobs = [...filteredJobs].sort((a, b) => {
+    switch (sortBy) {
+      case "company":
+        return a.company_name.localeCompare(b.company_name);
+      case "title":
+        return a.job_title.localeCompare(b.job_title);
+      case "date":
+      default:
+        return (
+          new Date(b.applied_at).getTime() - new Date(a.applied_at).getTime()
+        );
+    }
+  });
+
+  // ✅ Enhanced Statistics - Matching the status bar design
+  const currentMonth = new Date().toLocaleDateString("en-US", {
+    month: "long",
+  });
+  const stats = {
+    totalApplications: appliedJobs.length,
+    currentMonth: currentMonth,
+    trackedStatus: "Tracked",
+    activeSearch: "Active",
+  };
 
   useEffect(() => {
     if (user) {
@@ -474,7 +415,7 @@ const AppliedJobs: React.FC = () => {
     }
   }, [user]);
 
-  const fetchAppliedJobs = async () => {
+  const fetchAppliedJobs = useCallback(async () => {
     if (!user?.id) {
       console.error("No user ID available");
       setLoading(false);
@@ -499,31 +440,15 @@ const AppliedJobs: React.FC = () => {
       setAppliedJobs(data || []);
     } catch (error) {
       console.error("Error fetching applied jobs:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load applied jobs. Please try again.",
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
-  };
-
-  const filteredJobs = appliedJobs.filter(
-    (job) =>
-      job.job_title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      job.company_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      job.job_location.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const sortedJobs = [...filteredJobs].sort((a, b) => {
-    switch (sortBy) {
-      case "company":
-        return a.company_name.localeCompare(b.company_name);
-      case "title":
-        return a.job_title.localeCompare(b.job_title);
-      case "date":
-      default:
-        return (
-          new Date(b.applied_at).getTime() - new Date(a.applied_at).getTime()
-        );
-    }
-  });
+  }, [user, toast]);
 
   if (!user) {
     return (
@@ -543,7 +468,10 @@ const AppliedJobs: React.FC = () => {
                 >
                   <CheckCircle className="w-8 h-8 text-green-500" />
                 </motion.div>
-                <p className="text-muted-foreground mb-4">
+                <h3 className="text-lg font-semibold mb-2">
+                  Authentication Required
+                </h3>
+                <p className="text-muted-foreground mb-6">
                   Please log in to view your applied jobs.
                 </p>
                 <Button
@@ -604,14 +532,17 @@ const AppliedJobs: React.FC = () => {
                 transition={{ delay: 0.4 }}
                 className="text-xl text-muted-foreground"
               >
-                {appliedJobs.length}{" "}
-                {appliedJobs.length === 1 ? "application" : "applications"}{" "}
-                tracked
+                Track and manage your job applications
               </motion.p>
             </div>
 
-            {/* Application Stats */}
-            <ApplicationStats jobCount={appliedJobs.length} />
+            {/* Enhanced Status Bar - Matching attached image */}
+            <ApplicationStats
+              totalApplications={stats.totalApplications}
+              currentMonth={stats.currentMonth}
+              trackedStatus={stats.trackedStatus}
+              activeSearch={stats.activeSearch}
+            />
 
             {/* Search and Filter Controls */}
             {appliedJobs.length > 0 && (
@@ -673,7 +604,7 @@ const AppliedJobs: React.FC = () => {
             )}
           </motion.div>
 
-          {/* Content */}
+          {/* Content - 3-column grid */}
           <AnimatePresence mode="wait">
             {loading ? (
               <LoadingSkeleton />
@@ -735,7 +666,7 @@ const AppliedJobs: React.FC = () => {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="grid grid-cols-1 md:grid-cols-2 gap-6"
+                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
               >
                 {sortedJobs.map((job, index) => (
                   <JobApplicationCard key={job.id} job={job} index={index} />
@@ -765,7 +696,7 @@ const AppliedJobs: React.FC = () => {
                     onClick={() => navigate("/job-finder")}
                     className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white"
                   >
-                    <Search className="w-4 h-4 mr-2" />
+                    <Plus className="w-4 h-4 mr-2" />
                     Find More Jobs
                   </Button>
                 </CardContent>

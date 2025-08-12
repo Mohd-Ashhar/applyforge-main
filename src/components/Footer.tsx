@@ -1,17 +1,63 @@
 import React, { memo } from "react";
-import {
-  Twitter,
-  Linkedin,
-  Github,
-  Mail,
-  ExternalLink,
-  ArrowUpRight,
-} from "lucide-react";
-import { motion } from "framer-motion";
+import { Twitter, Linkedin, Github, Mail, ArrowUpRight } from "lucide-react";
+import { motion, Variants } from "framer-motion";
 import Logo from "@/components/ui/Logo";
 
-// Animation variants
-const containerVariants = {
+// --- CONSTANTS (Moved outside component for performance) ---
+
+const FOOTER_SECTIONS = [
+  {
+    title: "Product",
+    links: [
+      { label: "ATS Checker", href: "/ats-checker" },
+      { label: "Resume Tailor", href: "/ai-resume-tailor" },
+      { label: "Cover Letters", href: "/cover-letter-generator" },
+      { label: "Job Finder", href: "/job-finder" },
+      { label: "Templates", href: "/templates" },
+    ],
+  },
+  {
+    title: "Company",
+    links: [
+      { label: "About Us", href: "/about" },
+      { label: "Blog", href: "/blog", external: true },
+      { label: "Careers", href: "/careers" },
+      { label: "Contact", href: "/contact" },
+      { label: "Press Kit", href: "/press", external: true },
+    ],
+  },
+  {
+    title: "Support",
+    links: [
+      { label: "Help Center", href: "/help", external: true },
+      { label: "Community", href: "/community", external: true },
+      { label: "Tutorials", href: "/tutorials", external: true },
+      { label: "API Docs", href: "/docs", external: true },
+      { label: "Status", href: "/status", external: true },
+    ],
+  },
+];
+
+const SOCIAL_LINKS = [
+  { Icon: Twitter, href: "https://twitter.com/applyforge", label: "Twitter" },
+  {
+    Icon: Linkedin,
+    href: "https://linkedin.com/company/applyforge",
+    label: "LinkedIn",
+  },
+  { Icon: Github, href: "https://github.com/applyforge", label: "GitHub" },
+  { Icon: Mail, href: "mailto:hello@applyforge.ai", label: "Email" },
+];
+
+const LEGAL_LINKS = [
+  { label: "Privacy Policy", href: "/privacy" },
+  { label: "Terms of Service", href: "/terms" },
+  { label: "Cookie Policy", href: "/cookies" },
+];
+
+// --- ANIMATION VARIANTS (Typed correctly) ---
+
+const containerVariants: Variants = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
@@ -22,7 +68,7 @@ const containerVariants = {
   },
 };
 
-const itemVariants = {
+const itemVariants: Variants = {
   hidden: { opacity: 0, y: 20 },
   visible: {
     opacity: 1,
@@ -31,7 +77,8 @@ const itemVariants = {
   },
 };
 
-// Enhanced Social Icon Component
+// --- REUSABLE SUB-COMPONENTS ---
+
 const SocialIcon = memo(
   ({
     Icon,
@@ -58,7 +105,6 @@ const SocialIcon = memo(
 );
 SocialIcon.displayName = "SocialIcon";
 
-// Enhanced Link Component
 const FooterLink = memo(
   ({
     href,
@@ -85,68 +131,20 @@ const FooterLink = memo(
 );
 FooterLink.displayName = "FooterLink";
 
+// --- MAIN FOOTER COMPONENT ---
+
 const Footer = memo(() => {
   const currentYear = new Date().getFullYear();
-
-  const footerSections = [
-    {
-      title: "Product",
-      links: [
-        { label: "ATS Checker", href: "/ats-checker" },
-        { label: "Resume Tailor", href: "/ai-resume-tailor" },
-        { label: "Cover Letters", href: "/cover-letter-generator" },
-        { label: "Job Finder", href: "/job-finder" },
-        { label: "Templates", href: "/templates" },
-      ],
-    },
-    {
-      title: "Company",
-      links: [
-        { label: "About Us", href: "/about" },
-        { label: "Blog", href: "/blog", external: true },
-        { label: "Careers", href: "/careers" },
-        { label: "Contact", href: "/contact" },
-        { label: "Press Kit", href: "/press", external: true },
-      ],
-    },
-    {
-      title: "Support",
-      links: [
-        { label: "Help Center", href: "/help", external: true },
-        { label: "Community", href: "/community", external: true },
-        { label: "Tutorials", href: "/tutorials", external: true },
-        { label: "API Docs", href: "/docs", external: true },
-        { label: "Status", href: "/status", external: true },
-      ],
-    },
-  ];
-
-  const socialLinks = [
-    { Icon: Twitter, href: "https://twitter.com/applyforge", label: "Twitter" },
-    {
-      Icon: Linkedin,
-      href: "https://linkedin.com/company/applyforge",
-      label: "LinkedIn",
-    },
-    { Icon: Github, href: "https://github.com/applyforge", label: "GitHub" },
-    { Icon: Mail, href: "mailto:hello@applyforge.ai", label: "Email" },
-  ];
-
-  const legalLinks = [
-    { label: "Privacy Policy", href: "/privacy" },
-    { label: "Terms of Service", href: "/terms" },
-    { label: "Cookie Policy", href: "/cookies" },
-  ];
 
   return (
     <footer className="relative bg-gradient-to-b from-background via-slate-900/20 to-slate-900/40 border-t border-white/10 overflow-hidden">
       {/* Background Effects */}
-      <div className="absolute inset-0 pointer-events-none">
+      <div className="absolute inset-0 pointer-events-none -z-10">
         <div className="absolute left-0 top-0 w-72 h-72 bg-blue-500/5 rounded-full blur-3xl" />
         <div className="absolute right-0 bottom-0 w-96 h-48 bg-purple-500/5 rounded-full blur-3xl" />
       </div>
 
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative">
         <motion.div
           variants={containerVariants}
           initial="hidden"
@@ -154,58 +152,27 @@ const Footer = memo(() => {
           viewport={{ once: true, margin: "-50px" }}
           className="py-16 md:py-20"
         >
-          {/* Main Footer Content */}
+          {/* Main Content Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8 lg:gap-12">
-            {/* Brand Section - Takes 2 columns on large screens */}
-            <motion.div variants={itemVariants} className="lg:col-span-2">
-              <div className="space-y-6">
-                <Logo showTagline={true} linkTo="/" />
-
-                <p className="text-muted-foreground text-sm md:text-base leading-relaxed max-w-sm">
-                  AI-powered tools that help job seekers land more interviews
-                  and get hired faster. Transform your career today.
-                </p>
-
-                {/* Social Links */}
-                <div className="flex items-center gap-3">
-                  {socialLinks.map((social) => (
-                    <SocialIcon
-                      key={social.label}
-                      Icon={social.Icon}
-                      href={social.href}
-                      label={social.label}
-                    />
-                  ))}
-                </div>
-
-                {/* Newsletter Signup - Mobile Friendly */}
-                <div className="bg-white/5 border border-white/10 rounded-xl p-4 max-w-sm">
-                  <h4 className="font-semibold text-white text-sm mb-2">
-                    Stay Updated
-                  </h4>
-                  <p className="text-xs text-muted-foreground mb-3">
-                    Get job search tips and product updates
-                  </p>
-                  <div className="flex gap-2">
-                    <input
-                      type="email"
-                      placeholder="Enter your email"
-                      className="flex-1 bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-sm text-white placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-400/50"
-                    />
-                    <motion.button
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-300"
-                    >
-                      Subscribe
-                    </motion.button>
-                  </div>
-                </div>
+            {/* Brand Section */}
+            <motion.div
+              variants={itemVariants}
+              className="lg:col-span-2 space-y-6"
+            >
+              <Logo showTagline={true} linkTo="/" />
+              <p className="text-muted-foreground text-sm md:text-base leading-relaxed max-w-sm">
+                AI-powered tools that help job seekers land more interviews and
+                get hired faster. Transform your career today.
+              </p>
+              <div className="flex items-center gap-3">
+                {SOCIAL_LINKS.map((social) => (
+                  <SocialIcon key={social.label} {...social} />
+                ))}
               </div>
             </motion.div>
 
-            {/* Footer Links */}
-            {footerSections.map((section) => (
+            {/* Link Sections */}
+            {FOOTER_SECTIONS.map((section) => (
               <motion.div key={section.title} variants={itemVariants}>
                 <h3 className="font-semibold text-white mb-4 text-sm md:text-base">
                   {section.title}
@@ -230,21 +197,18 @@ const Footer = memo(() => {
             variants={itemVariants}
             className="mt-16 pt-8 border-t border-white/10"
           >
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center space-y-4 md:space-y-0">
-              <div className="text-muted-foreground text-sm">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-y-4">
+              <p className="text-muted-foreground text-sm">
                 © {currentYear} ApplyForge. All rights reserved.
-              </div>
-
-              <div className="flex flex-wrap gap-6 text-sm">
-                {legalLinks.map((link) => (
+              </p>
+              <nav className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
+                {LEGAL_LINKS.map((link) => (
                   <FooterLink key={link.label} href={link.href}>
                     {link.label}
                   </FooterLink>
                 ))}
-              </div>
+              </nav>
             </div>
-
-            {/* Additional Info for Mobile */}
             <div className="mt-6 pt-6 border-t border-white/5 md:hidden">
               <p className="text-xs text-muted-foreground text-center">
                 Made with ❤️ for job seekers worldwide

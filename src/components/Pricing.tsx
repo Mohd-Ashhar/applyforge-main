@@ -1,6 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   Check,
   Zap,
@@ -8,24 +9,64 @@ import {
   Rocket,
   Loader2,
   ChevronDown,
-  ChevronLeft,
-  ChevronRight,
+  Brain,
+  Cpu,
+  Sparkles,
 } from "lucide-react";
 import { usePayment } from "@/hooks/usePayment";
 import { useAuth } from "@/contexts/AuthContext";
 import { SubscriptionPlan } from "@/services/paymentService";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, Variants } from "framer-motion";
 
-const faqData = [
+interface FAQItem {
+  question: string;
+  answer: string;
+}
+
+interface PricingData {
+  monthly: number;
+  yearly: number;
+  yearlyMonthly?: number;
+}
+
+interface PlanData {
+  name: SubscriptionPlan;
+  displayName: string;
+  price: number;
+  originalPrice: number | null;
+  monthlyEquivalent: number | null;
+  savings: string | null;
+  period: string;
+  description: string;
+  aiModel: string;
+  icon: React.ReactElement;
+  features: string[];
+  limitations?: string[];
+  cta: string;
+  highlight: boolean;
+  badge?: string;
+}
+
+const faqData: FAQItem[] = [
+  {
+    question: "What AI models power each plan?",
+    answer:
+      "Free plan uses foundational AI models, Basic plan leverages mid-tier AI (GPT-3.5 class), and Pro plan utilizes state-of-the-art AI models (GPT-4 class) for maximum accuracy and personalization.",
+  },
   {
     question: "Can I cancel my subscription anytime?",
     answer:
-      "Yes, you can cancel your subscription at any time. You'll continue to have access until the end of your billing period.",
+      "Yes, you can cancel your subscription at any time. You'll continue to have access to all AI features until the end of your billing period.",
+  },
+  {
+    question: "Do you offer yearly discounts?",
+    answer:
+      "Yes! Save 25% when you choose annual billing. All AI features remain the same, you just pay less per month with yearly commitment.",
   },
   {
     question: "Do you offer refunds?",
     answer:
-      "We offer a 7-day money-back guarantee for all paid plans if you're not satisfied with our service.",
+      "We offer a 7-day money-back guarantee for all paid plans if you're not satisfied with our AI-powered service.",
   },
   {
     question: "What payment methods do you accept?",
@@ -33,244 +74,427 @@ const faqData = [
       "We accept all major credit cards, UPI, and bank transfers for Indian customers. International customers can pay via credit/debit cards.",
   },
   {
-    question: "Can I upgrade or downgrade my plan?",
+    question: "How does AI improve with each plan tier?",
     answer:
-      "Yes, you can change your plan at any time. Upgrades take effect immediately, while downgrades take effect at the next billing cycle.",
+      "Higher tiers use more advanced AI models with better context understanding, faster processing, and more accurate results. Pro plan includes custom AI training based on your career history.",
   },
 ];
 
-// Animation variants
+const PRICING_DATA: Record<"INR" | "USD", Record<string, PricingData>> = {
+  INR: {
+    Free: { monthly: 0, yearly: 0 },
+    Basic: { monthly: 399, yearly: 3591, yearlyMonthly: 299 }, // 25% off
+    Pro: { monthly: 999, yearly: 8991, yearlyMonthly: 749 }, // 25% off
+  },
+  USD: {
+    Free: { monthly: 0, yearly: 0 },
+    Basic: { monthly: 15, yearly: 135, yearlyMonthly: 11 }, // 25% off
+    Pro: { monthly: 35, yearly: 315, yearlyMonthly: 26 }, // 25% off
+  },
+};
+
+interface RegionDetection {
+  detectedCurrency: "INR" | "USD";
+  isLoading: boolean;
+}
+
+const useRegionDetection = (): RegionDetection => {
+  const [detectedCurrency, setDetectedCurrency] = useState<"INR" | "USD">(
+    "INR"
+  );
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+
+  useEffect(() => {
+    const detectRegion = async (): Promise<void> => {
+      try {
+        const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        if (
+          timezone.includes("Asia/Kolkata") ||
+          timezone.includes("Asia/Calcutta")
+        ) {
+          setDetectedCurrency("INR");
+          setIsLoading(false);
+          return;
+        }
+
+        const locale = navigator.language || "en-US";
+        if (locale.includes("hi") || locale === "en-IN") {
+          setDetectedCurrency("INR");
+          setIsLoading(false);
+          return;
+        }
+
+        setDetectedCurrency("USD");
+      } catch (error) {
+        setDetectedCurrency("USD");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    detectRegion();
+  }, []);
+
+  return { detectedCurrency, isLoading };
+};
+
 const fadeStagger = {
-  show: { transition: { staggerChildren: 0.1 } },
-};
-const cardVariants = {
-  hidden: { opacity: 0, y: 36 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.6, type: "spring" } },
+  hidden: { opacity: 0 }, // Add a hidden state for the container
+  show: {
+    opacity: 1,
+    transition: { staggerChildren: 0.1, delayChildren: 0.1 },
+  },
 };
 
-// FAQ Item Component with Dynamic Accordion
-const FAQItem = ({ faq, index, isOpen, onToggle }) => {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.1, duration: 0.5 }}
-      viewport={{ once: true }}
-      className="glass rounded-xl border border-white/10 overflow-hidden shadow-md hover:shadow-lg transition-all duration-300"
-    >
-      <motion.button
-        onClick={onToggle}
-        className="w-full p-6 text-left flex items-center justify-between hover:bg-white/5 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/50 rounded-xl"
-        whileHover={{ scale: 1.01 }}
-        whileTap={{ scale: 0.99 }}
+const cardVariants: Variants = {
+  hidden: { opacity: 0, y: 20 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: "easeOut" } },
+};
+
+interface FAQItemProps {
+  faq: FAQItem;
+  index: number;
+  isOpen: boolean;
+  onToggle: () => void;
+}
+
+const FAQItemComponent = React.memo<FAQItemProps>(
+  ({ faq, index, isOpen, onToggle }) => {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        transition={{ delay: index * 0.05, duration: 0.3 }}
+        viewport={{ once: true }}
+        className="glass rounded-xl border border-white/10 overflow-hidden shadow-md hover:shadow-lg transition-all duration-300"
       >
-        <h4 className="font-semibold text-lg text-slate-100 pr-4">
-          {faq.question}
-        </h4>
-        <motion.div
-          animate={{ rotate: isOpen ? 180 : 0 }}
-          transition={{ duration: 0.3, ease: "easeInOut" }}
-          className="flex-shrink-0"
+        <button
+          onClick={onToggle}
+          className="w-full p-4 sm:p-6 text-left flex items-center justify-between hover:bg-white/5 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+          type="button"
         >
-          <ChevronDown className="w-5 h-5 text-blue-400" />
-        </motion.div>
-      </motion.button>
-
-      <AnimatePresence>
-        {isOpen && (
+          <h4 className="font-semibold text-base sm:text-lg text-slate-100 pr-4">
+            {faq.question}
+          </h4>
           <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.3, ease: "easeInOut" }}
-            className="overflow-hidden"
+            animate={{ rotate: isOpen ? 180 : 0 }}
+            transition={{ duration: 0.2 }}
+            className="flex-shrink-0"
           >
+            <ChevronDown className="w-4 h-4 sm:w-5 sm:h-5 text-blue-400" />
+          </motion.div>
+        </button>
+
+        <AnimatePresence>
+          {isOpen && (
             <motion.div
-              initial={{ y: -10 }}
-              animate={{ y: 0 }}
-              exit={{ y: -10 }}
-              transition={{ duration: 0.2, delay: 0.1 }}
-              className="px-6 pb-6"
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="overflow-hidden"
             >
-              <div className="border-t border-white/10 pt-4">
-                <p className="text-muted-foreground text-base leading-relaxed">
-                  {faq.answer}
-                </p>
+              <div className="px-4 sm:px-6 pb-4 sm:pb-6">
+                <div className="border-t border-white/10 pt-4">
+                  <p className="text-muted-foreground text-sm sm:text-base leading-relaxed">
+                    {faq.answer}
+                  </p>
+                </div>
               </div>
             </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </motion.div>
-  );
-};
+          )}
+        </AnimatePresence>
+      </motion.div>
+    );
+  }
+);
 
-const Pricing = () => {
+FAQItemComponent.displayName = "FAQItemComponent";
+
+const Pricing: React.FC = () => {
+  const { detectedCurrency, isLoading } = useRegionDetection();
   const [currency, setCurrency] = useState<"INR" | "USD">("INR");
+  const [billingPeriod, setBillingPeriod] = useState<"monthly" | "yearly">(
+    "yearly"
+  );
   const [openFAQ, setOpenFAQ] = useState<number | null>(null);
   const { processPayment, isProcessing } = usePayment();
   const { user } = useAuth();
 
-  const handleSubscribe = async (plan: SubscriptionPlan) => {
-    if (!user) {
-      window.location.href = "/auth";
-      return;
+  useEffect(() => {
+    if (!isLoading) {
+      setCurrency(detectedCurrency);
     }
-    await processPayment(plan);
-  };
+  }, [detectedCurrency, isLoading]);
 
-  const toggleFAQ = (index: number) => {
-    setOpenFAQ(openFAQ === index ? null : index);
-  };
+  const handleSubscribe = useCallback(
+    async (plan: SubscriptionPlan): Promise<void> => {
+      if (!user) {
+        window.location.href = "/auth";
+        return;
+      }
+      await processPayment(plan);
+    },
+    [user, processPayment]
+  );
 
-  const plans = [
-    {
-      name: "Free" as SubscriptionPlan,
-      priceINR: "₹0",
-      priceUSD: "$0",
-      period: "forever",
-      description: "Perfect for trying out ApplyForge",
-      icon: <Zap className="w-7 h-7" />,
-      iconBg: "from-blue-400 to-blue-600",
-      features: [
-        "2 resume tailoring per month",
-        "Basic ATS checker",
-        "1 cover letter generation",
-        "Job search access",
-        "Community support",
-      ],
-      limitations: [
-        "Limited templates",
-        "No priority support",
-        "Basic features only",
-      ],
-      cta: "Get Started Free",
-      highlight: false,
+  const toggleFAQ = useCallback(
+    (index: number): void => {
+      setOpenFAQ(openFAQ === index ? null : index);
     },
-    {
-      name: "Basic" as SubscriptionPlan,
-      priceINR: "₹199",
-      priceUSD: "$2.99",
-      period: "per month",
-      description: "Most popular choice for active job seekers",
-      icon: <Crown className="w-7 h-7" />,
-      iconBg: "from-blue-500 to-blue-800",
-      features: [
-        "Unlimited resume tailoring",
-        "Advanced ATS analysis",
-        "Unlimited cover letters",
-        "Priority job matching",
-        "All resume templates",
-        "Email support",
-        "Export in multiple formats",
-        "Resume storage & history",
-      ],
-      cta: "Start Free Trial",
-      highlight: true,
-      badge: "Most Popular",
-    },
-    {
-      name: "Pro" as SubscriptionPlan,
-      priceINR: "₹499",
-      priceUSD: "$7.99",
-      period: "per month",
-      description: "Best value for serious professionals",
-      icon: <Rocket className="w-7 h-7" />,
-      iconBg: "from-green-400 to-green-600",
-      features: [
-        "Everything in Basic",
-        "Auto-Apply Agent (Coming Soon)",
-        "Interview Preparation AI",
-        "Salary Negotiation Assistant",
-        "Personal Career Coach AI",
-        "Advanced Analytics & Insights",
-        "1-on-1 Career Consultation",
-        "LinkedIn Profile Optimization",
-      ],
-      cta: "Start Free Trial",
-      highlight: false,
-      badge: "Best Value",
-    },
-  ];
+    [openFAQ]
+  );
 
-  const PricingCard = ({ plan, index }) => {
+  const plans = useMemo((): PlanData[] => {
+    const currencySymbol = currency === "INR" ? "₹" : "$";
+
+    return [
+      {
+        name: "Free" as SubscriptionPlan,
+        displayName: "AI Starter",
+        price: PRICING_DATA[currency]["Free"][billingPeriod],
+        originalPrice: null,
+        monthlyEquivalent: null,
+        savings: null,
+        period: billingPeriod === "yearly" ? "per year" : "per month",
+        description: "Powered by foundational AI models",
+        aiModel: "Basic AI Models",
+        icon: <Brain className="w-6 h-6 sm:w-7 sm:h-7" />,
+        features: [
+          "AI ATS Resume Scanner (5/month)",
+          "AI Resume Optimizer (5/month)",
+          "AI Cover Letter Assistant (5/month)",
+          "Smart Job Discovery (5/month)",
+          "AI Writing Quality Score",
+          "Community AI Templates (10+)",
+          "Basic grammar & formatting checks",
+        ],
+        limitations: [
+          "Basic AI accuracy",
+          "Limited processing speed",
+          "Standard templates only",
+        ],
+        cta: "Start with AI Free",
+        highlight: false,
+      },
+      {
+        name: "Basic" as SubscriptionPlan,
+        displayName: "AI Professional",
+        price: PRICING_DATA[currency]["Basic"][billingPeriod],
+        originalPrice:
+          billingPeriod === "yearly"
+            ? PRICING_DATA[currency]["Basic"].monthly * 12
+            : null,
+        monthlyEquivalent:
+          billingPeriod === "yearly"
+            ? PRICING_DATA[currency]["Basic"].yearlyMonthly || 0
+            : null,
+        savings:
+          billingPeriod === "yearly"
+            ? `${currencySymbol}${
+                PRICING_DATA[currency]["Basic"].monthly * 12 -
+                PRICING_DATA[currency]["Basic"].yearly
+              }`
+            : null,
+        period: billingPeriod === "yearly" ? "per year" : "per month",
+        description: "Enhanced with mid-tier AI for professional results",
+        aiModel: "GPT-3.5 Class AI",
+        icon: <Cpu className="w-6 h-6 sm:w-7 sm:h-7" />,
+        features: [
+          "Advanced ATS Analyzer (25/month)",
+          "Smart Resume Tailor (25/month)",
+          "Intelligent Cover Letter Generator (25/month)",
+          "AI Job Matching Engine (25/month)",
+          "One-Click AI Application (15/month)",
+          "AI Interview Prep (10 questions/month)",
+          "Skills Gap AI Analysis",
+          "Premium AI Templates (50+)",
+          "Advanced LLM processing",
+        ],
+        cta: "Upgrade to AI Pro",
+        highlight: true,
+        badge: "Most Popular",
+      },
+      {
+        name: "Pro" as SubscriptionPlan,
+        displayName: "AI Career Accelerator",
+        price: PRICING_DATA[currency]["Pro"][billingPeriod],
+        originalPrice:
+          billingPeriod === "yearly"
+            ? PRICING_DATA[currency]["Pro"].monthly * 12
+            : null,
+        monthlyEquivalent:
+          billingPeriod === "yearly"
+            ? PRICING_DATA[currency]["Pro"].yearlyMonthly || 0
+            : null,
+        savings:
+          billingPeriod === "yearly"
+            ? `${currencySymbol}${
+                PRICING_DATA[currency]["Pro"].monthly * 12 -
+                PRICING_DATA[currency]["Pro"].yearly
+              }`
+            : null,
+        period: billingPeriod === "yearly" ? "per year" : "per month",
+        description: "Fueled by cutting-edge AI for maximum career impact",
+        aiModel: "GPT-4 Class AI",
+        icon: <Sparkles className="w-6 h-6 sm:w-7 sm:h-7" />,
+        features: [
+          "Unlimited AI Tools (State-of-the-art models)",
+          "Hyper-Personalized Resume AI",
+          "Advanced Cover Letter AI",
+          "Predictive Job Matching",
+          "One-Click AI Mastery (Unlimited)",
+          "Auto Apply AI Agent (75/month)",
+          "AI Career Coach (Weekly insights)",
+          "Advanced AI Analytics",
+          "Custom AI Training",
+          "Priority AI Processing",
+        ],
+        cta: "Go AI Advanced",
+        highlight: false,
+        badge: "Best AI",
+      },
+    ];
+  }, [currency, billingPeriod]);
+
+  const formatPrice = useCallback(
+    (price: number): string => {
+      if (price === 0) return currency === "INR" ? "₹0" : "$0";
+      return currency === "INR" ? `₹${price.toLocaleString()}` : `$${price}`;
+    },
+    [currency]
+  );
+
+  interface PricingCardProps {
+    plan: PlanData;
+    index: number;
+  }
+
+  const PricingCard = React.memo<PricingCardProps>(({ plan, index }) => {
     const baseRing = plan.highlight
-      ? "ring-2 ring-appforge-blue/30 border-appforge-blue/50"
-      : plan.badge === "Best Value"
-      ? "ring-4 ring-green-500/50 border-green-500/50"
+      ? "ring-2 ring-appforge-blue/50 border-appforge-blue/50"
+      : plan.badge === "Best AI"
+      ? "ring-2 ring-purple-500/80 border-purple-500/60"
       : "border-white/10";
 
     const hoverTransform =
       plan.name === "Pro"
-        ? { scale: 1.12, y: -12, boxShadow: "0 16px 64px rgba(34,197,94,0.6)" }
+        ? { scale: 1.05, y: -8, boxShadow: "0 16px 64px rgba(168,85,247,0.4)" }
         : plan.highlight
-        ? { scale: 1.07, y: -8, boxShadow: "0 8px 48px rgba(24,118,242,0.3)" }
+        ? { scale: 1.05, y: -8, boxShadow: "0 8px 48px rgba(24,118,242,0.3)" }
         : { scale: 1.03, y: -6, boxShadow: "0 5px 24px rgba(80,150,255,0.08)" };
 
     const badgeClass = plan.highlight
       ? "bg-appforge-blue text-black border border-appforge-blue/20"
-      : plan.badge === "Best Value"
-      ? "bg-green-500 text-white border border-green-500/30"
+      : plan.badge === "Best AI"
+      ? "bg-purple-500 text-white border border-purple-500/30"
       : "";
 
-    const iconBgClass = {
-      Free: "bg-gradient-to-br from-blue-400 to-blue-600 text-white",
-      Basic: "bg-gradient-to-br from-blue-500 to-blue-800 text-white",
-      Pro: "bg-gradient-to-br from-green-400 to-green-600 text-white",
-    }[plan.name];
+    const getIconBgClass = (planName: SubscriptionPlan): string => {
+      switch (planName) {
+        case "Free":
+          return "bg-gradient-to-br from-gray-400 to-gray-600 text-white";
+        case "Basic":
+          return "bg-gradient-to-br from-blue-500 to-blue-800 text-white";
+        case "Pro":
+          return "bg-gradient-to-br from-purple-500 to-pink-600 text-white";
+        default:
+          return "bg-gradient-to-br from-gray-400 to-gray-600 text-white";
+      }
+    };
+
+    const handleCardClick = (): void => {
+      handleSubscribe(plan.name);
+    };
 
     return (
+      // Each card uses the `cardVariants` for its own animation, triggered by the parent
       <motion.div
         variants={cardVariants}
         whileHover={hoverTransform}
         className="transition-transform"
       >
         <Card
-          className={`relative glass bg-background/75 backdrop-blur shadow-xl overflow-hidden ${baseRing} rounded-2xl p-6 md:p-8 flex flex-col h-full`}
+          className={`relative glass bg-background/75 backdrop-blur shadow-xl overflow-hidden ${baseRing} rounded-2xl p-4 sm:p-6 md:p-8 flex flex-col h-full`}
         >
           {plan.badge && (
             <div
-              className={`absolute top-4 right-4 px-3 py-1 rounded-full text-xs font-semibold shadow-md ${badgeClass}`}
+              className={`absolute top-3 right-3 sm:top-4 sm:right-4 px-2 py-1 sm:px-3 sm:py-1 rounded-full text-xs font-semibold shadow-md ${badgeClass}`}
             >
               {plan.badge}
             </div>
           )}
 
           <div
-            className={`${iconBgClass} mb-6 mx-auto p-4 rounded-xl shadow-md flex justify-center items-center w-fit group-hover:scale-110 transition-transform duration-200`}
+            className={`${getIconBgClass(
+              plan.name
+            )} mb-4 sm:mb-6 mx-auto p-3 sm:p-4 rounded-xl shadow-md flex justify-center items-center w-fit group-hover:scale-110 transition-transform duration-200`}
           >
             {plan.icon}
           </div>
 
-          <div className="text-center mb-6">
-            <h3 className="text-xl md:text-2xl font-bold mb-1">{plan.name}</h3>
-            <p className="text-muted-foreground text-sm md:text-base mb-2">
+          <div className="text-center mb-4 sm:mb-6">
+            <h3 className="text-lg sm:text-xl md:text-2xl font-bold mb-1">
+              {plan.displayName}
+            </h3>
+            <div className="flex items-center justify-center gap-2 mb-2">
+              <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+              <span className="text-xs sm:text-sm text-green-400 font-medium">
+                {plan.aiModel}
+              </span>
+            </div>
+            <p className="text-muted-foreground text-xs sm:text-sm md:text-base mb-3">
               {plan.description}
             </p>
+
             <div className="mb-2">
-              <span className="text-3xl md:text-4xl font-bold tracking-tight text-white">
-                {currency === "INR" ? plan.priceINR : plan.priceUSD}
-              </span>
-              <span className="text-muted-foreground ml-2 text-sm md:text-base font-medium">
+              <div className="flex items-center justify-center gap-2 mb-1">
+                <span className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-white">
+                  {formatPrice(plan.price)}
+                </span>
+                {plan.originalPrice && (
+                  <span className="text-sm text-muted-foreground line-through">
+                    {formatPrice(plan.originalPrice)}
+                  </span>
+                )}
+              </div>
+              <span className="text-muted-foreground text-xs sm:text-sm md:text-base font-medium">
                 / {plan.period}
               </span>
+
+              {plan.monthlyEquivalent && (
+                <div className="mt-2">
+                  <div className="text-green-400 text-xs font-medium">
+                    {formatPrice(plan.monthlyEquivalent)}/month when billed
+                    annually
+                  </div>
+                  {plan.savings && (
+                    <div className="text-green-400 text-xs font-medium">
+                      Save {plan.savings} per year! 🎉
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
-          <ul className="space-y-2 mb-6 md:mb-8 flex-1">
-            {plan.features.map((feature, idx) => (
+          <ul className="space-y-2 sm:space-y-3 mb-4 sm:mb-6 md:mb-8 flex-1">
+            {plan.features.map((feature: string, idx: number) => (
               <li
-                key={idx}
-                className="flex items-center gap-2 text-sm md:text-base"
+                key={`feature-${idx}`}
+                className="flex items-start gap-2 sm:gap-3 text-xs sm:text-sm md:text-base"
               >
-                <Check className="w-4 h-4 md:w-5 md:h-5 text-green-400 flex-shrink-0" />
-                <span>{feature}</span>
+                <Check className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 text-green-400 flex-shrink-0 mt-0.5 sm:mt-1" />
+                <span className="leading-tight">{feature}</span>
               </li>
             ))}
-            {plan.limitations?.map((lim, idx) => (
-              <li key={idx} className="flex items-center gap-2 opacity-50">
-                <span className="w-2.5 h-2.5 rounded-full bg-slate-500/30 block"></span>
-                <span className="text-xs md:text-sm text-muted-foreground">
+            {plan.limitations?.map((lim: string, idx: number) => (
+              <li
+                key={`limitation-${idx}`}
+                className="flex items-start gap-2 sm:gap-3 opacity-50"
+              >
+                <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-slate-500/30 block mt-1.5 sm:mt-[7px] flex-shrink-0"></span>
+                <span className="text-xs sm:text-sm text-muted-foreground leading-tight">
                   {lim}
                 </span>
               </li>
@@ -279,21 +503,19 @@ const Pricing = () => {
 
           <Button
             size="lg"
-            onClick={() => handleSubscribe(plan.name)}
+            onClick={handleCardClick}
             disabled={isProcessing}
-            className={`w-full font-bold tracking-wide rounded-xl shadow-md text-sm md:text-base py-3 ${
+            className={`w-full font-bold tracking-wide rounded-xl shadow-md text-xs sm:text-sm md:text-base py-2.5 sm:py-3 ${
               plan.name === "Pro"
-                ? "bg-green-600 hover:bg-green-700 text-white"
+                ? "bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white"
                 : plan.highlight
                 ? "bg-appforge-blue hover:bg-appforge-blue/90 text-black"
-                : plan.badge === "Best Value"
-                ? "bg-green-500 hover:bg-green-600 text-white"
                 : "bg-white/5 hover:bg-white/10 text-white border border-white/20"
             }`}
           >
             {isProcessing ? (
               <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                <Loader2 className="w-3 h-3 sm:w-4 sm:h-4 mr-2 animate-spin" />
                 Processing...
               </>
             ) : (
@@ -303,160 +525,240 @@ const Pricing = () => {
         </Card>
       </motion.div>
     );
-  };
+  });
+
+  PricingCard.displayName = "PricingCard";
+
+  if (isLoading) {
+    return (
+      <section className="py-16 sm:py-20 md:py-24 relative bg-background overflow-hidden isolate">
+        <div className="container mx-auto px-4 text-center">
+          <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto" />
+        </div>
+      </section>
+    );
+  }
 
   return (
-    <section id="pricing" className="py-24 relative bg-background">
-      {/* Background accent */}
+    <section
+      id="pricing"
+      className="py-16 sm:py-20 md:py-24 relative bg-background overflow-hidden isolate scroll-mt-20 md:scroll-mt-16"
+    >
       <span className="pointer-events-none absolute -left-40 top-1/4 w-80 h-80 bg-blue-400/15 rounded-full blur-3xl" />
-      <span className="pointer-events-none absolute right-0 top-0 w-80 h-56 bg-green-500/10 rounded-full blur-3xl" />
+      <span className="pointer-events-none absolute right-0 top-0 w-80 h-56 bg-purple-500/10 rounded-full blur-3xl" />
+      <span className="pointer-events-none absolute left-1/2 top-1/2 w-96 h-96 bg-pink-500/5 rounded-full blur-3xl transform -translate-x-1/2 -translate-y-1/2" />
 
-      <div className="container mx-auto px-5 sm:px-10">
-        {/* Header */}
+      <div className="container mx-auto px-4 sm:px-6 lg:px-10">
+        {/* MODIFICATION: Changed to lazy load on scroll */}
         <motion.header
-          initial={{ opacity: 0, y: 30 }}
+          initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, type: "spring" }}
           viewport={{ once: true }}
-          className="text-center mb-16"
+          transition={{ duration: 0.5, ease: "easeOut" }}
+          className="text-center mb-12 md:mb-16 pt-8 md:pt-4"
         >
-          <h2 className="text-4xl md:text-5xl font-bold mb-6">
+          <div className="flex items-center justify-center gap-2 mb-4">
+            <Brain className="w-6 h-6 text-blue-400" />
+            <span className="text-blue-400 font-medium text-sm sm:text-base">
+              AI-Powered Career Transformation
+            </span>
+          </div>
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 sm:mb-6">
             Simple,{" "}
-            <span className="bg-gradient-to-r from-blue-400 via-blue-500 to-appforge-blue bg-clip-text text-transparent">
-              Transparent
+            <span className="bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500 bg-clip-text text-transparent">
+              AI-Enhanced
             </span>{" "}
             Pricing
           </h2>
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-8">
-            Choose the plan that fits your job search goals. Start free, upgrade
-            when ready.
+          <p className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto mb-6 sm:mb-8 px-4">
+            From foundational AI to advanced intelligence - choose your career
+            acceleration level.
           </p>
 
-          {/* Currency Toggle */}
-          <div className="flex items-center justify-center gap-4 mb-4">
-            <Button
-              variant={currency === "INR" ? "default" : "outline"}
-              onClick={() => setCurrency("INR")}
-              size="sm"
-              className="transition-all"
-            >
-              India (₹)
-            </Button>
-            <Button
-              variant={currency === "USD" ? "default" : "outline"}
-              onClick={() => setCurrency("USD")}
-              size="sm"
-              className="transition-all"
-            >
-              International ($)
-            </Button>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-6">
+            <div className="flex items-center gap-2">
+              <Button
+                variant={currency === "INR" ? "default" : "outline"}
+                onClick={() => setCurrency("INR")}
+                size="sm"
+                className="transition-all text-xs sm:text-sm"
+              >
+                India (₹)
+              </Button>
+              <Button
+                variant={currency === "USD" ? "default" : "outline"}
+                onClick={() => setCurrency("USD")}
+                size="sm"
+                className="transition-all text-xs sm:text-sm"
+              >
+                International ($)
+              </Button>
+            </div>
+
+            <div className="flex items-center bg-white/5 rounded-lg p-1 border border-white/10">
+              <button
+                onClick={() => setBillingPeriod("monthly")}
+                className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                  billingPeriod === "monthly"
+                    ? "bg-white text-black"
+                    : "text-muted-foreground hover:text-white"
+                }`}
+                type="button"
+              >
+                Monthly
+              </button>
+              <button
+                onClick={() => setBillingPeriod("yearly")}
+                className={`px-4 py-2 rounded-md text-sm font-medium transition-all flex items-center gap-2 ${
+                  billingPeriod === "yearly"
+                    ? "bg-white text-black"
+                    : "text-muted-foreground hover:text-white"
+                }`}
+                type="button"
+              >
+                Yearly
+                <Badge className="bg-green-500 text-white text-xs px-1.5 py-0.5">
+                  -25%
+                </Badge>
+              </button>
+            </div>
           </div>
         </motion.header>
 
-        {/* Desktop Pricing Grid */}
-        <motion.div
-          className="hidden md:grid md:grid-cols-3 gap-10 max-w-6xl mx-auto"
-          variants={fadeStagger}
-          initial="hidden"
-          whileInView="show"
-          viewport={{ once: true, margin: "-100px" }}
-        >
-          {plans.map((plan, index) => (
-            <PricingCard key={plan.name} plan={plan} index={index} />
-          ))}
-        </motion.div>
-
-        {/* Mobile Horizontal Scrolling Carousel */}
-        <div className="md:hidden">
+        <div>
+          {/* MODIFICATION: Changed to lazy load on scroll with stagger effect */}
           <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            viewport={{ once: true }}
-            className="relative"
+            className="hidden lg:grid lg:grid-cols-3 gap-6 xl:gap-10 max-w-7xl mx-auto"
+            variants={fadeStagger}
+            initial="hidden"
+            whileInView="show"
+            viewport={{ once: true, amount: 0.1 }}
+            key={`desktop-${currency}-${billingPeriod}`}
           >
-            {/* Scroll hint text */}
-            <p className="text-center text-muted-foreground text-sm mb-4">
-              ← Swipe to see all plans →
-            </p>
+            {plans.map((plan: PlanData, index: number) => (
+              <PricingCard
+                key={`${plan.name}-desktop`}
+                plan={plan}
+                index={index}
+              />
+            ))}
+          </motion.div>
 
-            {/* Horizontal scrolling container */}
-            <div
-              className="overflow-x-auto pb-4 -mx-4 px-4"
-              style={{
-                scrollSnapType: "x mandatory",
-                scrollbarWidth: "none",
-                msOverflowStyle: "none",
-                WebkitOverflowScrolling: "touch",
-              }}
+          {/* MODIFICATION: Changed to lazy load on scroll with stagger effect */}
+          <motion.div
+            className="hidden md:grid lg:hidden md:grid-cols-2 gap-6 max-w-4xl mx-auto"
+            variants={fadeStagger}
+            initial="hidden"
+            whileInView="show"
+            viewport={{ once: true, amount: 0.1 }}
+            key={`tablet-${currency}-${billingPeriod}`}
+          >
+            {plans.slice(0, 2).map((plan: PlanData, index: number) => (
+              <PricingCard
+                key={`${plan.name}-tablet`}
+                plan={plan}
+                index={index}
+              />
+            ))}
+            {/* This ensures the Pro card also animates within the staggered group */}
+            <motion.div
+              variants={cardVariants}
+              className="md:col-span-2 max-w-sm mx-auto"
             >
-              {/* Hide scrollbar */}
-              <style>{`
-                div::-webkit-scrollbar {
-                  display: none;
-                }
-              `}</style>
+              <PricingCard key="pro-tablet" plan={plans[2]} index={2} />
+            </motion.div>
+          </motion.div>
 
-              <div className="flex gap-6 w-max">
-                {plans.map((plan, index) => (
-                  <div
-                    key={plan.name}
-                    className="w-80 flex-shrink-0"
-                    style={{ scrollSnapAlign: "start" }}
-                  >
-                    <motion.div
-                      initial={{ opacity: 0, x: 50 }}
-                      whileInView={{ opacity: 1, x: 0 }}
-                      transition={{ delay: index * 0.1, duration: 0.5 }}
-                      viewport={{ once: true }}
+          <div className="md:hidden mt-12">
+            {/* MODIFICATION: Changed to lazy load the mobile carousel on scroll */}
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6 }}
+              className="relative"
+            >
+              <p className="text-center text-muted-foreground text-sm mb-6 px-4">
+                ← Swipe to see all AI plans →
+              </p>
+
+              <div className="overflow-x-auto pb-8 -mx-4 px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                <div
+                  className="flex gap-4 w-max"
+                  style={{ scrollSnapType: "x mandatory" }}
+                >
+                  {plans.map((plan: PlanData, index: number) => (
+                    <div
+                      key={`${plan.name}-mobile-${currency}-${billingPeriod}`}
+                      className="w-[85vw] max-w-sm flex-shrink-0"
+                      style={{ scrollSnapAlign: "center" }}
                     >
                       <PricingCard plan={plan} index={index} />
-                    </motion.div>
-                  </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex justify-center gap-2 mt-6">
+                {plans.map((_: PlanData, index: number) => (
+                  <div
+                    key={`indicator-${index}`}
+                    className="w-2 h-2 rounded-full bg-white/30"
+                  />
                 ))}
               </div>
-            </div>
-
-            {/* Scroll indicators */}
-            <div className="flex justify-center gap-2 mt-6">
-              {plans.map((_, index) => (
-                <div key={index} className="w-2 h-2 rounded-full bg-white/30" />
-              ))}
-            </div>
-          </motion.div>
+            </motion.div>
+          </div>
         </div>
 
-        {/* Dynamic Animated FAQ Section */}
+        {/* This component already used whileInView correctly */}
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2, duration: 0.6 }}
+          viewport={{ once: true }}
+          className="mt-16 sm:mt-20 text-center"
+        >
+          <div className="bg-gradient-to-r from-blue-500/10 to-purple-500/10 rounded-2xl p-6 sm:p-8 max-w-4xl mx-auto">
+            <h3 className="text-xl sm:text-2xl font-bold mb-4">
+              🚀 Experience the Future of Job Applications
+            </h3>
+            <p className="text-muted-foreground text-sm sm:text-base">
+              Every plan includes AI-powered features. Higher tiers unlock more
+              advanced AI models with better accuracy, faster processing, and
+              deeper personalization for maximum career impact.
+            </p>
+            {billingPeriod === "yearly" && (
+              <div className="mt-4 inline-flex items-center gap-2 bg-green-500/20 text-green-400 px-4 py-2 rounded-full text-sm font-medium">
+                <span>🎉</span>
+                <span>Save 25% with annual billing!</span>
+              </div>
+            )}
+          </div>
+        </motion.div>
+
+        {/* This component already used whileInView correctly */}
         <motion.div
           initial={{ opacity: 0, y: 40 }}
           whileInView={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3, duration: 0.8, type: "spring" }}
-          viewport={{ once: true, margin: "-70px" }}
-          className="mt-20 max-w-2xl mx-auto"
+          transition={{ delay: 0.3, duration: 0.6 }}
+          viewport={{ once: true }}
+          className="mt-16 sm:mt-20 max-w-3xl mx-auto"
         >
           <div className="text-center mb-8">
-            <motion.h3
-              className="text-3xl font-bold text-slate-100 mb-2"
-              initial={{ opacity: 0, scale: 0.9 }}
-              whileInView={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.4, duration: 0.5 }}
-            >
+            <h3 className="text-2xl sm:text-3xl font-bold text-slate-100 mb-2">
               Frequently Asked Questions
-            </motion.h3>
-            <motion.p
-              className="text-muted-foreground"
-              initial={{ opacity: 0 }}
-              whileInView={{ opacity: 1 }}
-              transition={{ delay: 0.5, duration: 0.5 }}
-            >
-              Get answers to common questions about our pricing and features
-            </motion.p>
+            </h3>
+            <p className="text-muted-foreground text-sm sm:text-base">
+              Get answers to common questions about our AI-powered pricing and
+              features
+            </p>
           </div>
 
-          <div className="space-y-4">
-            {faqData.map((faq, idx) => (
-              <FAQItem
-                key={idx}
+          <div className="space-y-3 sm:space-y-4">
+            {faqData.map((faq: FAQItem, idx: number) => (
+              <FAQItemComponent
+                key={`faq-${idx}`}
                 faq={faq}
                 index={idx}
                 isOpen={openFAQ === idx}

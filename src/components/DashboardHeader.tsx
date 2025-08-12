@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import Logo from "@/components/ui/Logo";
-import NavigationMenu from "./header/NavigationMenu";
 import UserDropdown from "./header/UserDropdown";
 import AuthButtons from "./header/AuthButtons";
 import { useHeaderScrollBehavior } from "./header/HeaderScrollBehavior";
@@ -12,7 +11,7 @@ import { motion, AnimatePresence } from "framer-motion";
 const DashboardHeader = () => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
-  const [userPlan, setUserPlan] = useState<string>("Free");
+  const [userPlan, setUserPlan] = useState("Free");
   const { isVisible } = useHeaderScrollBehavior();
 
   useEffect(() => {
@@ -83,7 +82,7 @@ const DashboardHeader = () => {
             transition={{ duration: 0.35, ease: "easeInOut" }}
             className="fixed top-0 left-0 right-0 z-[9999] w-full backdrop-blur-xl bg-background/90 supports-[backdrop-filter]:bg-background/70 border-b border-border/50"
           >
-            <div className="container mx-auto max-w-full px-4 md:px-8 h-14 md:h-16 flex items-center justify-between gap-4">
+            <div className="container mx-auto max-w-full px-4 md:px-8 h-14 md:h-16 flex items-center gap-4">
               {/* Logo with tagline */}
               <motion.div
                 initial={{ opacity: 0, x: -20 }}
@@ -93,16 +92,8 @@ const DashboardHeader = () => {
                 <Logo className="flex-shrink-0" showTagline={true} />
               </motion.div>
 
-              {/* Desktop Navigation, with fade-in animation */}
-              <motion.nav
-                className="hidden md:flex flex-1 justify-center"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.35 }}
-                aria-label="Primary navigation"
-              >
-                <NavigationMenu />
-              </motion.nav>
+              {/* Flexible spacer to push UserDropdown to the right but not to the far edge */}
+              <div className="flex-1" />
 
               {/* User dropdown with subtle fade-in */}
               <motion.div
@@ -112,7 +103,7 @@ const DashboardHeader = () => {
               >
                 <UserDropdown
                   user={user}
-                  userPlan={userPlan}
+                  // userPlan={userPlan}
                   onSignOut={handleSignOut}
                 />
               </motion.div>

@@ -38,6 +38,7 @@ import {
   Info,
   Shield,
   Clock,
+  RefreshCw,
   Save,
   CheckCircle,
   AlertCircle,
@@ -45,6 +46,7 @@ import {
   Target,
   Zap,
   TrendingUp,
+  Sparkles,
   User,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -52,7 +54,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUsageTracking } from "@/hooks/useUsageTracking";
 
-// Fixed Interface Definitions - This was the main error
+// Fixed Interface Definitions
 interface GeneratedResume {
   id: string;
   title: string;
@@ -158,7 +160,7 @@ const ResumeLoadingOverlay = ({
   );
 };
 
-// Enhanced File Upload Component
+// Enhanced File Upload Component with Mobile Optimization
 const FileUploadArea = ({
   onFileSelect,
   selectedFile,
@@ -205,7 +207,7 @@ const FileUploadArea = ({
     <div className="space-y-2">
       <motion.div
         className={`
-          relative border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors
+          relative border-2 border-dashed rounded-lg p-4 md:p-6 text-center cursor-pointer transition-colors
           ${
             dragOver
               ? "border-primary bg-primary/5"
@@ -237,19 +239,21 @@ const FileUploadArea = ({
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="flex items-center justify-center gap-3"
+            className="flex items-center justify-center gap-2 md:gap-3"
           >
-            <FileCheck className="w-8 h-8 text-green-500" />
+            <FileCheck className="w-6 h-6 md:w-8 md:h-8 text-green-500 flex-shrink-0" />
             <div className="text-left">
-              <p className="font-medium text-green-700">{selectedFile.name}</p>
-              <p className="text-sm text-muted-foreground">
+              <p className="font-medium text-green-700 text-sm md:text-base truncate max-w-[200px] md:max-w-none">
+                {selectedFile.name}
+              </p>
+              <p className="text-xs md:text-sm text-muted-foreground">
                 {formatFileSize(selectedFile.size)} • Click to change
               </p>
             </div>
           </motion.div>
         ) : (
           <>
-            <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
+            <Upload className="w-6 h-6 md:w-8 md:h-8 mx-auto mb-2 text-muted-foreground" />
             <p className="text-sm font-medium">
               Drop your resume here or click to browse
             </p>
@@ -276,7 +280,7 @@ const FileUploadArea = ({
           animate={{ opacity: 1 }}
           className="text-sm text-destructive flex items-center gap-1"
         >
-          <AlertCircle className="w-4 h-4" />
+          <AlertCircle className="w-4 h-4 flex-shrink-0" />
           Please upload your resume
         </motion.p>
       )}
@@ -305,47 +309,7 @@ const AIResumeTailor = () => {
   const { toast } = useToast();
   const { user } = useAuth();
   const navigate = useNavigate();
-  const { checkUsageLimit, refreshUsage } = useUsageTracking();
-
-  // Auto-save draft functionality
-  useEffect(() => {
-    if (saveAsDraft) {
-      const draftData = { jobRole, jobDescription, industry, resumeStyle };
-      localStorage.setItem("resumeTailorDraft", JSON.stringify(draftData));
-    }
-  }, [jobRole, jobDescription, industry, resumeStyle, saveAsDraft]);
-
-  // Load draft on mount
-  useEffect(() => {
-    const draft = localStorage.getItem("resumeTailorDraft");
-    if (draft) {
-      try {
-        const draftData = JSON.parse(draft);
-        if (draftData.jobRole || draftData.jobDescription) {
-          toast({
-            title: "Draft Found",
-            description:
-              "We found a saved draft. Click 'Load Draft' to restore it.",
-            action: (
-              <Button
-                size="sm"
-                onClick={() => {
-                  setJobRole(draftData.jobRole || "");
-                  setJobDescription(draftData.jobDescription || "");
-                  setIndustry(draftData.industry || "");
-                  setResumeStyle(draftData.resumeStyle || "modern");
-                }}
-              >
-                Load Draft
-              </Button>
-            ),
-          });
-        }
-      } catch (error) {
-        console.error("Error loading draft:", error);
-      }
-    }
-  }, [toast]);
+  const { refreshUsage } = useUsageTracking();
 
   const industries = [
     "Technology",
@@ -390,6 +354,44 @@ const AIResumeTailor = () => {
     });
   };
 
+  // FIXED: Helper function with proper error handling
+  const getCurrentUserVersion = async (userId: string) => {
+    try {
+      // Check if user_usage record exists first
+      const { data, error } = await supabase
+        .from("user_usage")
+        .select("*") // Select all columns to see what's available
+        .eq("user_id", userId)
+        .single();
+
+      if (error) {
+        console.error("Error getting user usage record:", error);
+
+        // If no record exists, return 0 as default version
+        if (error.code === "PGRST116") {
+          console.log("No user_usage record found, using default version 0");
+          return 0;
+        }
+
+        return 0; // Default version for any error
+      }
+
+      // Check if the version column exists on the returned data
+      if (data && "version" in data && typeof data.version === "number") {
+        return data.version;
+      }
+
+      // If version column doesn't exist, return 0 as default
+      console.log(
+        "Version column not found in user_usage table, using default version 0"
+      );
+      return 0;
+    } catch (error) {
+      console.error("Error in getCurrentUserVersion:", error);
+      return 0;
+    }
+  };
+
   const loadSampleData = () => {
     setJobRole("Senior Software Engineer");
     setIndustry("technology");
@@ -424,6 +426,7 @@ Preferred Qualifications:
     });
   };
 
+  // FIXED: Main handler with proper usage limit enforcement
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
@@ -446,22 +449,80 @@ Preferred Qualifications:
       return;
     }
 
-    // Check usage limit
-    if (checkUsageLimit("resume_tailors_used")) {
-      toast({
-        title: "Usage Limit Reached",
-        description:
-          "You have reached your resume tailoring limit for this plan. Please upgrade to continue.",
-        variant: "destructive",
-      });
-      return;
-    }
-
     setIsProcessing(true);
     setLoadingStage(0);
     simulateLoadingStages();
 
     try {
+      // ✅ CRITICAL FIX: Check usage limits FIRST
+      const currentVersion = await getCurrentUserVersion(user.id);
+
+      const { data: usageData, error: usageError } = await supabase.rpc(
+        "increment_usage_secure",
+        {
+          p_target_user_id: user.id,
+          p_usage_type: "resume_tailors_used",
+          p_increment_amount: 1,
+          p_current_version: currentVersion,
+          p_audit_metadata: {
+            action: "resume_tailor",
+            job_role: jobRole,
+            industry: industry || "unspecified",
+            resume_style: resumeStyle,
+            file_type: resume!.type === "application/pdf" ? "pdf" : "docx",
+            file_size: resume!.size,
+          },
+        }
+      );
+
+      if (usageError) {
+        // Handle specific limit exceeded error
+        if (usageError.message.includes("Usage limit exceeded")) {
+          toast({
+            title: "Usage Limit Reached 📊",
+            description:
+              "You've reached your resume tailoring limit for your current plan. Upgrade to continue creating unlimited tailored resumes!",
+            variant: "destructive",
+            action: (
+              <Button
+                size="sm"
+                onClick={() => navigate("/pricing")}
+                className="bg-primary hover:bg-primary/90"
+              >
+                <TrendingUp className="w-4 h-4 mr-1" />
+                Upgrade Plan
+              </Button>
+            ),
+          });
+          return;
+        }
+
+        // Handle version conflict error
+        if (usageError.message.includes("version_conflict")) {
+          toast({
+            title: "Please Try Again",
+            description:
+              "Your usage data was updated by another session. Please try again.",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        // Handle other usage-related errors
+        console.error("Usage increment error:", usageError);
+        toast({
+          title: "Usage Check Failed",
+          description: "Unable to verify your usage limits. Please try again.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // ✅ Only proceed with resume tailoring if usage increment succeeded
+      console.log(
+        "Usage incremented successfully, proceeding with resume tailoring"
+      );
+
       // Convert file to base64
       const base64Resume = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader();
@@ -495,16 +556,16 @@ Preferred Qualifications:
       );
 
       if (!response.ok) {
-        throw new Error("Failed to tailor resume");
+        throw new Error(
+          `Failed to tailor resume: ${response.status} ${response.statusText}`
+        );
       }
 
-      const tailoredResumeUrl = await response.text();
+      // Get the iframe HTML as text
+      const iframeHtml = await response.text();
 
-      // Check if limit reached
-      if (
-        tailoredResumeUrl.includes("allowed") &&
-        tailoredResumeUrl.includes("false")
-      ) {
+      // Check if limit reached (legacy check for API response)
+      if (iframeHtml.includes("allowed") && iframeHtml.includes("false")) {
         toast({
           title: "Limit Reached",
           description: "You've reached your limit for this feature.",
@@ -512,6 +573,10 @@ Preferred Qualifications:
         });
         return;
       }
+
+      // Extract the PDF URL from the srcdoc attribute
+      const pdfUrlMatch = iframeHtml.match(/srcdoc="([^"]+)"/);
+      const tailoredResumeUrl = pdfUrlMatch ? pdfUrlMatch[1] : null;
 
       if (tailoredResumeUrl) {
         // Get user's name from profile or use email
@@ -550,8 +615,9 @@ Preferred Qualifications:
         if (error) {
           console.error("Error saving tailored resume:", error);
           toast({
-            title: "Error",
-            description: "Failed to save tailored resume. Please try again.",
+            title: "Save Error",
+            description:
+              "Resume tailored but failed to save. Please contact support.",
             variant: "destructive",
           });
           return;
@@ -574,7 +640,7 @@ Preferred Qualifications:
         localStorage.removeItem("resumeTailorDraft");
 
         toast({
-          title: "Resume Tailored Successfully!",
+          title: "Resume Tailored Successfully! 🚀",
           description: `Your optimized resume "${resumeTitle}" has been generated and is ready for download.`,
           action: (
             <Button
@@ -582,7 +648,9 @@ Preferred Qualifications:
               onClick={() =>
                 handleDownload(tailoredResumeUrl, `${resumeTitle}.pdf`)
               }
+              className="bg-green-600 hover:bg-green-700"
             >
+              <Download className="w-4 h-4 mr-1" />
               Download
             </Button>
           ),
@@ -598,6 +666,12 @@ Preferred Qualifications:
         setIndustry("");
         setResumeStyle("modern");
 
+        // Reset file input
+        const fileInput = document.getElementById(
+          "resume-upload"
+        ) as HTMLInputElement;
+        if (fileInput) fileInput.value = "";
+
         // Scroll to results on mobile
         if (window.innerWidth < 768) {
           setTimeout(() => {
@@ -612,9 +686,72 @@ Preferred Qualifications:
       }
     } catch (error) {
       console.error("Error tailoring resume:", error);
+
+      // ✅ FIXED: Proper usage limit error handling
+      if (error.message.includes("Usage limit exceeded")) {
+        toast({
+          title: "Usage Limit Reached 📊",
+          description:
+            "You've reached your resume tailoring limit for your current plan. Upgrade to continue creating unlimited tailored resumes!",
+          variant: "destructive",
+          action: (
+            <Button
+              size="sm"
+              onClick={() => navigate("/pricing")}
+              className="bg-primary hover:bg-primary/90"
+            >
+              <TrendingUp className="w-4 h-4 mr-1" />
+              Upgrade Plan
+            </Button>
+          ),
+        });
+        return; // ✅ Important: Return here to avoid the generic error toast below
+      }
+
+      // Enhanced error handling with specific messages
+      let errorTitle = "Tailoring Failed";
+      let errorDescription = "Failed to tailor resume. Please try again.";
+
+      // ✅ FIXED: More specific error categorization
+      if (
+        error.message.includes("403") ||
+        error.message.includes("Forbidden")
+      ) {
+        errorTitle = "Access Denied";
+        errorDescription =
+          "You don't have permission to use resume tailoring with your current plan.";
+      } else if (
+        error.message.includes("401") ||
+        error.message.includes("Unauthorized")
+      ) {
+        errorTitle = "Authentication Error";
+        errorDescription = "Please log in again to continue.";
+      } else if (error.message.includes("version_conflict")) {
+        errorTitle = "Please Try Again";
+        errorDescription =
+          "Your usage data was updated by another session. Please try again.";
+      } else if (
+        error.message.includes("Network") ||
+        error.message.includes("fetch") ||
+        error.message.includes("Failed to fetch")
+      ) {
+        // ✅ FIXED: More specific network error detection
+        errorTitle = "Connection Error";
+        errorDescription =
+          "Please check your internet connection and try again.";
+      } else if (
+        error.message.includes("500") ||
+        error.message.includes("Internal Server Error")
+      ) {
+        errorTitle = "Server Error";
+        errorDescription =
+          "Our servers are experiencing issues. Please try again in a moment.";
+      }
+
+      // ✅ Only show generic error toast for non-usage-limit errors
       toast({
-        title: "Tailoring Failed",
-        description: "Failed to tailor resume. Please try again.",
+        title: errorTitle,
+        description: errorDescription,
         variant: "destructive",
       });
     } finally {
@@ -634,7 +771,7 @@ Preferred Qualifications:
       document.body.removeChild(link);
 
       toast({
-        title: "Download Started",
+        title: "Download Started 📥",
         description: "Your tailored resume is being downloaded.",
       });
     } catch (error) {
@@ -664,6 +801,12 @@ Preferred Qualifications:
     setIndustry("");
     setResumeStyle("modern");
     localStorage.removeItem("resumeTailorDraft");
+
+    // Clear file input
+    const fileInput = document.getElementById(
+      "resume-upload"
+    ) as HTMLInputElement;
+    if (fileInput) fileInput.value = "";
 
     toast({
       title: "Form Cleared",
@@ -712,23 +855,26 @@ Preferred Qualifications:
                 animate={{ opacity: 1, y: 0 }}
                 className="mb-6 p-4 rounded-xl w-fit mx-auto bg-blue-500/20 text-blue-500"
               >
-                <Briefcase className="w-12 h-12" />
+                <FileText className="w-8 h-8 md:w-12 md:h-12" />
               </motion.div>
 
               <motion.h1
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
-                className="text-4xl md:text-5xl font-bold mb-4"
+                className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4"
               >
-                AI Resume <span className="gradient-text">Tailor</span>
+                AI Resume{" "}
+                <span className="bg-gradient-to-r from-blue-500 to-purple-600 bg-clip-text text-transparent">
+                  Tailor
+                </span>
               </motion.h1>
 
               <motion.p
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 }}
-                className="text-xl text-muted-foreground"
+                className="text-lg md:text-xl text-muted-foreground px-4"
               >
                 Customize your resume for specific job roles using advanced AI
               </motion.p>
@@ -737,18 +883,18 @@ Preferred Qualifications:
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 }}
-                className="flex items-center justify-center gap-6 mt-4 text-sm text-muted-foreground"
+                className="flex flex-col md:flex-row items-center justify-center gap-4 md:gap-6 mt-4 text-sm text-muted-foreground"
               >
                 <div className="flex items-center gap-2">
-                  <Target className="w-4 h-4 text-blue-500" />
+                  <Target className="w-5 h-5 md:w-4 md:h-4 text-blue-500 flex-shrink-0" />
                   <span>ATS Optimized</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Zap className="w-4 h-4 text-purple-500" />
+                  <Zap className="w-5 h-5 md:w-4 md:h-4 text-purple-500 flex-shrink-0" />
                   <span>AI Powered</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <TrendingUp className="w-4 h-4 text-green-500" />
+                  <TrendingUp className="w-5 h-5 md:w-4 md:h-4 text-green-500 flex-shrink-0" />
                   <span>Higher Match Rate</span>
                 </div>
               </motion.div>
@@ -761,18 +907,16 @@ Preferred Qualifications:
             >
               <Card className="glass">
                 <CardHeader>
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                     <div>
-                      <CardTitle className="flex items-center gap-2">
-                        <FileText className="w-5 h-5" />
-                        Tailor Your Resume
+                      <CardTitle className="text-lg md:text-xl flex items-center gap-2">
+                        <FileText className="w-5 h-5 flex-shrink-0" />
+                        <span className="leading-tight">
+                          Tailor Your Resume
+                        </span>
                       </CardTitle>
-                      <CardDescription>
-                        Optimize your resume for specific job roles and increase
-                        your chances of getting hired
-                      </CardDescription>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-2">
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <Button
@@ -781,6 +925,7 @@ Preferred Qualifications:
                             onClick={loadSampleData}
                             className="text-xs"
                           >
+                            <Sparkles className="w-3 h-3 md:w-4 md:h-4 mr-1 md:mr-2" />
                             Try Example
                           </Button>
                         </TooltipTrigger>
@@ -795,6 +940,7 @@ Preferred Qualifications:
                         onClick={handleClearForm}
                         className="text-xs"
                       >
+                        <RefreshCw className="w-3 h-3 md:w-4 md:h-4 mr-1 md:mr-2" />
                         Clear All
                       </Button>
                     </div>
@@ -813,7 +959,7 @@ Preferred Qualifications:
                           htmlFor="jobRole"
                           className="flex items-center gap-2"
                         >
-                          <User className="w-4 h-4" />
+                          <User className="w-4 h-4 flex-shrink-0" />
                           Job Role/Title *
                         </Label>
                         <Input
@@ -884,7 +1030,7 @@ Preferred Qualifications:
                           Job Description *
                           <Tooltip>
                             <TooltipTrigger>
-                              <Info className="w-4 h-4 text-muted-foreground" />
+                              <Info className="w-4 h-4 text-muted-foreground flex-shrink-0" />
                             </TooltipTrigger>
                             <TooltipContent className="max-w-xs">
                               <p>
@@ -941,7 +1087,7 @@ Preferred Qualifications:
                         Upload Your Current Resume *
                         <Tooltip>
                           <TooltipTrigger>
-                            <Info className="w-4 h-4 text-muted-foreground" />
+                            <Info className="w-4 h-4 text-muted-foreground flex-shrink-0" />
                           </TooltipTrigger>
                           <TooltipContent>
                             <p>
@@ -958,26 +1104,6 @@ Preferred Qualifications:
                         selectedFile={resume}
                         error={!validation.resume}
                       />
-                    </div>
-
-                    {/* Advanced Options */}
-                    <div className="flex items-center space-x-2">
-                      <input
-                        type="checkbox"
-                        id="save-draft"
-                        checked={saveAsDraft}
-                        onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                          setSaveAsDraft(e.target.checked)
-                        }
-                        className="rounded"
-                      />
-                      <Label
-                        htmlFor="save-draft"
-                        className="text-sm flex items-center gap-2"
-                      >
-                        <Save className="w-4 h-4" />
-                        Auto-save as draft while typing
-                      </Label>
                     </div>
 
                     {/* Submit Button */}
@@ -1002,13 +1128,13 @@ Preferred Qualifications:
                               }}
                               className="mr-2"
                             >
-                              <Briefcase className="w-5 h-5" />
+                              <FileText className="w-5 h-5" />
                             </motion.div>
                             Tailoring Your Resume...
                           </>
                         ) : (
                           <>
-                            <Briefcase className="w-5 h-5 mr-2" />
+                            <FileText className="w-5 h-5 mr-2" />
                             Tailor Resume with AI
                           </>
                         )}
@@ -1017,17 +1143,17 @@ Preferred Qualifications:
 
                     {/* Trust Indicators */}
                     <div className="bg-muted/30 rounded-lg p-4">
-                      <div className="flex items-center justify-center gap-6 text-sm text-muted-foreground">
+                      <div className="flex flex-col md:flex-row items-center justify-center gap-4 md:gap-6 text-sm text-muted-foreground">
                         <div className="flex items-center gap-2">
-                          <Shield className="w-4 h-4 text-green-500" />
+                          <Shield className="w-5 h-5 md:w-4 md:h-4 text-green-500 flex-shrink-0" />
                           <span>Secure Processing</span>
                         </div>
                         <div className="flex items-center gap-2">
-                          <Clock className="w-4 h-4 text-blue-500" />
+                          <Clock className="w-5 h-5 md:w-4 md:h-4 text-blue-500 flex-shrink-0" />
                           <span>~45 sec generation</span>
                         </div>
                         <div className="flex items-center gap-2">
-                          <Target className="w-4 h-4 text-purple-500" />
+                          <Target className="w-5 h-5 md:w-4 md:h-4 text-purple-500 flex-shrink-0" />
                           <span>ATS Optimized</span>
                         </div>
                       </div>
@@ -1053,14 +1179,14 @@ Preferred Qualifications:
                       initial={{ scale: 0 }}
                       animate={{ scale: 1 }}
                       transition={{ delay: 0.2, type: "spring" }}
-                      className="mx-auto w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center mb-4"
+                      className="mx-auto w-12 h-12 md:w-16 md:h-16 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center mb-4"
                     >
-                      <CheckCircle className="w-8 h-8 text-white" />
+                      <CheckCircle className="w-6 h-6 md:w-8 md:h-8 text-white" />
                     </motion.div>
-                    <h2 className="text-2xl font-bold mb-2">
+                    <h2 className="text-xl md:text-2xl font-bold mb-2">
                       Your Tailored Resume is Ready! 🚀
                     </h2>
-                    <p className="text-muted-foreground">
+                    <p className="text-muted-foreground px-4">
                       Optimized specifically for {jobRole} positions
                     </p>
                   </div>
@@ -1071,18 +1197,17 @@ Preferred Qualifications:
                     transition={{ duration: 0.3 }}
                     layout
                   >
-                    <Card className="bg-gradient-to-r from-slate-800/90 to-slate-700/90 dark:from-slate-800/95 dark:to-slate-700/95 border border-slate-600/50 dark:border-slate-500/60
-">
+                    <Card className="bg-gradient-to-r from-slate-800/90 to-slate-700/90 dark:from-slate-800/95 dark:to-slate-700/95 border border-slate-600/50 dark:border-slate-500/60">
                       <CardContent className="p-6">
                         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-3 mb-3">
                               <div className="p-3 rounded-lg bg-gradient-to-br from-blue-500 to-purple-500 text-white">
-                                <FileText className="w-6 h-6" />
+                                <FileText className="w-5 h-5 md:w-6 md:h-6" />
                               </div>
                               <div className="min-w-0 flex-1">
                                 <h3
-                                  className="font-semibold text-xl truncate"
+                                  className="font-semibold text-lg md:text-xl truncate"
                                   title={currentGeneratedResume.title}
                                 >
                                   {currentGeneratedResume.title}
@@ -1094,13 +1219,13 @@ Preferred Qualifications:
                                 <div className="flex items-center gap-2 mt-1">
                                   <Badge
                                     variant="secondary"
-                                    className="bg-blue-100 text-blue-800"
+                                    className="bg-blue-100 text-blue-800 text-xs"
                                   >
                                     AI Tailored
                                   </Badge>
                                   <Badge
                                     variant="secondary"
-                                    className="bg-green-100 text-green-800"
+                                    className="bg-green-100 text-green-800 text-xs"
                                   >
                                     ATS Optimized
                                   </Badge>

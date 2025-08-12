@@ -1,47 +1,61 @@
 import React, { memo, useCallback } from "react";
 import { Card } from "@/components/ui/card";
-import { Upload, Wand2, Download, Send } from "lucide-react";
+import { Upload, Wand2, Download, Send, type LucideIcon } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { motion } from "framer-motion";
+import { motion, type Variants } from "framer-motion";
+
+// ---- Types ----
+interface Step {
+  icon: LucideIcon;
+  title: string;
+  description: string;
+  step: string;
+  iconBg: string;
+}
+
+interface StepCardProps {
+  step: Step;
+  isMobile?: boolean;
+}
+
+interface CTASectionProps {
+  onGetStarted: () => void;
+}
 
 // ---- Constants ----
-const STEPS = [
+const STEPS: readonly Step[] = [
   {
     icon: Upload,
     title: "Upload Your Resume",
-    description:
-      "Upload your existing resume or create one using our templates. We support all major formats.",
+    description: "Drop in your resume for AI-based analysis.",
     step: "01",
     iconBg: "from-blue-500 to-blue-400",
   },
   {
     icon: Wand2,
-    title: "Paste Job Description",
-    description:
-      "Copy and paste the job description you want to apply for. Our AI analyzes the requirements.",
+    title: "Analyze Job Description",
+    description: "Let our LLMs scan and decode the JD.",
     step: "02",
     iconBg: "from-indigo-600 to-blue-400",
   },
   {
     icon: Download,
-    title: "Get Tailored Resume",
-    description:
-      "Receive your optimized resume with improved ATS score and relevant keywords highlighted.",
+    title: "Generate Optimized Resume",
+    description: "Get an ATS-ready resume, tailored by AI.",
     step: "03",
     iconBg: "from-green-500 to-blue-400",
   },
   {
     icon: Send,
     title: "Apply with Confidence",
-    description:
-      "Download your tailored resume and cover letter, then apply knowing you have the best chance.",
+    description: "Use your AI-tailored resume to apply instantly.",
     step: "04",
     iconBg: "from-purple-400 to-blue-400",
   },
 ] as const;
 
-const containerVariants = {
+const containerVariants: Variants = {
   hidden: { opacity: 0 },
   show: {
     opacity: 1,
@@ -52,7 +66,7 @@ const containerVariants = {
   },
 };
 
-const itemVariants = {
+const itemVariants: Variants = {
   hidden: { opacity: 0, y: 20 },
   show: {
     opacity: 1,
@@ -62,25 +76,37 @@ const itemVariants = {
 };
 
 // ---- Step Card ----
-const StepCard = memo(function StepCard({
+const StepCard = memo<StepCardProps>(function StepCard({
   step,
   isMobile = false,
-}: {
-  step: (typeof STEPS)[0];
-  isMobile?: boolean;
 }) {
   const Icon = step.icon;
   return (
     <motion.div
       variants={itemVariants}
-      className={`relative ${isMobile ? "w-[85vw] max-w-xs shrink-0" : ""}`}
+      className={`
+        relative 
+        ${isMobile ? "w-[85vw] max-w-xs flex-none" : ""}
+      `}
     >
-      <Card className="bg-background/80 backdrop-blur border border-white/10 rounded-2xl p-5 md:p-6 text-center h-full hover:shadow-xl hover:shadow-blue-500/10 transition-all duration-300 hover:border-blue-400/30">
+      <Card
+        className="
+          relative
+          bg-background/90 backdrop-blur-sm
+          border border-white/10 
+          rounded-2xl p-5 md:p-6 
+          text-center h-full 
+          hover:shadow-xl hover:shadow-blue-500/10 
+          transition-all duration-300 
+          hover:border-blue-400/30
+          shadow-lg shadow-black/5
+        "
+      >
         <div
           className={
             isMobile
-              ? "relative mb-4"
-              : "absolute -top-4 left-1/2 transform -translate-x-1/2"
+              ? "relative mb-4 z-10"
+              : "absolute -top-4 left-1/2 transform -translate-x-1/2 z-20"
           }
         >
           <div className="w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center font-bold text-sm border-2 border-white/20 shadow-lg mx-auto">
@@ -88,11 +114,23 @@ const StepCard = memo(function StepCard({
           </div>
         </div>
         <div
-          className={`w-12 h-12 md:w-14 md:h-14 mx-auto mb-4 rounded-xl bg-gradient-to-br ${step.iconBg} flex items-center justify-center text-white shadow-lg`}
+          className={`
+            w-12 h-12 md:w-14 md:h-14 
+            mx-auto mb-4 
+            rounded-xl 
+            bg-gradient-to-br ${step.iconBg} 
+            flex items-center justify-center 
+            text-white shadow-lg
+            relative z-10
+          `}
         >
           <Icon className="w-5 h-5 md:w-6 md:h-6" />
         </div>
-        <div className={isMobile ? "flex-1 flex flex-col justify-center" : ""}>
+        <div
+          className={`relative z-10 ${
+            isMobile ? "flex-1 flex flex-col justify-center" : ""
+          }`}
+        >
           <h3 className="text-base md:text-xl font-bold mb-2 md:mb-3 text-white leading-tight">
             {step.title}
           </h3>
@@ -106,11 +144,7 @@ const StepCard = memo(function StepCard({
 });
 
 // ---- CTA ----
-const CTASection = memo(function CTASection({
-  onGetStarted,
-}: {
-  onGetStarted: () => void;
-}) {
+const CTASection = memo<CTASectionProps>(function CTASection({ onGetStarted }) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -120,27 +154,36 @@ const CTASection = memo(function CTASection({
       className="max-w-sm sm:max-w-md md:max-w-lg mx-auto text-center mt-4"
     >
       <Card
-        // **Smaller paddings and tighter text spacing on mobile, spacious on desktop**
-        className={`
-          bg-background/85 backdrop-blur border border-white/10 rounded-2xl
+        className="
+          relative
+          bg-background/90 backdrop-blur-sm
+          border border-white/10 
+          rounded-2xl
           p-4 sm:p-5 md:p-8
-          hover:border-blue-400/30 transition-all duration-300
-        `}
+          hover:border-blue-400/30 
+          transition-all duration-300
+          shadow-lg shadow-black/5
+        "
       >
         <h3 className="text-base sm:text-lg md:text-2xl font-bold mb-2 sm:mb-3 md:mb-4 text-white">
-          Ready to Transform Your Job Search?
+          Transform Your Job Hunt with{" "}
+          <span className="bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+            AI
+          </span>
         </h3>
         <p className="text-xs sm:text-sm md:text-base text-muted-foreground mb-4 sm:mb-5">
-          Join thousands using{" "}
-          <span className="font-bold bg-gradient-to-r from-blue-400 to-blue-500 bg-clip-text text-transparent">
+          Join{" "}
+          <span className="font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
             ApplyForge
-          </span>
+          </span>{" "}
+          and take control of your future.
         </p>
         <button
           onClick={onGetStarted}
           className="
             w-full sm:w-auto
-            bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700
+            bg-gradient-to-r from-blue-500 to-blue-600 
+            hover:from-blue-600 hover:to-blue-700
             text-white font-bold
             px-4 sm:px-6 md:px-8
             py-2 sm:py-2.5 md:py-4
@@ -150,6 +193,7 @@ const CTASection = memo(function CTASection({
             transition-all duration-200
             hover:scale-105
             focus:outline-none focus:ring-2 focus:ring-blue-500/50
+            active:scale-95
           "
         >
           Start Your Free Trial
@@ -176,11 +220,17 @@ const HowItWorks = memo(function HowItWorks() {
     <section
       id="how-it-works"
       className="
-        relative py-20 md:py-24
+        relative
+        py-16 sm:py-20 md:py-24
         bg-gradient-to-br from-background via-slate-900/70 to-blue-950/90
-        overflow-hidden scroll-mt-28 md:scroll-mt-32
-        z-10
+        overflow-hidden
+        scroll-mt-16 sm:scroll-mt-20 md:scroll-mt-24
+        border-t border-white/5
       "
+      style={{
+        marginTop: "-1px", // Eliminate any gap
+        zIndex: 1,
+      }}
     >
       {/* Background Effects */}
       <div className="absolute inset-0 pointer-events-none">
@@ -188,6 +238,7 @@ const HowItWorks = memo(function HowItWorks() {
         <div className="absolute right-0 bottom-0 w-44 h-28 bg-blue-800/20 rounded-2xl blur-3xl" />
       </div>
 
+      {/* Main Container */}
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         {/* Section Header */}
         <motion.div
@@ -211,45 +262,60 @@ const HowItWorks = memo(function HowItWorks() {
 
         {/* DESKTOP: Inline steps */}
         <div className="hidden lg:block relative mb-12 md:mb-16">
-          <div className="absolute top-[120px] left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-blue-500/40 to-transparent" />
+          <div className="absolute top-[120px] left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-blue-500/40 to-transparent z-0" />
           <motion.div
             variants={containerVariants}
             initial="hidden"
             whileInView="show"
             viewport={{ once: true, margin: "-100px" }}
-            className="grid grid-cols-4 gap-6 lg:gap-8"
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8 relative z-10"
           >
-            {STEPS.map((step, idx) => (
+            {STEPS.map((step) => (
               <StepCard key={step.step} step={step} isMobile={false} />
             ))}
           </motion.div>
         </div>
 
-        {/* MOBILE: Horizontal scroll steps */}
+        {/* MOBILE/TABLET: Horizontal scroll steps */}
         <div className="lg:hidden mb-8 md:mb-10">
           <motion.div
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
             transition={{ duration: 0.4 }}
             viewport={{ once: true }}
+            className="relative z-10"
           >
             <p className="text-center text-muted-foreground text-xs mb-5">
               ← Swipe to see all steps →
             </p>
+
+            {/* Scroll Container */}
             <div
-              className="overflow-x-auto w-full"
-              style={{ WebkitOverflowScrolling: "touch" }}
+              className="
+                overflow-x-auto 
+                overscroll-x-contain
+                w-full
+                pb-2
+                -mx-4
+                px-4
+              "
+              style={{
+                WebkitOverflowScrolling: "touch",
+                scrollBehavior: "smooth",
+                scrollbarWidth: "none",
+                msOverflowStyle: "none",
+              }}
             >
               <motion.div
                 variants={containerVariants}
                 initial="hidden"
                 whileInView="show"
                 viewport={{ once: true }}
-                className="flex gap-4 pb-1"
+                className="flex gap-4 w-max"
               >
-                {STEPS.map((step, idx) => (
+                {STEPS.map((step) => (
                   <div key={step.step} className="h-80">
-                    <StepCard step={step} index={idx} isMobile={true} />
+                    <StepCard step={step} isMobile={true} />
                   </div>
                 ))}
               </motion.div>
@@ -258,7 +324,9 @@ const HowItWorks = memo(function HowItWorks() {
         </div>
 
         {/* CTA Section */}
-        <CTASection onGetStarted={handleGetStarted} />
+        <div className="relative z-10">
+          <CTASection onGetStarted={handleGetStarted} />
+        </div>
       </div>
     </section>
   );

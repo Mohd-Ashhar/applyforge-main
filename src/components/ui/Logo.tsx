@@ -27,11 +27,7 @@ const Logo: React.FC<LogoProps> = ({
         <span className="text-xl md:text-2xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
           ApplyForge
         </span>
-        {showTagline && (
-          <span className="text-xs text-muted-foreground font-medium -mt-1 tracking-wide">
-            AI Career Craft
-          </span>
-        )}
+      
       </div>
     </div>
   );

@@ -32,8 +32,8 @@ import {
 } from "lucide-react";
 import { User } from "@supabase/supabase-js";
 import { motion, AnimatePresence } from "framer-motion";
-import { useUsageTracking } from "@/hooks/useUsageTracking"; // **IMPORTED CENTRALIZED HOOK**
-import PlanBadge from "./PlanBadge"; // **IMPORTED CENTRALIZED COMPONENT**
+import { useUsageTracking } from "@/hooks/useUsageTracking";
+import PlanBadge from "./PlanBadge";
 import UserAvatar from "./UserAvatar";
 
 interface UserDropdownProps {
@@ -45,46 +45,34 @@ interface UserDropdownProps {
 // Navigation items with enhanced metadata
 const DROPDOWN_NAV_ITEMS = [
   {
-    to: "/",
-    icon: Home,
-    label: "Dashboard",
-    description: "Overview & Analytics",
-    shortcut: "⌘H",
-  },
-  {
     to: "/tailored-resumes",
     icon: FileText,
     label: "Tailored Resumes",
     description: "AI-optimized resumes",
-    shortcut: "⌘R",
   },
   {
     to: "/saved-cover-letters",
     icon: Edit3,
     label: "Cover Letters",
     description: "Generated letters",
-    shortcut: "⌘L",
   },
   {
     to: "/saved-jobs",
     icon: Bookmark,
     label: "Saved Jobs",
     description: "Bookmarked opportunities",
-    shortcut: "⌘S",
   },
   {
     to: "/applied-jobs",
     icon: CheckCircle,
     label: "Applied Jobs",
     description: "Application tracking",
-    shortcut: "⌘A",
   },
   {
     to: "/feedback",
     icon: BarChart3,
     label: "Feedback",
     description: "Share your experience",
-    shortcut: "⌘F",
   },
 ] as const;
 
@@ -138,14 +126,14 @@ const SUPPORT_ITEMS = [
   },
 ] as const;
 
-// Memoized Dropdown Item Component
+// Memoized Dropdown Item Component - CORRECTED
 const DropdownNavItem = memo(
   ({
     item,
     isActive,
     onClick,
   }: {
-    item: (typeof DROPDOWN_NAV_ITEMS)[0];
+    item: (typeof DROPDOWN_NAV_ITEMS)[number]; // <-- FIX APPLIED
     isActive: boolean;
     onClick?: () => void;
   }) => {
@@ -195,11 +183,6 @@ const DropdownNavItem = memo(
               {item.description}
             </div>
           </div>
-          {item.shortcut && (
-            <div className="text-xs text-muted-foreground bg-muted/50 px-2 py-1 rounded-md font-mono">
-              {item.shortcut}
-            </div>
-          )}
           {isActive && (
             <div className="w-2 h-2 bg-primary rounded-full animate-pulse" />
           )}
@@ -208,16 +191,15 @@ const DropdownNavItem = memo(
     );
   }
 );
-
 DropdownNavItem.displayName = "DropdownNavItem";
 
-// Memoized Settings Item Component
+// Memoized Settings Item Component - CORRECTED
 const SettingsItem = memo(
   ({
     item,
     onClick,
   }: {
-    item: (typeof SETTINGS_ITEMS)[0];
+    item: (typeof SETTINGS_ITEMS)[number]; // <-- FIX 1 APPLIED
     onClick?: () => void;
   }) => {
     const Icon = item.icon;
@@ -235,7 +217,8 @@ const SettingsItem = memo(
             {item.description}
           </div>
         </div>
-        {item.external && (
+        {/* FIX 2 APPLIED */}
+        {"external" in item && item.external && (
           <ExternalLink className="w-3 h-3 text-muted-foreground group-hover:text-primary" />
         )}
       </div>
@@ -258,7 +241,6 @@ const SettingsItem = memo(
     );
   }
 );
-
 SettingsItem.displayName = "SettingsItem";
 
 const UserDropdown = memo<UserDropdownProps>(
@@ -267,10 +249,8 @@ const UserDropdown = memo<UserDropdownProps>(
     const location = useLocation();
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
-    // **USING CENTRALIZED HOOK**
     const { usage, isLoading } = useUsageTracking();
 
-    // Memoized user data
     const userData = useMemo(() => {
       const fullName = user?.user_metadata?.full_name || "";
       const email = user?.email || "";
@@ -283,7 +263,6 @@ const UserDropdown = memo<UserDropdownProps>(
       };
     }, [user]);
 
-    // Check if current route is active
     const isActiveRoute = useCallback(
       (path: string) => {
         return location.pathname === path;
@@ -291,12 +270,10 @@ const UserDropdown = memo<UserDropdownProps>(
       [location.pathname]
     );
 
-    // Handle dropdown close
     const handleDropdownClose = useCallback(() => {
       setIsDropdownOpen(false);
     }, []);
 
-    // Handle settings actions
     const handleSettingsAction = useCallback(
       (action: string) => {
         switch (action) {
@@ -323,13 +300,12 @@ const UserDropdown = memo<UserDropdownProps>(
       [navigate, handleDropdownClose]
     );
 
-    // **LOADING STATE USING SAME PATTERN AS HOOK**
     if (isLoading) {
       return (
         <Button
           variant="ghost"
           className={`
-            relative flex items-center gap-2 md:gap-3 p-2 rounded-2xl 
+            relative flex items-center gap-2 md:gap-3 p-2 rounded-2xl
             hover:bg-primary/5 hover:border-primary/20 border border-transparent
             transition-all duration-300 group shrink-0 hover:shadow-lg hover:shadow-primary/10
             ${className}
@@ -349,7 +325,6 @@ const UserDropdown = memo<UserDropdownProps>(
       );
     }
 
-    // **GET PLAN TYPE FROM USAGE DATA**
     const planType = usage?.plan_type || "Free";
 
     return (
@@ -358,7 +333,7 @@ const UserDropdown = memo<UserDropdownProps>(
           <Button
             variant="ghost"
             className={`
-            relative flex items-center gap-2 md:gap-3 p-2 rounded-2xl 
+            relative flex items-center gap-2 md:gap-3 p-2 rounded-2xl
             hover:bg-primary/5 hover:border-primary/20 border border-transparent
             transition-all duration-300 group shrink-0 hover:shadow-lg hover:shadow-primary/10
             ${className}
@@ -372,13 +347,11 @@ const UserDropdown = memo<UserDropdownProps>(
               variant="premium"
             />
 
-            {/* User info - hidden on mobile */}
             <div className="hidden sm:flex items-center gap-2">
               <div className="text-left min-w-0">
                 <p className="text-sm font-medium text-foreground max-w-20 md:max-w-28 truncate leading-tight">
                   {userData.displayName}
                 </p>
-                {/* **USING CENTRALIZED PLANBADGE** */}
                 <PlanBadge plan={planType} size="sm" showIcon={false} />
               </div>
               <motion.div
@@ -389,7 +362,6 @@ const UserDropdown = memo<UserDropdownProps>(
               </motion.div>
             </div>
 
-            {/* Mobile chevron */}
             <motion.div
               animate={{ rotate: isDropdownOpen ? 180 : 0 }}
               transition={{ duration: 0.2 }}
@@ -417,7 +389,6 @@ const UserDropdown = memo<UserDropdownProps>(
                 transition={{ duration: 0.2, ease: "easeOut" }}
               >
                 <ScrollArea className="max-h-[85vh] overflow-y-auto">
-                  {/* User Profile Section */}
                   <div className="p-4 md:p-6 bg-gradient-to-br from-primary/5 via-blue-600/5 to-purple-600/5 border-b border-white/10">
                     <div className="flex items-center gap-3 md:gap-4">
                       <UserAvatar
@@ -435,7 +406,6 @@ const UserDropdown = memo<UserDropdownProps>(
                           {userData.email}
                         </p>
                         <div className="flex items-center gap-2">
-                          {/* **CENTRALIZED PLANBADGE WITH USAGE DATA** */}
                           <PlanBadge plan={planType} animated usage={usage} />
                           {planType === "Free" && (
                             <Link to="/pricing" onClick={handleDropdownClose}>
@@ -451,7 +421,6 @@ const UserDropdown = memo<UserDropdownProps>(
                           )}
                         </div>
 
-                        {/* **USAGE SUMMARY USING HOOK DATA** */}
                         {usage && (
                           <div className="text-xs text-muted-foreground">
                             {planType === "Pro" ? (
@@ -460,7 +429,6 @@ const UserDropdown = memo<UserDropdownProps>(
                               </span>
                             ) : (
                               <span>
-                                {/* Calculate total usage across all features */}
                                 {[
                                   usage.resume_tailors_used || 0,
                                   usage.cover_letters_used || 0,
@@ -477,7 +445,6 @@ const UserDropdown = memo<UserDropdownProps>(
                     </div>
                   </div>
 
-                  {/* Quick Navigation */}
                   <DropdownMenuGroup className="p-2">
                     <DropdownMenuLabel className="text-xs font-semibold text-muted-foreground px-3 py-2 bg-muted/20 rounded-lg mb-2 flex items-center gap-2">
                       <Home className="w-3 h-3" />
@@ -497,57 +464,6 @@ const UserDropdown = memo<UserDropdownProps>(
 
                   <DropdownMenuSeparator className="mx-4 bg-white/10" />
 
-                  {/* Settings & Account */}
-                  <DropdownMenuGroup className="p-2">
-                    <DropdownMenuLabel className="text-xs font-semibold text-muted-foreground px-3 py-2 bg-muted/20 rounded-lg mb-2 flex items-center gap-2">
-                      <Settings className="w-3 h-3" />
-                      Account & Settings
-                    </DropdownMenuLabel>
-                    <div className="space-y-1">
-                      {SETTINGS_ITEMS.map((item, index) => (
-                        <SettingsItem
-                          key={index}
-                          item={item}
-                          onClick={() => {
-                            if ("action" in item && item.action) {
-                              handleSettingsAction(item.action);
-                            } else {
-                              handleDropdownClose();
-                            }
-                          }}
-                        />
-                      ))}
-                    </div>
-                  </DropdownMenuGroup>
-
-                  <DropdownMenuSeparator className="mx-4 bg-white/10" />
-
-                  {/* Support */}
-                  <DropdownMenuGroup className="p-2">
-                    <DropdownMenuLabel className="text-xs font-semibold text-muted-foreground px-3 py-2 bg-muted/20 rounded-lg mb-2 flex items-center gap-2">
-                      <HelpCircle className="w-3 h-3" />
-                      Support & Help
-                    </DropdownMenuLabel>
-                    <div className="space-y-1">
-                      {SUPPORT_ITEMS.map((item, index) => (
-                        <SettingsItem
-                          key={index}
-                          item={item}
-                          onClick={() => {
-                            if ("action" in item && item.action) {
-                              handleSettingsAction(item.action);
-                            } else {
-                              handleDropdownClose();
-                            }
-                          }}
-                        />
-                      ))}
-                    </div>
-                  </DropdownMenuGroup>
-
-                  <DropdownMenuSeparator className="mx-4 bg-white/10" />
-
-                  {/* Sign Out */}
                   <div className="p-2">
                     <DropdownMenuItem
                       onClick={onSignOut}

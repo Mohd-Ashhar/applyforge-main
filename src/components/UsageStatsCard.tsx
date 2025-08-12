@@ -70,17 +70,17 @@ interface UsageSummaryStatsProps {
 const getPlanLimit = (planType: string, usageType: UsageType): number => {
   const limits = {
     Free: {
-      resume_tailors_used: 5,
+      resume_tailors_used: 3,
       cover_letters_used: 3,
-      job_searches_used: 10,
-      one_click_tailors_used: 2,
+      job_searches_used: 3,
+      one_click_tailors_used: 3,
       ats_checks_used: 3,
     },
     Basic: {
-      resume_tailors_used: 50,
+      resume_tailors_used: 25,
       cover_letters_used: 25,
-      job_searches_used: 100,
-      one_click_tailors_used: 20,
+      job_searches_used: 25,
+      one_click_tailors_used: 25,
       ats_checks_used: 25,
     },
     Pro: {

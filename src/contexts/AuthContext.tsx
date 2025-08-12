@@ -5,12 +5,106 @@ import React, {
   useState,
   useCallback,
   useMemo,
+  useRef,
   memo,
 } from "react";
 import { User, Session, AuthError } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 
-// Enhanced interface with better error handling and loading states
+// Enhanced type definitions
+interface UserMetadata {
+  full_name?: string;
+  avatar_url?: string;
+  onboarding_completed?: boolean;
+  [key: string]: any;
+}
+
+interface UserProfile {
+  full_name?: string;
+  avatar_url?: string;
+  onboarding_completed?: boolean;
+}
+
+interface AuthResult<T = any> {
+  data?: T;
+  error?: EnhancedAuthError | null;
+  success: boolean;
+}
+
+interface SignUpData {
+  user: User | null;
+  session: Session | null;
+}
+
+interface SignInData {
+  user: User;
+  session: Session;
+}
+
+// Enhanced error handling
+enum AuthErrorType {
+  INVALID_CREDENTIALS = "invalid_credentials",
+  RATE_LIMITED = "rate_limited",
+  NETWORK_ERROR = "network_error",
+  VALIDATION_ERROR = "validation_error",
+  SESSION_EXPIRED = "session_expired",
+  UNKNOWN_ERROR = "unknown_error",
+}
+
+interface EnhancedAuthError {
+  type: AuthErrorType;
+  message: string;
+  code?: string;
+  originalError?: AuthError;
+}
+
+// Rate limiting configuration
+const RATE_LIMIT_CONFIG = {
+  MAX_ATTEMPTS: 5,
+  WINDOW_MS: 15 * 60 * 1000, // 15 minutes
+  LOCKOUT_MS: 30 * 60 * 1000, // 30 minutes
+};
+
+// ✅ FIXED: Browser-safe URL construction (from your original working code)
+const getRedirectUrl = (path: string): string => {
+  if (typeof window !== "undefined") {
+    return `${window.location.origin}${path}`;
+  }
+  // Server-side fallback (only when window is not available)
+  return path;
+};
+
+// Validation utilities
+const validateEmail = (email: string): boolean => {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email) && email.length <= 254;
+};
+
+const validatePassword = (password: string): boolean => {
+  return password.length >= 8 && password.length <= 128;
+};
+
+const validateFullName = (name: string): boolean => {
+  return name.trim().length >= 2 && name.trim().length <= 100;
+};
+
+// ✅ FIXED: Browser-safe error reporting
+const reportError = (error: any, context: string) => {
+  // Safe check for development environment
+  const isDevelopment =
+    typeof window !== "undefined" &&
+    (window.location.hostname === "localhost" ||
+      window.location.hostname === "127.0.0.1");
+
+  if (isDevelopment) {
+    console.error(`[ApplyForge Auth] ${context}:`, error);
+  } else {
+    // In production, send to error tracking service
+    // Example: Sentry.captureException(error, { tags: { context } });
+  }
+};
+
+// Enhanced interface
 interface AuthContextType {
   user: User | null;
   session: Session | null;
@@ -18,43 +112,23 @@ interface AuthContextType {
   isSigningIn: boolean;
   isSigningUp: boolean;
   isSigningOut: boolean;
+  isRefreshing: boolean;
   signUp: (
     email: string,
     password: string,
     fullName?: string
-  ) => Promise<{
-    data?: any;
-    error?: AuthError | null;
-    success: boolean;
-  }>;
-  signIn: (
-    email: string,
-    password: string
-  ) => Promise<{
-    data?: any;
-    error?: AuthError | null;
-    success: boolean;
-  }>;
-  signInWithGoogle: () => Promise<{
-    data?: any;
-    error?: AuthError | null;
-    success: boolean;
-  }>;
-  signInWithLinkedIn: () => Promise<{
-    data?: any;
-    error?: AuthError | null;
-    success: boolean;
-  }>;
-  signOut: () => Promise<{
-    error?: AuthError | null;
-    success: boolean;
-  }>;
-  resetPassword: (email: string) => Promise<{
-    error?: AuthError | null;
-    success: boolean;
-  }>;
+  ) => Promise<AuthResult<SignUpData>>;
+  signIn: (email: string, password: string) => Promise<AuthResult<SignInData>>;
+  signInWithGoogle: () => Promise<AuthResult<any>>;
+  signInWithLinkedIn: () => Promise<AuthResult<any>>;
+  signOut: () => Promise<AuthResult<void>>;
+  resetPassword: (email: string) => Promise<AuthResult<void>>;
+  updateProfile: (updates: Partial<UserProfile>) => Promise<AuthResult<User>>;
+  refreshSession: () => Promise<AuthResult<Session>>;
   isAuthenticated: boolean;
-  userMetadata: any;
+  userMetadata: UserMetadata;
+  authAttempts: number;
+  isRateLimited: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -68,7 +142,7 @@ export const useAuth = () => {
   return context;
 };
 
-// Enhanced AuthProvider with premium features
+// ✅ ADDED BACK: memo wrapper for better performance (from your original code)
 export const AuthProvider = memo<{ children: React.ReactNode }>(
   ({ children }) => {
     const [user, setUser] = useState<User | null>(null);
@@ -77,20 +151,166 @@ export const AuthProvider = memo<{ children: React.ReactNode }>(
     const [isSigningIn, setIsSigningIn] = useState(false);
     const [isSigningUp, setIsSigningUp] = useState(false);
     const [isSigningOut, setIsSigningOut] = useState(false);
+    const [isRefreshing, setIsRefreshing] = useState(false);
+
+    // Rate limiting state
+    const [authAttempts, setAuthAttempts] = useState(0);
+    const [lastAttempt, setLastAttempt] = useState(0);
+    const [isRateLimited, setIsRateLimited] = useState(false);
+
+    // Cleanup refs
+    const abortControllerRef = useRef<AbortController | null>(null);
+    const sessionCheckIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
     // Memoized computed values
     const isAuthenticated = useMemo(() => !!user && !!session, [user, session]);
-    const userMetadata = useMemo(() => user?.user_metadata || {}, [user]);
+    const userMetadata = useMemo(
+      (): UserMetadata => user?.user_metadata || {},
+      [user]
+    );
 
-    // Enhanced auth state handler
+    // Rate limiting utilities
+    const checkRateLimit = useCallback((): boolean => {
+      const now = Date.now();
+      const timeSinceLastAttempt = now - lastAttempt;
+
+      if (timeSinceLastAttempt > RATE_LIMIT_CONFIG.WINDOW_MS) {
+        setAuthAttempts(0);
+        setIsRateLimited(false);
+        return false;
+      }
+
+      if (authAttempts >= RATE_LIMIT_CONFIG.MAX_ATTEMPTS) {
+        setIsRateLimited(true);
+        return true;
+      }
+
+      return false;
+    }, [authAttempts, lastAttempt]);
+
+    const incrementAuthAttempts = useCallback(() => {
+      const now = Date.now();
+      setLastAttempt(now);
+      setAuthAttempts((prev) => prev + 1);
+    }, []);
+
+    // Enhanced error handling
+    const createEnhancedError = useCallback(
+      (
+        error: any,
+        type: AuthErrorType = AuthErrorType.UNKNOWN_ERROR
+      ): EnhancedAuthError => {
+        let errorType = type;
+        let message = "An unexpected error occurred";
+
+        if (error?.message) {
+          const errorMessage = error.message.toLowerCase();
+
+          if (
+            errorMessage.includes("invalid") ||
+            errorMessage.includes("credentials")
+          ) {
+            errorType = AuthErrorType.INVALID_CREDENTIALS;
+            message = "Invalid email or password";
+          } else if (
+            errorMessage.includes("network") ||
+            errorMessage.includes("fetch")
+          ) {
+            errorType = AuthErrorType.NETWORK_ERROR;
+            message = "Network error. Please check your connection";
+          } else if (
+            errorMessage.includes("rate") ||
+            errorMessage.includes("limit")
+          ) {
+            errorType = AuthErrorType.RATE_LIMITED;
+            message = "Too many attempts. Please try again later";
+          } else if (
+            errorMessage.includes("expired") ||
+            errorMessage.includes("token")
+          ) {
+            errorType = AuthErrorType.SESSION_EXPIRED;
+            message = "Session expired. Please sign in again";
+          } else {
+            message = error.message;
+          }
+        }
+
+        return {
+          type: errorType,
+          message,
+          code: error?.code,
+          originalError: error,
+        };
+      },
+      []
+    );
+
+    // Session refresh logic
+    const refreshSession = useCallback(async (): Promise<
+      AuthResult<Session>
+    > => {
+      if (isRefreshing) {
+        return {
+          success: false,
+          error: createEnhancedError(new Error("Refresh already in progress")),
+        };
+      }
+
+      setIsRefreshing(true);
+
+      try {
+        const { data, error } = await supabase.auth.refreshSession();
+
+        if (error) {
+          throw error;
+        }
+
+        if (data.session) {
+          setSession(data.session);
+          setUser(data.session.user);
+          return { success: true, data: data.session };
+        }
+
+        throw new Error("No session returned from refresh");
+      } catch (err) {
+        const enhancedError = createEnhancedError(
+          err,
+          AuthErrorType.SESSION_EXPIRED
+        );
+        reportError(err, "Session refresh");
+        return { success: false, error: enhancedError };
+      } finally {
+        setIsRefreshing(false);
+      }
+    }, [isRefreshing, createEnhancedError]);
+
+    // Check if token is expiring soon (within 5 minutes)
+    const isTokenExpiringSoon = useCallback((expiresAt?: number): boolean => {
+      if (!expiresAt) return false;
+      const fiveMinutes = 5 * 60 * 1000;
+      return expiresAt * 1000 - Date.now() < fiveMinutes;
+    }, []);
+
+    // ✅ FIXED: Browser-safe auth state handler
     const handleAuthStateChange = useCallback(
       (event: string, session: Session | null) => {
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
 
-        // Enhanced logging for development
-        if (process.env.NODE_ENV === "development") {
+        // Reset rate limiting on successful auth
+        if (session && event === "SIGNED_IN") {
+          setAuthAttempts(0);
+          setIsRateLimited(false);
+        }
+
+        // ✅ FIXED: Browser-safe development logging
+        const isDevelopment =
+          typeof window !== "undefined" &&
+          (window.location.hostname === "localhost" ||
+            window.location.hostname === "127.0.0.1");
+
+        if (isDevelopment) {
           console.log(`[ApplyForge Auth] ${event}:`, {
             user: session?.user?.email || "No user",
             session: !!session,
@@ -104,6 +324,7 @@ export const AuthProvider = memo<{ children: React.ReactNode }>(
     // Initialize auth state
     useEffect(() => {
       let mounted = true;
+      abortControllerRef.current = new AbortController();
 
       // Set up auth state listener
       const {
@@ -120,17 +341,14 @@ export const AuthProvider = memo<{ children: React.ReactNode }>(
 
           if (mounted) {
             if (error) {
-              console.error(
-                "[ApplyForge Auth] Session initialization error:",
-                error
-              );
+              reportError(error, "Session initialization");
             }
             setSession(session);
             setUser(session?.user ?? null);
             setLoading(false);
           }
         } catch (error) {
-          console.error("[ApplyForge Auth] Initialization failed:", error);
+          reportError(error, "Auth initialization");
           if (mounted) {
             setLoading(false);
           }
@@ -142,83 +360,215 @@ export const AuthProvider = memo<{ children: React.ReactNode }>(
       return () => {
         mounted = false;
         subscription.unsubscribe();
+        if (abortControllerRef.current) {
+          abortControllerRef.current.abort();
+        }
       };
     }, [handleAuthStateChange]);
 
-    // Enhanced sign up with better error handling
+    // Session monitoring
+    useEffect(() => {
+      if (session && session.expires_at) {
+        sessionCheckIntervalRef.current = setInterval(() => {
+          if (isTokenExpiringSoon(session.expires_at)) {
+            refreshSession();
+          }
+        }, 60000); // Check every minute
+
+        return () => {
+          if (sessionCheckIntervalRef.current) {
+            clearInterval(sessionCheckIntervalRef.current);
+          }
+        };
+      }
+    }, [session, isTokenExpiringSoon, refreshSession]);
+
+    // Enhanced sign up with validation
     const signUp = useCallback(
-      async (email: string, password: string, fullName?: string) => {
+      async (
+        email: string,
+        password: string,
+        fullName?: string
+      ): Promise<AuthResult<SignUpData>> => {
+        // Rate limiting check
+        if (checkRateLimit()) {
+          return {
+            success: false,
+            error: createEnhancedError(
+              new Error("Too many attempts. Please try again later."),
+              AuthErrorType.RATE_LIMITED
+            ),
+          };
+        }
+
+        // Input validation
+        if (!validateEmail(email)) {
+          return {
+            success: false,
+            error: createEnhancedError(
+              new Error("Please enter a valid email address"),
+              AuthErrorType.VALIDATION_ERROR
+            ),
+          };
+        }
+
+        if (!validatePassword(password)) {
+          return {
+            success: false,
+            error: createEnhancedError(
+              new Error("Password must be at least 8 characters long"),
+              AuthErrorType.VALIDATION_ERROR
+            ),
+          };
+        }
+
+        if (fullName && !validateFullName(fullName)) {
+          return {
+            success: false,
+            error: createEnhancedError(
+              new Error("Full name must be between 2 and 100 characters"),
+              AuthErrorType.VALIDATION_ERROR
+            ),
+          };
+        }
+
         setIsSigningUp(true);
+        incrementAuthAttempts();
 
         try {
-          const redirectUrl = `${window.location.origin}/auth/callback`;
-
           const { data, error } = await supabase.auth.signUp({
             email,
             password,
             options: {
-              emailRedirectTo: redirectUrl,
+              emailRedirectTo: getRedirectUrl("/auth/callback"), // ✅ Now browser-safe
               data: {
-                full_name: fullName || "",
-                avatar_url: "", // Placeholder for future avatar feature
+                full_name: fullName?.trim() || "",
+                avatar_url: "",
                 onboarding_completed: false,
               },
             },
           });
 
+          if (error) {
+            throw error;
+          }
+
           return {
-            data,
-            error,
-            success: !error,
+            data: {
+              user: data.user,
+              session: data.session,
+            },
+            success: true,
           };
         } catch (err) {
-          console.error("[ApplyForge Auth] Sign up error:", err);
+          const enhancedError = createEnhancedError(err);
+          reportError(err, "Sign up");
           return {
-            error: err as AuthError,
+            error: enhancedError,
             success: false,
           };
         } finally {
           setIsSigningUp(false);
         }
       },
-      []
+      [checkRateLimit, createEnhancedError, incrementAuthAttempts]
     );
 
-    // Enhanced sign in with better error handling
-    const signIn = useCallback(async (email: string, password: string) => {
-      setIsSigningIn(true);
+    // Enhanced sign in with validation
+    const signIn = useCallback(
+      async (
+        email: string,
+        password: string
+      ): Promise<AuthResult<SignInData>> => {
+        // Rate limiting check
+        if (checkRateLimit()) {
+          return {
+            success: false,
+            error: createEnhancedError(
+              new Error("Too many attempts. Please try again later."),
+              AuthErrorType.RATE_LIMITED
+            ),
+          };
+        }
 
-      try {
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
+        // Input validation
+        if (!validateEmail(email)) {
+          return {
+            success: false,
+            error: createEnhancedError(
+              new Error("Please enter a valid email address"),
+              AuthErrorType.VALIDATION_ERROR
+            ),
+          };
+        }
 
-        return {
-          data,
-          error,
-          success: !error,
-        };
-      } catch (err) {
-        console.error("[ApplyForge Auth] Sign in error:", err);
-        return {
-          error: err as AuthError,
-          success: false,
-        };
-      } finally {
-        setIsSigningIn(false);
-      }
-    }, []);
+        if (!password.trim()) {
+          return {
+            success: false,
+            error: createEnhancedError(
+              new Error("Password is required"),
+              AuthErrorType.VALIDATION_ERROR
+            ),
+          };
+        }
+
+        setIsSigningIn(true);
+        incrementAuthAttempts();
+
+        try {
+          const { data, error } = await supabase.auth.signInWithPassword({
+            email: email.trim().toLowerCase(),
+            password,
+          });
+
+          if (error) {
+            throw error;
+          }
+
+          return {
+            data: {
+              user: data.user,
+              session: data.session,
+            },
+            success: true,
+          };
+        } catch (err) {
+          const enhancedError = createEnhancedError(
+            err,
+            AuthErrorType.INVALID_CREDENTIALS
+          );
+          reportError(err, "Sign in");
+          return {
+            error: enhancedError,
+            success: false,
+          };
+        } finally {
+          setIsSigningIn(false);
+        }
+      },
+      [checkRateLimit, createEnhancedError, incrementAuthAttempts]
+    );
 
     // Enhanced Google sign in
-    const signInWithGoogle = useCallback(async () => {
+    const signInWithGoogle = useCallback(async (): Promise<AuthResult<any>> => {
+      if (checkRateLimit()) {
+        return {
+          success: false,
+          error: createEnhancedError(
+            new Error("Too many attempts. Please try again later."),
+            AuthErrorType.RATE_LIMITED
+          ),
+        };
+      }
+
       setIsSigningIn(true);
+      incrementAuthAttempts();
 
       try {
         const { data, error } = await supabase.auth.signInWithOAuth({
           provider: "google",
           options: {
-            redirectTo: `${window.location.origin}/auth/callback`,
+            redirectTo: getRedirectUrl("/auth/callback"), // ✅ Now browser-safe
             queryParams: {
               access_type: "offline",
               prompt: "consent",
@@ -226,97 +576,180 @@ export const AuthProvider = memo<{ children: React.ReactNode }>(
           },
         });
 
+        if (error) {
+          throw error;
+        }
+
         return {
           data,
-          error,
-          success: !error,
+          success: true,
         };
       } catch (err) {
-        console.error("[ApplyForge Auth] Google sign in error:", err);
+        const enhancedError = createEnhancedError(err);
+        reportError(err, "Google sign in");
         return {
-          error: err as AuthError,
+          error: enhancedError,
           success: false,
         };
       } finally {
         setIsSigningIn(false);
       }
-    }, []);
+    }, [checkRateLimit, createEnhancedError, incrementAuthAttempts]);
 
     // Enhanced LinkedIn sign in
-    const signInWithLinkedIn = useCallback(async () => {
+    const signInWithLinkedIn = useCallback(async (): Promise<
+      AuthResult<any>
+    > => {
+      if (checkRateLimit()) {
+        return {
+          success: false,
+          error: createEnhancedError(
+            new Error("Too many attempts. Please try again later."),
+            AuthErrorType.RATE_LIMITED
+          ),
+        };
+      }
+
       setIsSigningIn(true);
+      incrementAuthAttempts();
 
       try {
         const { data, error } = await supabase.auth.signInWithOAuth({
           provider: "linkedin_oidc",
           options: {
-            redirectTo: `${window.location.origin}/auth/callback`,
+            redirectTo: getRedirectUrl("/auth/callback"), // ✅ Now browser-safe
           },
         });
 
+        if (error) {
+          throw error;
+        }
+
         return {
           data,
-          error,
-          success: !error,
+          success: true,
         };
       } catch (err) {
-        console.error("[ApplyForge Auth] LinkedIn sign in error:", err);
+        const enhancedError = createEnhancedError(err);
+        reportError(err, "LinkedIn sign in");
         return {
-          error: err as AuthError,
+          error: enhancedError,
           success: false,
         };
       } finally {
         setIsSigningIn(false);
       }
-    }, []);
+    }, [checkRateLimit, createEnhancedError, incrementAuthAttempts]);
 
     // Enhanced sign out
-    const signOut = useCallback(async () => {
+    const signOut = useCallback(async (): Promise<AuthResult<void>> => {
       setIsSigningOut(true);
 
       try {
         const { error } = await supabase.auth.signOut();
 
-        // Clear local state immediately for better UX
-        if (!error) {
-          setUser(null);
-          setSession(null);
+        if (error) {
+          throw error;
         }
 
+        // Clear local state immediately for better UX
+        setUser(null);
+        setSession(null);
+        setAuthAttempts(0);
+        setIsRateLimited(false);
+
         return {
-          error,
-          success: !error,
+          success: true,
         };
       } catch (err) {
-        console.error("[ApplyForge Auth] Sign out error:", err);
+        const enhancedError = createEnhancedError(err);
+        reportError(err, "Sign out");
         return {
-          error: err as AuthError,
+          error: enhancedError,
           success: false,
         };
       } finally {
         setIsSigningOut(false);
       }
-    }, []);
+    }, [createEnhancedError]);
 
-    // Password reset functionality
-    const resetPassword = useCallback(async (email: string) => {
-      try {
-        const { error } = await supabase.auth.resetPasswordForEmail(email, {
-          redirectTo: `${window.location.origin}/auth/reset-password`,
-        });
+    // Enhanced password reset
+    const resetPassword = useCallback(
+      async (email: string): Promise<AuthResult<void>> => {
+        if (!validateEmail(email)) {
+          return {
+            success: false,
+            error: createEnhancedError(
+              new Error("Please enter a valid email address"),
+              AuthErrorType.VALIDATION_ERROR
+            ),
+          };
+        }
 
-        return {
-          error,
-          success: !error,
-        };
-      } catch (err) {
-        console.error("[ApplyForge Auth] Password reset error:", err);
-        return {
-          error: err as AuthError,
-          success: false,
-        };
-      }
-    }, []);
+        try {
+          const { error } = await supabase.auth.resetPasswordForEmail(
+            email.trim().toLowerCase(),
+            {
+              redirectTo: getRedirectUrl("/auth/reset-password"), // ✅ Now browser-safe
+            }
+          );
+
+          if (error) {
+            throw error;
+          }
+
+          return {
+            success: true,
+          };
+        } catch (err) {
+          const enhancedError = createEnhancedError(err);
+          reportError(err, "Password reset");
+          return {
+            error: enhancedError,
+            success: false,
+          };
+        }
+      },
+      [createEnhancedError]
+    );
+
+    // Update profile functionality
+    const updateProfile = useCallback(
+      async (updates: Partial<UserProfile>): Promise<AuthResult<User>> => {
+        if (!user) {
+          return {
+            success: false,
+            error: createEnhancedError(
+              new Error("User must be authenticated to update profile"),
+              AuthErrorType.SESSION_EXPIRED
+            ),
+          };
+        }
+
+        try {
+          const { data, error } = await supabase.auth.updateUser({
+            data: updates,
+          });
+
+          if (error) {
+            throw error;
+          }
+
+          return {
+            data: data.user,
+            success: true,
+          };
+        } catch (err) {
+          const enhancedError = createEnhancedError(err);
+          reportError(err, "Profile update");
+          return {
+            error: enhancedError,
+            success: false,
+          };
+        }
+      },
+      [user, createEnhancedError]
+    );
 
     // Memoized context value to prevent unnecessary re-renders
     const contextValue = useMemo(
@@ -327,14 +760,19 @@ export const AuthProvider = memo<{ children: React.ReactNode }>(
         isSigningIn,
         isSigningUp,
         isSigningOut,
+        isRefreshing,
         signUp,
         signIn,
         signInWithGoogle,
         signInWithLinkedIn,
         signOut,
         resetPassword,
+        updateProfile,
+        refreshSession,
         isAuthenticated,
         userMetadata,
+        authAttempts,
+        isRateLimited,
       }),
       [
         user,
@@ -343,14 +781,19 @@ export const AuthProvider = memo<{ children: React.ReactNode }>(
         isSigningIn,
         isSigningUp,
         isSigningOut,
+        isRefreshing,
         signUp,
         signIn,
         signInWithGoogle,
         signInWithLinkedIn,
         signOut,
         resetPassword,
+        updateProfile,
+        refreshSession,
         isAuthenticated,
         userMetadata,
+        authAttempts,
+        isRateLimited,
       ]
     );
 
@@ -364,10 +807,11 @@ export const AuthProvider = memo<{ children: React.ReactNode }>(
 
 AuthProvider.displayName = "AuthProvider";
 
-// Additional utility hooks for specific auth states
+// Enhanced utility hooks
 export const useAuthLoading = () => {
-  const { loading, isSigningIn, isSigningUp, isSigningOut } = useAuth();
-  return loading || isSigningIn || isSigningUp || isSigningOut;
+  const { loading, isSigningIn, isSigningUp, isSigningOut, isRefreshing } =
+    useAuth();
+  return loading || isSigningIn || isSigningUp || isSigningOut || isRefreshing;
 };
 
 export const useAuthUser = () => {
@@ -383,6 +827,8 @@ export const useAuthActions = () => {
     signInWithLinkedIn,
     signOut,
     resetPassword,
+    updateProfile,
+    refreshSession,
   } = useAuth();
   return {
     signUp,
@@ -391,5 +837,23 @@ export const useAuthActions = () => {
     signInWithLinkedIn,
     signOut,
     resetPassword,
+    updateProfile,
+    refreshSession,
   };
+};
+
+// Rate limiting hook
+export const useAuthRateLimit = () => {
+  const { authAttempts, isRateLimited } = useAuth();
+  return { authAttempts, isRateLimited };
+};
+
+// Export types for use in other components
+export type {
+  AuthContextType,
+  EnhancedAuthError,
+  AuthErrorType,
+  UserMetadata,
+  UserProfile,
+  AuthResult,
 };

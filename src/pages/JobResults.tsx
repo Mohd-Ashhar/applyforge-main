@@ -865,7 +865,7 @@ const JobResults: React.FC = () => {
         });
 
         const response = await fetch(
-          "https://primary-production-800d.up.railway.app/webhook-test/tailor-resume",
+          "https://n8n.applyforge.cloud/webhook-test/tailor-resume",
           {
             method: "POST",
             headers: {
