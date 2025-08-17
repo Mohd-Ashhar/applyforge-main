@@ -1,6 +1,6 @@
 import React, { memo, useMemo } from "react";
 import { Badge } from "@/components/ui/badge";
-import { Crown, Zap, Star } from "lucide-react";
+import { Crown, Zap, Star, Bot, Sparkles, Rocket } from "lucide-react";
 import { motion } from "framer-motion";
 
 // **ADDED: Types for plan limits functionality**
@@ -14,20 +14,21 @@ interface PlanLimits {
   coverLetters: number;
   jobApplications: number;
   atsScans: number;
+  agents: number; // **NEW: Added agents limit**
 }
 
 interface PlanLimitsConfig {
-  Free: PlanLimits;
-  Basic: PlanLimits;
+  Starter: PlanLimits;
   Pro: PlanLimits;
+  Advanced: PlanLimits;
 }
 
 interface PlanBadgeProps {
   plan: string;
-  usage?: Usage; // **ADDED: Usage prop to get current plan data**
-  planLimitsConfig?: PlanLimitsConfig; // **ADDED: Plan limits config**
-  feature?: keyof PlanLimits; // **ADDED: Optional feature to show limit for**
-  showLimit?: boolean; // **ADDED: Option to show/hide limit display**
+  usage?: Usage;
+  planLimitsConfig?: PlanLimitsConfig;
+  feature?: keyof PlanLimits;
+  showLimit?: boolean;
   size?: "xs" | "sm" | "md" | "lg";
   showIcon?: boolean;
   animated?: boolean;
@@ -35,51 +36,73 @@ interface PlanBadgeProps {
   className?: string;
 }
 
-// **UPDATED: Fixed CONFIGS reference**
+// **UPDATED: New AI Agent focused plan configurations**
 const PLAN_CONFIGS = {
-  Pro: {
-    gradient: "from-green-500 via-emerald-500 to-green-600",
-    shadow: "shadow-green-500/25 hover:shadow-green-500/40",
+  Advanced: {
+    gradient: "from-purple-500 via-pink-500 to-purple-600",
+    shadow: "shadow-purple-500/25 hover:shadow-purple-500/40",
     icon: Crown,
-    description: "Premium features",
-    glow: "shadow-green-400/20",
+    description: "Best AI - Maximum career impact",
+    glow: "shadow-purple-400/20",
+    badge: "Best AI",
+    agentCount: "6+",
   },
-  Basic: {
-    gradient: "from-blue-500 via-blue-600 to-blue-700",
+  Pro: {
+    gradient: "from-blue-500 via-cyan-500 to-blue-600",
     shadow: "shadow-blue-500/25 hover:shadow-blue-500/40",
-    icon: Star,
-    description: "Essential features",
+    icon: Bot,
+    description: "Most Popular - Professional results",
     glow: "shadow-blue-400/20",
+    badge: "Most Popular",
+    agentCount: "6",
   },
-  Free: {
+  Starter: {
     gradient: "from-slate-500 via-slate-600 to-slate-700",
     shadow: "shadow-slate-500/20 hover:shadow-slate-500/30",
     icon: Zap,
-    description: "Basic features",
+    description: "Basic AI Models - Get started free",
     glow: "shadow-slate-400/20",
+    badge: "Free",
+    agentCount: "3",
   },
 } as const;
 
-// **ADDED: Default plan limits configuration**
+// **UPDATED: New plan limits configuration based on AI agent pricing**
 const defaultPlanLimitsConfig: PlanLimitsConfig = {
-  Free: {
-    resumeChecks: 2,
-    coverLetters: 1,
-    jobApplications: 5,
-    atsScans: 3,
-  },
-  Basic: {
-    resumeChecks: 10,
-    coverLetters: 5,
-    jobApplications: 20,
-    atsScans: 15,
+  Starter: {
+    resumeChecks: 5, // AI ATS Resume Scanner (5/month)
+    coverLetters: 5, // AI Cover Letter Assistant (5/month)
+    jobApplications: 5, // Smart Job Discovery (5/month)
+    atsScans: 5, // AI Writing Quality Score
+    agents: 3, // 3 Agents
   },
   Pro: {
-    resumeChecks: 50,
-    coverLetters: 25,
-    jobApplications: 100,
-    atsScans: 75,
+    resumeChecks: 25, // Advanced ATS Analyzer (25/month)
+    coverLetters: 25, // Smart Resume Tailor (25/month)
+    jobApplications: 25, // Intelligent Cover Letter Generator (25/month)
+    atsScans: 25, // AI Job Matching Engine (25/month)
+    agents: 6, // 6 Agents
   },
+  Advanced: {
+    resumeChecks: 999, // Unlimited AI Tools (State-of-the-art models)
+    coverLetters: 999, // Hyper-Personalized Resume AI
+    jobApplications: 999, // Advanced Cover Letter AI
+    atsScans: 75, // Auto Apply AI Agent (75/month)
+    agents: 999, // 6+ Agents (Unlimited)
+  },
+};
+
+// **NEW: Helper function to map legacy plan names to new names**
+const mapLegacyPlanName = (plan: string): string => {
+  const planMap: Record<string, string> = {
+    Free: "Starter",
+    Basic: "Pro",
+    Pro: "Advanced",
+    // Support both legacy and new names
+    Starter: "Starter",
+    Advanced: "Advanced",
+  };
+  return planMap[plan] || plan;
 };
 
 const PlanBadge = memo<PlanBadgeProps>(
@@ -95,22 +118,28 @@ const PlanBadge = memo<PlanBadgeProps>(
     variant = "default",
     className = "",
   }) => {
-    // **IMPLEMENTED: Your getLimit logic exactly as provided**
+    // **UPDATED: Map legacy plan names to new names**
+    const normalizedPlan = useMemo(() => mapLegacyPlanName(plan), [plan]);
+
+    // **IMPLEMENTED: Your getLimit logic with new plan names**
     const getLimit = useMemo(() => {
       return (feature: keyof PlanLimits): number => {
         if (!usage) return 0;
-        const planType = usage.plan_type as keyof PlanLimitsConfig;
-        const planLimits = planLimitsConfig[planType] || planLimitsConfig.Basic;
+        const planType = mapLegacyPlanName(
+          usage.plan_type
+        ) as keyof PlanLimitsConfig;
+        const planLimits = planLimitsConfig[planType] || planLimitsConfig.Pro;
         return planLimits[feature] || 0;
       };
     }, [usage, planLimitsConfig]);
 
-    // Memoized plan configuration
+    // **UPDATED: Use normalized plan name**
     const planConfig = useMemo(() => {
       return (
-        PLAN_CONFIGS[plan as keyof typeof PLAN_CONFIGS] || PLAN_CONFIGS.Free
+        PLAN_CONFIGS[normalizedPlan as keyof typeof PLAN_CONFIGS] ||
+        PLAN_CONFIGS.Starter
       );
-    }, [plan]);
+    }, [normalizedPlan]);
 
     // **ADDED: Get current feature limit if feature is specified**
     const currentLimit = useMemo(() => {
@@ -141,24 +170,40 @@ const PlanBadge = memo<PlanBadgeProps>(
       [size]
     );
 
-    // Memoized variant styles
+    // **UPDATED: Variant styles with new plan names**
     const variantStyles = useMemo(() => {
       if (variant === "outline") {
         return `bg-transparent border-2 border-current text-${
-          plan === "Pro" ? "green" : plan === "Basic" ? "blue" : "slate"
+          normalizedPlan === "Advanced"
+            ? "purple"
+            : normalizedPlan === "Pro"
+            ? "blue"
+            : "slate"
         }-400 hover:bg-current/10`;
       }
       if (variant === "subtle") {
         return `bg-${
-          plan === "Pro" ? "green" : plan === "Basic" ? "blue" : "slate"
+          normalizedPlan === "Advanced"
+            ? "purple"
+            : normalizedPlan === "Pro"
+            ? "blue"
+            : "slate"
         }-500/10 text-${
-          plan === "Pro" ? "green" : plan === "Basic" ? "blue" : "slate"
+          normalizedPlan === "Advanced"
+            ? "purple"
+            : normalizedPlan === "Pro"
+            ? "blue"
+            : "slate"
         }-400 border border-${
-          plan === "Pro" ? "green" : plan === "Basic" ? "blue" : "slate"
+          normalizedPlan === "Advanced"
+            ? "purple"
+            : normalizedPlan === "Pro"
+            ? "blue"
+            : "slate"
         }-500/20`;
       }
       return `bg-gradient-to-r ${planConfig.gradient} text-white border-0 shadow-lg ${planConfig.shadow}`;
-    }, [variant, plan, planConfig]);
+    }, [variant, normalizedPlan, planConfig]);
 
     const Icon = planConfig.icon;
 
@@ -171,7 +216,7 @@ const PlanBadge = memo<PlanBadgeProps>(
         ${animated ? "hover:scale-105 active:scale-95" : ""}
         ${className}
       `}
-        title={`${plan} Plan - ${planConfig.description}${
+        title={`${normalizedPlan} Plan - ${planConfig.description}${
           currentLimit !== null
             ? ` | ${feature}: ${currentLimit} remaining`
             : ""
@@ -194,17 +239,26 @@ const PlanBadge = memo<PlanBadgeProps>(
             />
           )}
           <span className="font-semibold">
-            {plan}
+            {normalizedPlan}
             {size === "md" || size === "lg" ? " Plan" : ""}
           </span>
 
-          {/* **ADDED: Optional limit display** */}
+          {/* **UPDATED: Optional limit display** */}
           {showLimit && currentLimit !== null && (
             <span className="ml-1.5 text-xs opacity-90 font-normal">
-              ({currentLimit})
+              ({currentLimit === 999 ? "∞" : currentLimit})
             </span>
           )}
         </div>
+
+        {/* **NEW: Popular badge for Pro plan** */}
+        {normalizedPlan === "Pro" && size !== "xs" && (
+          <div className="absolute -top-1 -right-1">
+            <div className="bg-orange-500 text-white text-xs px-1.5 py-0.5 rounded-full font-bold shadow-lg">
+              ★
+            </div>
+          </div>
+        )}
 
         {/* Glow effect */}
         {variant === "default" && (

@@ -1,11 +1,33 @@
-import React, { useState, useRef, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import React, {
+  useState,
+  useRef,
+  useEffect,
+  useMemo,
+  useCallback,
+  memo,
+} from "react";
+import { useNavigate, Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import {
   Tooltip,
@@ -20,33 +42,70 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
 import {
-  Loader2,
-  FileText,
   Mail,
-  Download,
-  Trash2,
-  ArrowLeft,
-  Sparkles,
-  Eye,
-  Info,
   Upload,
-  Building,
-  Briefcase,
-  Shield,
+  ArrowLeft,
+  FileText,
+  CheckCircle,
+  AlertTriangle,
+  Sparkles,
+  TrendingUp,
+  Edit,
+  Info,
   Clock,
   Save,
-  RefreshCw,
-  CheckCircle,
   AlertCircle,
   FileCheck,
   Zap,
-  TrendingUp,
+  BarChart3,
+  Award,
+  RefreshCw,
+  Brain,
+  Bot,
+  Search,
+  Eye,
+  Home,
+  ArrowRight,
+  Star,
+  Crown,
+  Activity,
+  FileSearch,
+  Users,
+  ChevronRight,
+  Download,
+  Trash2,
+  Settings,
+  Palette,
+  Building,
+  Briefcase,
+  User,
+  PenTool,
+  Shield,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useUsageTracking } from "@/hooks/useUsageTracking";
 import { supabase } from "@/integrations/supabase/client";
+import DashboardHeader from "@/components/DashboardHeader";
+import UserAvatar from "@/components/header/UserAvatar";
+
+const coverLetterSchema = z.object({
+  companyName: z.string().min(2, "Company name must be at least 2 characters"),
+  positionTitle: z
+    .string()
+    .min(2, "Position title must be at least 2 characters"),
+  jobDescription: z
+    .string()
+    .min(50, "Job description must be at least 50 characters"),
+  industry: z.string().optional(),
+  tone: z.string().default("professional"),
+});
+
+type CoverLetterForm = z.infer<typeof coverLetterSchema>;
 
 interface GeneratedCoverLetter {
   id: string;
@@ -56,340 +115,632 @@ interface GeneratedCoverLetter {
   created_at: string;
 }
 
-interface FormValidation {
-  companyName: boolean;
-  positionTitle: boolean;
-  jobDescription: boolean;
-  resume: boolean;
-}
+// **MOBILE-ENHANCED AI AGENT LOADING EXPERIENCE**
+const CraftingAgentLoadingOverlay = memo(
+  ({ show, stage = 0 }: { show: boolean; stage?: number }) => {
+    const agentMessages = [
+      "✍️ Analyzing your resume and experience...",
+      "🧠 Understanding the job requirements...",
+      "📝 Crafting personalized content...",
+      "🎯 Tailoring tone and messaging...",
+      "✨ Applying professional formatting...",
+      "📋 Finalizing your cover letter...",
+    ];
 
-// Enhanced Loading Overlay with progress stages
-const CoverLetterLoadingOverlay = ({
-  show,
-  stage = 0,
-}: {
-  show: boolean;
-  stage?: number;
-}) => {
-  const stages = [
-    "Initializing AI analysis...",
-    "Processing your resume...",
-    "Analyzing job requirements...",
-    "Crafting personalized content...",
-    "Finalizing your cover letter...",
-  ];
-
-  return (
-    <AnimatePresence>
-      {show && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.3 }}
-          className="fixed inset-0 z-[999] flex flex-col items-center justify-center backdrop-blur-lg bg-background/80"
-        >
+    return (
+      <AnimatePresence>
+        {show && (
           <motion.div
-            className="w-24 h-24 md:w-32 md:h-32 rounded-full bg-gradient-to-br from-green-500 via-blue-500 to-indigo-600 shadow-2xl"
-            animate={{
-              scale: [1, 1.2, 1],
-              rotate: [0, 180, 360],
-            }}
-            transition={{
-              duration: 2,
-              repeat: Infinity,
-              ease: "easeInOut",
-            }}
-          />
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="mt-6 text-center"
-          >
-            <p className="text-sm text-muted-foreground tracking-wide mb-4">
-              {stages[stage] || stages[0]}
-            </p>
-            <Progress value={(stage + 1) * 20} className="w-64 h-2" />
-            <p className="text-xs text-muted-foreground mt-2">
-              {Math.round((stage + 1) * 20)}% Complete
-            </p>
-          </motion.div>
-
-          <motion.div
-            className="flex gap-1 mt-4"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ delay: 0.4 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            className="fixed inset-0 z-[999] flex flex-col items-center justify-center backdrop-blur-lg bg-background/90 p-4"
           >
-            {[0, 1, 2].map((i) => (
+            {/* Agent Avatar with Crafting Animation */}
+            <motion.div
+              className="relative mb-6 sm:mb-8"
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ duration: 0.6 }}
+            >
               <motion.div
-                key={i}
-                className="w-2 h-2 bg-green-500 rounded-full"
-                animate={{ y: [0, -10, 0] }}
+                className="w-20 h-20 sm:w-24 sm:h-24 md:w-32 md:h-32 rounded-full bg-gradient-to-br from-purple-500/10 to-pink-600/10 border border-purple-500/20 flex items-center justify-center backdrop-blur-xl"
+                animate={{
+                  scale: [1, 1.1, 1],
+                  rotate: [0, 15, -15, 0],
+                }}
                 transition={{
-                  duration: 0.8,
+                  duration: 3,
                   repeat: Infinity,
-                  delay: i * 0.2,
                   ease: "easeInOut",
                 }}
-              />
-            ))}
+              >
+                <PenTool className="w-8 h-8 sm:w-10 sm:h-10 md:w-16 md:h-16 text-purple-400" />
+
+                {/* Crafting rings */}
+                <motion.div
+                  className="absolute inset-0 rounded-full border-2 border-purple-500/30"
+                  animate={{
+                    scale: [1, 1.5, 2],
+                    opacity: [0.8, 0.3, 0],
+                  }}
+                  transition={{
+                    duration: 2,
+                    repeat: Infinity,
+                    ease: "easeOut",
+                  }}
+                />
+              </motion.div>
+            </motion.div>
+
+            {/* Agent Status */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="text-center space-y-3 sm:space-y-4 max-w-sm sm:max-w-md"
+            >
+              <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-white">
+                Cover Letter Crafting Agent
+              </h3>
+              <p className="text-sm sm:text-base md:text-lg text-purple-400 font-medium leading-relaxed">
+                {agentMessages[stage] || agentMessages[0]}
+              </p>
+
+              <div className="space-y-2 sm:space-y-3">
+                <Progress
+                  value={(stage + 1) * 16.67}
+                  className="w-full max-w-80 h-2 sm:h-3 bg-slate-700/50 mx-auto"
+                />
+                <p className="text-xs sm:text-sm text-slate-400">
+                  {Math.round((stage + 1) * 16.67)}% Complete • Crafting with AI
+                  precision
+                </p>
+              </div>
+            </motion.div>
+
+            {/* Security Badge */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.8 }}
+              className="mt-6 sm:mt-8 flex items-center gap-2 text-xs text-slate-400 bg-slate-800/30 px-3 sm:px-4 py-2 rounded-full backdrop-blur-sm border border-slate-700/50"
+            >
+              <Shield className="w-3 h-3 sm:w-4 sm:h-4 text-purple-400 flex-shrink-0" />
+              <span className="text-xs sm:text-sm">
+                Your letter is being crafted securely
+              </span>
+            </motion.div>
+
+            {/* Floating particles */}
+            <div className="absolute inset-0 overflow-hidden pointer-events-none">
+              {[...Array(6)].map((_, i) => (
+                <motion.div
+                  key={i}
+                  className="absolute w-1 h-1 sm:w-2 sm:h-2 bg-purple-500/30 rounded-full"
+                  animate={{
+                    x: [0, 100, -100, 0],
+                    y: [0, -100, 100, 0],
+                    opacity: [0, 1, 0],
+                  }}
+                  transition={{
+                    duration: 8,
+                    repeat: Infinity,
+                    delay: i * 1.3,
+                    ease: "easeInOut",
+                  }}
+                  style={{
+                    left: `${20 + i * 10}%`,
+                    top: `${30 + i * 8}%`,
+                  }}
+                />
+              ))}
+            </div>
           </motion.div>
+        )}
+      </AnimatePresence>
+    );
+  }
+);
 
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.6 }}
-            className="mt-6 flex items-center gap-2 text-xs text-muted-foreground"
-          >
-            <Shield className="w-4 h-4" />
-            <span>Your data is encrypted and secure</span>
-          </motion.div>
-        </motion.div>
-      )}
-    </AnimatePresence>
-  );
-};
+CraftingAgentLoadingOverlay.displayName = "CraftingAgentLoadingOverlay";
 
-// Enhanced file upload component with Mobile Optimization
-const FileUploadArea = ({
-  onFileSelect,
-  selectedFile,
-  error,
-}: {
-  onFileSelect: (file: File) => void;
-  selectedFile: File | null;
-  error?: boolean;
-}) => {
-  const [dragOver, setDragOver] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+// **MOBILE-ENHANCED AI AGENT FILE UPLOAD**
+const AgentFileUploadArea = memo(
+  ({
+    onFileSelect,
+    selectedFile,
+    error,
+  }: {
+    onFileSelect: (file: File) => void;
+    selectedFile: File | null;
+    error?: boolean;
+  }) => {
+    const [dragOver, setDragOver] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    setDragOver(true);
-  };
+    const handleDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+      e.preventDefault();
+      setDragOver(true);
+    }, []);
 
-  const handleDragLeave = () => setDragOver(false);
+    const handleDragLeave = useCallback(() => setDragOver(false), []);
 
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setDragOver(false);
+    const handleDrop = useCallback(
+      (e: React.DragEvent<HTMLDivElement>) => {
+        e.preventDefault();
+        setDragOver(false);
 
-    const files = Array.from(e.dataTransfer.files);
-    const validFile = files.find((file) =>
-      [
-        "application/pdf",
-        "application/msword",
-        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-      ].includes(file.type)
+        const files = Array.from(e.dataTransfer.files);
+        const validFile = files.find((file) =>
+          [
+            "application/pdf",
+            "application/msword",
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+          ].includes(file.type)
+        );
+
+        if (validFile) {
+          onFileSelect(validFile);
+        }
+      },
+      [onFileSelect]
     );
 
-    if (validFile) {
-      onFileSelect(validFile);
-    }
-  };
+    const formatFileSize = useCallback((bytes: number) => {
+      return bytes < 1024 * 1024
+        ? `${(bytes / 1024).toFixed(1)} KB`
+        : `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+    }, []);
 
-  const formatFileSize = (bytes: number) => {
-    return bytes < 1024 * 1024
-      ? `${(bytes / 1024).toFixed(1)} KB`
-      : `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-  };
+    const handleFileChange = useCallback(
+      (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+          onFileSelect(file);
+        }
+      },
+      [onFileSelect]
+    );
 
-  return (
-    <div className="space-y-2">
+    return (
       <motion.div
         className={`
-          relative border-2 border-dashed rounded-lg p-4 md:p-6 text-center cursor-pointer transition-colors
-          ${
-            dragOver
-              ? "border-primary bg-primary/5"
-              : "border-border hover:border-primary/50"
-          }
-          ${error ? "border-destructive" : ""}
-          ${selectedFile ? "border-green-500 bg-green-50/5" : ""}
-        `}
+        relative border-2 border-dashed rounded-xl p-4 sm:p-6 md:p-8 text-center cursor-pointer transition-all duration-300
+        ${
+          dragOver
+            ? "border-purple-400 bg-purple-500/10 scale-105"
+            : selectedFile
+            ? "border-purple-500/20 bg-purple-500/10"
+            : "border-slate-600 hover:border-purple-400/40 hover:bg-purple-500/5"
+        }
+        ${error ? "border-red-400 bg-red-500/5" : ""}
+      `}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
         onClick={() => fileInputRef.current?.click()}
-        whileHover={{ scale: 1.01 }}
-        whileTap={{ scale: 0.99 }}
+        whileHover={{ scale: dragOver ? 1.05 : 1.02 }}
+        whileTap={{ scale: 0.98 }}
       >
         <input
           ref={fileInputRef}
           type="file"
           accept=".pdf,.doc,.docx"
-          onChange={(e) => {
-            const file = e.target.files?.[0];
-            if (file) onFileSelect(file);
-          }}
+          onChange={handleFileChange}
           className="hidden"
           id="resume-upload"
         />
 
         {selectedFile ? (
           <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="flex items-center justify-center gap-2 md:gap-3"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="space-y-3 sm:space-y-4"
           >
-            <FileCheck className="w-6 h-6 md:w-8 md:h-8 text-green-500 flex-shrink-0" />
-            <div className="text-left">
-              <p className="font-medium text-green-700 text-sm md:text-base truncate max-w-[200px] md:max-w-none">
-                {selectedFile.name}
+            <div className="mx-auto w-12 h-12 sm:w-16 sm:h-16 bg-purple-500/20 rounded-xl flex items-center justify-center border border-purple-500/30">
+              <FileCheck className="w-6 h-6 sm:w-8 sm:h-8 text-purple-400" />
+            </div>
+            <div className="space-y-1 sm:space-y-2">
+              <p className="font-semibold text-purple-400 text-sm sm:text-base md:text-lg">
+                Resume Ready for Crafting! ✨
               </p>
-              <p className="text-xs md:text-sm text-muted-foreground">
-                {formatFileSize(selectedFile.size)} • Click to change
+              <p className="text-xs sm:text-sm text-slate-400 truncate max-w-[250px] sm:max-w-xs mx-auto">
+                {selectedFile.name} • {formatFileSize(selectedFile.size)}
+              </p>
+              <p className="text-xs text-slate-500">
+                Click to select a different file
               </p>
             </div>
           </motion.div>
         ) : (
-          <>
-            <Upload className="w-6 h-6 md:w-8 md:h-8 mx-auto mb-2 text-muted-foreground" />
-            <p className="text-sm font-medium">
-              Drop your resume here or click to browse
-            </p>
-            <p className="text-xs text-muted-foreground mt-1">
-              Supports PDF, DOC, DOCX • Max 10MB
-            </p>
-          </>
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="space-y-3 sm:space-y-4"
+          >
+            <div className="mx-auto w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-br from-purple-500/10 to-pink-600/10 rounded-xl flex items-center justify-center border border-purple-500/20">
+              <Upload className="w-6 h-6 sm:w-8 sm:h-8 text-purple-400" />
+            </div>
+            <div className="space-y-2 sm:space-y-4">
+              <p className="font-semibold text-white text-sm sm:text-base md:text-lg">
+                Upload Your Resume
+              </p>
+              <p className="text-xs sm:text-sm text-slate-400">
+                Drop your resume here or click to browse
+              </p>
+              <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-4 text-xs text-slate-500">
+                <Badge
+                  variant="outline"
+                  className="border-slate-600 text-slate-400 text-xs"
+                >
+                  PDF
+                </Badge>
+                <Badge
+                  variant="outline"
+                  className="border-slate-600 text-slate-400 text-xs"
+                >
+                  DOC
+                </Badge>
+                <Badge
+                  variant="outline"
+                  className="border-slate-600 text-slate-400 text-xs"
+                >
+                  DOCX
+                </Badge>
+              </div>
+            </div>
+          </motion.div>
         )}
 
         {dragOver && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="absolute inset-0 bg-primary/10 border-2 border-primary rounded-lg flex items-center justify-center"
+            className="absolute inset-0 bg-purple-500/10 border-2 border-purple-400 rounded-xl flex items-center justify-center backdrop-blur-sm"
           >
-            <p className="text-primary font-medium">Drop your resume here!</p>
+            <div className="text-center">
+              <PenTool className="w-6 h-6 sm:w-8 sm:h-8 text-purple-400 mx-auto mb-2" />
+              <p className="text-purple-400 font-semibold text-sm sm:text-base">
+                Drop your resume here! ⚡
+              </p>
+            </div>
           </motion.div>
         )}
       </motion.div>
+    );
+  }
+);
 
-      {error && (
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="text-sm text-destructive flex items-center gap-1"
-        >
-          <AlertCircle className="w-4 h-4 flex-shrink-0" />
-          Please upload your resume
-        </motion.p>
-      )}
-    </div>
-  );
-};
+AgentFileUploadArea.displayName = "AgentFileUploadArea";
 
-const CoverLetterGenerator = () => {
-  const [jobDescription, setJobDescription] = useState("");
-  const [companyName, setCompanyName] = useState("");
-  const [positionTitle, setPositionTitle] = useState("");
-  const [resume, setResume] = useState<File | null>(null);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [loadingStage, setLoadingStage] = useState(0);
-  const [currentGeneratedLetter, setCurrentGeneratedLetter] =
-    useState<GeneratedCoverLetter | null>(null);
-  const [showGeneratedSection, setShowGeneratedSection] = useState(false);
-  const [validation, setValidation] = useState<FormValidation>({
-    companyName: true,
-    positionTitle: true,
-    jobDescription: true,
-    resume: true,
-  });
-  const [industry, setIndustry] = useState("");
-  const [tone, setTone] = useState("professional");
-  const [saveAsDraft, setSaveAsDraft] = useState(false);
-
-  const { toast } = useToast();
-  const { user } = useAuth();
-  const navigate = useNavigate();
-
-  // Auto-save draft functionality
-  useEffect(() => {
-    if (saveAsDraft) {
-      const draftData = {
-        companyName,
-        positionTitle,
-        jobDescription,
-        industry,
-        tone,
-      };
-      localStorage.setItem("coverLetterDraft", JSON.stringify(draftData));
-    }
-  }, [companyName, positionTitle, jobDescription, industry, tone, saveAsDraft]);
-
-  const industries = [
-    "Technology",
-    "Healthcare",
-    "Finance",
-    "Marketing",
-    "Sales",
-    "Education",
-    "Manufacturing",
-    "Retail",
-    "Consulting",
-    "Other",
-  ];
-
-  const tones = [
-    { value: "professional", label: "Professional" },
-    { value: "enthusiastic", label: "Enthusiastic" },
-    { value: "confident", label: "Confident" },
-    { value: "creative", label: "Creative" },
-  ];
-
-  const validateForm = () => {
-    const newValidation = {
-      companyName: companyName.trim().length > 0,
-      positionTitle: positionTitle.trim().length > 0,
-      jobDescription: jobDescription.trim().length > 50,
-      resume: resume !== null,
+// **MOBILE-ENHANCED AI AGENT RESULTS COMPONENT**
+const AgentCraftingResults = memo(
+  ({
+    results,
+    onNewCraft,
+    onViewAllLetters,
+  }: {
+    results: GeneratedCoverLetter;
+    onNewCraft: () => void;
+    onViewAllLetters: () => void;
+  }) => {
+    const handleDownload = async (url: string, fileName: string) => {
+      try {
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = fileName;
+        link.target = "_blank";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      } catch (error) {
+        console.error("Error downloading file:", error);
+      }
     };
 
-    setValidation(newValidation);
-    return Object.values(newValidation).every(Boolean);
-  };
+    const formatDateTime = useCallback((dateString: string) => {
+      const date = new Date(dateString);
+      return date.toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    }, []);
 
-  const simulateLoadingStages = () => {
-    const stages = [0, 1, 2, 3, 4];
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6 }}
+        className="space-y-6 sm:space-y-8"
+      >
+        {/* Agent Completion Header */}
+        <div className="text-center space-y-3 sm:space-y-4">
+          <motion.div
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ delay: 0.2, type: "spring" }}
+            className="mx-auto w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-purple-500/10 to-pink-600/10 rounded-full flex items-center justify-center border border-purple-500/20 backdrop-blur-xl"
+          >
+            <PenTool className="w-8 h-8 sm:w-10 sm:h-10 text-purple-400" />
+          </motion.div>
+          <div className="space-y-2">
+            <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-white">
+              Crafting Complete! 📋
+            </h2>
+            <p className="text-slate-300 text-sm sm:text-base md:text-lg max-w-lg mx-auto">
+              Your Cover Letter Crafting Agent has created your personalized
+              cover letter
+            </p>
+          </div>
+        </div>
+
+        {/* Results Card */}
+        <Card className="bg-gradient-to-br from-purple-500/10 to-pink-600/10 backdrop-blur-xl border border-purple-500/20 hover:border-purple-400/40 transition-all duration-300">
+          <CardContent className="p-4 sm:p-6 md:p-8">
+            <div className="flex flex-col gap-4 sm:gap-6">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-start gap-3 sm:gap-4 mb-3 sm:mb-4">
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ delay: 0.3, type: "spring" }}
+                    className="p-2 sm:p-3 rounded-xl bg-purple-500/20 border border-purple-500/30 flex-shrink-0"
+                  >
+                    <Mail className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-purple-400" />
+                  </motion.div>
+                  <div className="min-w-0 flex-1">
+                    <h3
+                      className="font-bold text-base sm:text-lg md:text-xl text-white truncate"
+                      title={results.position_title}
+                    >
+                      {results.position_title}
+                    </h3>
+                    <p
+                      className="text-slate-400 text-sm sm:text-base font-medium truncate"
+                      title={results.company_name}
+                    >
+                      {results.company_name}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap gap-1 sm:gap-2 mb-3 sm:mb-4">
+                  <Badge className="bg-purple-500/20 text-purple-400 border-purple-500/30 text-xs whitespace-nowrap flex-shrink-0">
+                    <Bot className="w-3 h-3 mr-1 flex-shrink-0" />
+                    AI Crafted
+                  </Badge>
+                  <Badge className="bg-purple-500/20 text-purple-400 border-purple-500/30 text-xs whitespace-nowrap flex-shrink-0">
+                    <Mail className="w-3 h-3 mr-1 flex-shrink-0" />
+                    Personalized
+                  </Badge>
+                  <Badge className="bg-purple-500/20 text-purple-400 border-purple-500/30 text-xs whitespace-nowrap flex-shrink-0">
+                    <FileText className="w-3 h-3 mr-1 flex-shrink-0" />
+                    Professional
+                  </Badge>
+                </div>
+
+                <p className="text-xs sm:text-sm text-slate-400">
+                  Crafted on {formatDateTime(results.created_at)}
+                </p>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+                <Button
+                  onClick={() =>
+                    handleDownload(
+                      results.cover_letter_url,
+                      `${results.company_name}-cover-letter.pdf`
+                    )
+                  }
+                  className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold px-4 sm:px-6 h-10 sm:h-11 text-sm sm:text-base"
+                >
+                  <Download className="w-4 h-4 mr-2 flex-shrink-0" />
+                  <span className="truncate">Download Letter</span>
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={onNewCraft}
+                  className="border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white px-4 sm:px-6 h-10 sm:h-11 text-sm sm:text-base"
+                >
+                  <RefreshCw className="w-4 h-4 mr-2 flex-shrink-0" />
+                  <span className="truncate">Craft Another</span>
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Agent Crafting Insights */}
+        <Card className="bg-gradient-to-br from-purple-500/10 to-pink-600/10 backdrop-blur-xl border border-purple-500/20 hover:border-purple-400/40 transition-all duration-300">
+          <CardHeader className="pb-4 sm:pb-6">
+            <CardTitle className="flex items-center gap-2 sm:gap-3 text-purple-400 text-sm sm:text-base md:text-lg">
+              <Brain className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 flex-shrink-0" />
+              <span className="truncate">Agent Crafting Insights</span>
+            </CardTitle>
+            <CardDescription className="text-slate-300 text-xs sm:text-sm">
+              Key elements your Cover Letter Crafting Agent applied
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+              {[
+                {
+                  icon: PenTool,
+                  title: "Personalized Content",
+                  desc: "Tailored messaging specific to the role and company",
+                },
+                {
+                  icon: Mail,
+                  title: "Professional Tone",
+                  desc: "Appropriate writing style for the industry and position",
+                },
+                {
+                  icon: Star,
+                  title: "Impact Highlighting",
+                  desc: "Emphasized your most relevant achievements and skills",
+                },
+                {
+                  icon: Zap,
+                  title: "ATS Optimization",
+                  desc: "Structured format that passes applicant tracking systems",
+                },
+              ].map((insight, index) => (
+                <motion.div
+                  key={insight.title}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.1 * index }}
+                  className="flex items-start gap-2 sm:gap-3"
+                >
+                  <div className="p-1.5 sm:p-2 rounded-lg bg-purple-500/20 border border-purple-500/30 flex-shrink-0">
+                    <insight.icon className="w-3 h-3 sm:w-4 sm:h-4 text-purple-400" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <h4 className="font-semibold text-purple-400 mb-1 text-sm sm:text-base">
+                      {insight.title}
+                    </h4>
+                    <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                      {insight.desc}
+                    </p>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Next Steps */}
+        <div className="text-center">
+          <Button
+            onClick={onViewAllLetters}
+            variant="outline"
+            className="bg-purple-500/10 hover:bg-purple-500/20 border-purple-500/20 text-purple-400 hover:text-purple-300 hover:border-purple-400/40 px-4 sm:px-6 h-10 sm:h-11 text-sm sm:text-base"
+          >
+            <Eye className="w-4 h-4 mr-2 flex-shrink-0" />
+            <span className="truncate">View All Cover Letters</span>
+          </Button>
+        </div>
+      </motion.div>
+    );
+  }
+);
+
+AgentCraftingResults.displayName = "AgentCraftingResults";
+
+// **MAIN MOBILE-ENHANCED COVER LETTER CRAFTING AGENT COMPONENT**
+const CoverLetterCraftingAgent: React.FC = () => {
+  const [isCrafting, setIsCrafting] = useState(false);
+  const [loadingStage, setLoadingStage] = useState(0);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [results, setResults] = useState<GeneratedCoverLetter | null>(null);
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const { user } = useAuth();
+  const { refreshUsage } = useUsageTracking();
+  const resultsRef = useRef<HTMLDivElement>(null);
+
+  const form = useForm<CoverLetterForm>({
+    resolver: zodResolver(coverLetterSchema),
+    defaultValues: {
+      companyName: "",
+      positionTitle: "",
+      jobDescription: "",
+      industry: "",
+      tone: "professional",
+    },
+  });
+
+  const jobDescription = form.watch("jobDescription");
+
+  // Calculate user name for personalized greeting
+  const userName = useMemo(() => {
+    if (!user) return "there";
+    return (
+      user.user_metadata?.full_name?.split(" ")?.[0] ||
+      user.email?.split("@")?.[0] ||
+      "there"
+    );
+  }, [user?.user_metadata?.full_name, user?.email]);
+
+  const industries = useMemo(
+    () => [
+      "Technology",
+      "Healthcare",
+      "Finance",
+      "Marketing",
+      "Sales",
+      "Education",
+      "Manufacturing",
+      "Retail",
+      "Consulting",
+      "Engineering",
+      "Design",
+      "Media",
+      "Legal",
+      "Real Estate",
+      "Other",
+    ],
+    []
+  );
+
+  const tones = useMemo(
+    () => [
+      {
+        value: "professional",
+        label: "Professional",
+        desc: "Formal and business-appropriate",
+      },
+      {
+        value: "enthusiastic",
+        label: "Enthusiastic",
+        desc: "Energetic and passionate",
+      },
+      {
+        value: "confident",
+        label: "Confident",
+        desc: "Direct and self-assured",
+      },
+      {
+        value: "creative",
+        label: "Creative",
+        desc: "Innovative and expressive",
+      },
+    ],
+    []
+  );
+
+  const simulateLoadingStages = useCallback(() => {
+    const stages = [0, 1, 2, 3, 4, 5];
     stages.forEach((stage, index) => {
-      setTimeout(() => setLoadingStage(stage), index * 2000);
+      setTimeout(() => setLoadingStage(stage), index * 2500);
     });
-  };
+  }, []);
 
-  // FIXED: Helper function with proper error handling
+  // Helper function with proper error handling
   const getCurrentUserVersion = async (userId: string) => {
     try {
-      // Check if user_usage record exists first
       const { data, error } = await supabase
         .from("user_usage")
-        .select("*") // Select all columns to see what's available
+        .select("*")
         .eq("user_id", userId)
         .single();
 
       if (error) {
-        console.error("Error getting user usage record:", error);
-
-        // If no record exists, return 0 as default version
         if (error.code === "PGRST116") {
-          console.log("No user_usage record found, using default version 0");
           return 0;
         }
-
-        return 0; // Default version for any error
+        return 0;
       }
 
-      // Check if the version column exists on the returned data
       if (data && "version" in data && typeof data.version === "number") {
         return data.version;
       }
 
-      // If version column doesn't exist, return 0 as default
-      console.log(
-        "Version column not found in user_usage table, using default version 0"
-      );
       return 0;
     } catch (error) {
       console.error("Error in getCurrentUserVersion:", error);
@@ -397,311 +748,13 @@ const CoverLetterGenerator = () => {
     }
   };
 
-  // FIXED: Main handler with proper usage limit enforcement
-  const handleGenerateCoverLetter = async () => {
-    if (!validateForm()) {
-      toast({
-        title: "Please Complete All Required Fields",
-        description:
-          "Company name, position title, detailed job description (min 50 characters), and resume are required.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!user) {
-      toast({
-        title: "Authentication Required",
-        description: "Please log in to generate cover letters.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsGenerating(true);
-    setLoadingStage(0);
-    simulateLoadingStages();
-
-    try {
-      // ✅ CRITICAL FIX: Check usage limits FIRST
-      const currentVersion = await getCurrentUserVersion(user.id);
-
-      const { data: usageData, error: usageError } = await supabase.rpc(
-        "increment_usage_secure",
-        {
-          p_target_user_id: user.id,
-          p_usage_type: "cover_letters_used",
-          p_increment_amount: 1,
-          p_current_version: currentVersion,
-          p_audit_metadata: {
-            action: "cover_letter_generation",
-            company: companyName,
-            position: positionTitle,
-            industry: industry || "unspecified",
-            tone: tone,
-          },
-        }
-      );
-
-      if (usageError) {
-        // Handle specific limit exceeded error
-        if (usageError.message.includes("Usage limit exceeded")) {
-          toast({
-            title: "Usage Limit Reached 📊",
-            description:
-              "You've reached your cover letter limit for your current plan. Upgrade to continue generating unlimited cover letters!",
-            variant: "destructive",
-            action: (
-              <Button
-                size="sm"
-                onClick={() => navigate("/pricing")}
-                className="bg-primary hover:bg-primary/90"
-              >
-                <TrendingUp className="w-4 h-4 mr-1" />
-                Upgrade Plan
-              </Button>
-            ),
-          });
-          return;
-        }
-
-        // Handle version conflict error
-        if (usageError.message.includes("version_conflict")) {
-          toast({
-            title: "Please Try Again",
-            description:
-              "Your usage data was updated by another session. Please try again.",
-            variant: "destructive",
-          });
-          return;
-        }
-
-        // Handle other usage-related errors
-        console.error("Usage increment error:", usageError);
-        toast({
-          title: "Usage Check Failed",
-          description: "Unable to verify your usage limits. Please try again.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // ✅ Only proceed with generation if usage increment succeeded
-      console.log("Usage incremented successfully, proceeding with generation");
-
-      const formData = new FormData();
-      formData.append("user_id", user.id);
-      formData.append("feature", "cover_letters");
-      formData.append("jobDescription", jobDescription);
-      formData.append("companyName", companyName);
-      formData.append("positionTitle", positionTitle);
-      formData.append("industry", industry);
-      formData.append("tone", tone);
-      formData.append("resume", resume);
-
-      const response = await fetch(
-        "https://n8n.applyforge.cloud/webhook-test/generate-cover-letter",
-        {
-          method: "POST",
-          body: formData,
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error(
-          `Failed to generate cover letter: ${response.status} ${response.statusText}`
-        );
-      }
-
-      // Get the iframe HTML as text
-      const iframeHtml = await response.text();
-
-      // Extract the PDF URL from the srcdoc attribute
-      const pdfUrlMatch = iframeHtml.match(/srcdoc="([^"]+)"/);
-      const actualPdfUrl = pdfUrlMatch ? pdfUrlMatch[1] : null;
-
-      if (!actualPdfUrl) {
-        throw new Error("Could not extract PDF URL from response");
-      }
-
-      if (actualPdfUrl) {
-        const { data, error } = await supabase
-          .from("cover_letters")
-          .insert({
-            user_id: user.id,
-            company_name: companyName,
-            position_title: positionTitle,
-            job_description: jobDescription,
-            cover_letter_url: actualPdfUrl, // Use the extracted PDF URL
-            original_resume_name: resume.name,
-            file_type: "pdf",
-            industry,
-            tone,
-          })
-          .select(
-            "id, company_name, position_title, cover_letter_url, created_at"
-          )
-          .single();
-
-        // ... rest of your existing code
-
-        // Use actualPdfUrl in your toast action
-        toast({
-          title: "Success! 🎉",
-          description:
-            "Your personalized cover letter has been generated successfully.",
-          action: (
-            <Button
-              size="sm"
-              onClick={() =>
-                handleDownload(
-                  actualPdfUrl, // Use the extracted PDF URL
-                  `${companyName}-cover-letter.pdf`
-                )
-              }
-              className="bg-green-600 hover:bg-green-700"
-            >
-              <Download className="w-4 h-4 mr-1" />
-              Download
-            </Button>
-          ),
-        });
-
-        // Also update the newLetter object
-        if (data) {
-          const newLetter: GeneratedCoverLetter = {
-            id: data.id,
-            company_name: data.company_name,
-            position_title: data.position_title,
-            cover_letter_url: actualPdfUrl, // Use extracted URL here too
-            created_at: data.created_at,
-          };
-          setCurrentGeneratedLetter(newLetter);
-          setShowGeneratedSection(true);
-        }
-
-        // Reset form
-        setJobDescription("");
-        setCompanyName("");
-        setPositionTitle("");
-        setResume(null);
-        setIndustry("");
-        setTone("professional");
-        const fileInput = document.getElementById(
-          "resume-upload"
-        ) as HTMLInputElement;
-        if (fileInput) fileInput.value = "";
-
-        // Scroll to results on mobile
-        if (window.innerWidth < 768) {
-          setTimeout(() => {
-            const generatedSection = document.getElementById(
-              "generated-letters-section"
-            );
-            if (generatedSection) {
-              generatedSection.scrollIntoView({ behavior: "smooth" });
-            }
-          }, 500);
-        }
-      }
-    } catch (error) {
-      console.error("Error generating cover letter:", error);
-
-      // Enhanced error handling with specific messages
-      let errorTitle = "Generation Failed";
-      let errorDescription =
-        "Failed to generate cover letter. Please try again.";
-
-      if (error.message.includes("Usage limit exceeded")) {
-        errorTitle = "Usage Limit Reached";
-        errorDescription =
-          "You've reached your cover letter limit for your current plan.";
-      } else if (
-        error.message.includes("403") ||
-        error.message.includes("Forbidden")
-      ) {
-        errorTitle = "Access Denied";
-        errorDescription =
-          "You don't have permission to generate cover letters with your current plan.";
-      } else if (
-        error.message.includes("Network") ||
-        error.message.includes("fetch")
-      ) {
-        errorTitle = "Connection Error";
-        errorDescription =
-          "Please check your internet connection and try again.";
-      }
-
-      toast({
-        title: errorTitle,
-        description: errorDescription,
-        variant: "destructive",
-      });
-    } finally {
-      setIsGenerating(false);
-      setLoadingStage(0);
-    }
-  };
-
-  const handleDownload = async (url: string, fileName: string) => {
-    try {
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = fileName;
-      link.target = "_blank";
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-
-      toast({
-        title: "Download Started 📥",
-        description: "Your cover letter is being downloaded.",
-      });
-    } catch (error) {
-      console.error("Error downloading file:", error);
-      toast({
-        title: "Download Failed",
-        description: "There was an error downloading your cover letter.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleRemoveFromSession = () => {
-    setCurrentGeneratedLetter(null);
-    setShowGeneratedSection(false);
-
-    toast({
-      title: "Removed",
-      description: "Cover letter has been removed from current session.",
-    });
-  };
-
-  const handleClearForm = () => {
-    setJobDescription("");
-    setCompanyName("");
-    setPositionTitle("");
-    setResume(null);
-    setIndustry("");
-    setTone("professional");
-    localStorage.removeItem("coverLetterDraft");
-
-    const fileInput = document.getElementById(
-      "resume-upload"
-    ) as HTMLInputElement;
-    if (fileInput) fileInput.value = "";
-
-    toast({
-      title: "Form Cleared",
-      description: "All fields have been reset.",
-    });
-  };
-
-  const loadSampleData = () => {
-    setCompanyName("Microsoft");
-    setPositionTitle("Software Engineer");
-    setIndustry("Technology");
-    setJobDescription(`We are seeking a talented Software Engineer to join our dynamic development team. The ideal candidate will have experience with modern web technologies, cloud platforms, and agile development practices.
+  const loadAgentExample = useCallback(() => {
+    form.setValue("companyName", "Microsoft");
+    form.setValue("positionTitle", "Software Engineer");
+    form.setValue("industry", "technology");
+    form.setValue(
+      "jobDescription",
+      `We are seeking a talented Software Engineer to join our dynamic development team. The ideal candidate will have experience with modern web technologies, cloud platforms, and agile development practices.
 
 Key Responsibilities:
 • Develop and maintain scalable web applications
@@ -716,24 +769,224 @@ Requirements:
 • Proficiency in JavaScript, React, Node.js
 • Experience with cloud platforms (AWS, Azure)
 • Strong problem-solving skills and attention to detail
-• Excellent communication and teamwork abilities`);
+• Excellent communication and teamwork abilities`
+    );
 
     toast({
-      title: "Sample Data Loaded",
+      title: "Example Loaded! 🚀",
       description:
-        "Form filled with example data. Don't forget to upload your resume!",
+        "Agent training data loaded. Upload your resume to begin crafting!",
     });
-  };
+  }, [form, toast]);
 
-  const formatDateTime = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
+  const handleResetAgent = useCallback(() => {
+    form.reset();
+    setSelectedFile(null);
+    setResults(null);
+
+    toast({
+      title: "Agent Reset ✨",
+      description: "Ready for your next cover letter crafting!",
     });
+  }, [form, toast]);
+
+  const onSubmit = async (formData: CoverLetterForm) => {
+    if (!selectedFile) {
+      toast({
+        title: "Resume Required 📄",
+        description:
+          "Please upload your resume for the agent to craft your cover letter.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!user) {
+      toast({
+        title: "Authentication Required 🔐",
+        description:
+          "Please log in to activate your Cover Letter Crafting Agent.",
+        variant: "destructive",
+      });
+      navigate("/auth");
+      return;
+    }
+
+    setIsCrafting(true);
+    setLoadingStage(0);
+    simulateLoadingStages();
+
+    try {
+      const currentVersion = await getCurrentUserVersion(user.id);
+
+      const { data: usageData, error: usageError } = await supabase.rpc(
+        "increment_usage_secure",
+        {
+          p_target_user_id: user.id,
+          p_usage_type: "cover_letters_used",
+          p_increment_amount: 1,
+          p_current_version: currentVersion,
+          p_audit_metadata: {
+            action: "cover_letter_crafting_agent",
+            company: formData.companyName,
+            position: formData.positionTitle,
+            industry: formData.industry || "unspecified",
+            tone: formData.tone,
+          },
+        }
+      );
+
+      if (usageError) {
+        if (usageError.message.includes("Usage limit exceeded")) {
+          toast({
+            title: "Agent Limit Reached 🤖",
+            description:
+              "You've reached your Cover Letter Crafting Agent limit. Upgrade to activate unlimited crafting!",
+            variant: "destructive",
+            action: (
+              <Button
+                size="sm"
+                onClick={() => navigate("/pricing")}
+                className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+              >
+                <Crown className="w-4 h-4 mr-1" />
+                Upgrade Plan
+              </Button>
+            ),
+          });
+          return;
+        }
+
+        if (usageError.message.includes("version_conflict")) {
+          toast({
+            title: "Agent Sync Issue 🔄",
+            description: "Your agent data was updated. Please try again.",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        console.error("Usage increment error:", usageError);
+        toast({
+          title: "Agent Activation Failed ⚠️",
+          description:
+            "Unable to activate your Cover Letter Crafting Agent. Please try again.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Send request to webhook
+      const formRequestData = new FormData();
+      formRequestData.append("user_id", user.id);
+      formRequestData.append("feature", "cover_letter_crafting_agent");
+      formRequestData.append("jobDescription", formData.jobDescription);
+      formRequestData.append("companyName", formData.companyName);
+      formRequestData.append("positionTitle", formData.positionTitle);
+      formRequestData.append("industry", formData.industry || "");
+      formRequestData.append("tone", formData.tone);
+      formRequestData.append("resume", selectedFile);
+
+      const response = await fetch(
+        "https://n8n.applyforge.cloud/webhook-test/generate-cover-letter",
+        {
+          method: "POST",
+          body: formRequestData,
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(
+          `Agent crafting failed: ${response.status} ${response.statusText}`
+        );
+      }
+
+      // Get the iframe HTML as text
+      const iframeHtml = await response.text();
+
+      // Extract the PDF URL from the srcdoc attribute
+      const pdfUrlMatch = iframeHtml.match(/srcdoc="([^"]+)"/);
+      const craftedLetterUrl = pdfUrlMatch ? pdfUrlMatch[1] : null;
+
+      if (!craftedLetterUrl) {
+        throw new Error("Could not extract PDF URL from response");
+      }
+
+      if (craftedLetterUrl) {
+        const { data, error } = await supabase
+          .from("cover_letters")
+          .insert({
+            user_id: user.id,
+            company_name: formData.companyName,
+            position_title: formData.positionTitle,
+            job_description: formData.jobDescription,
+            cover_letter_url: craftedLetterUrl,
+            original_resume_name: selectedFile.name,
+            file_type: "pdf",
+            industry: formData.industry,
+            tone: formData.tone,
+          })
+          .select(
+            "id, company_name, position_title, cover_letter_url, created_at"
+          )
+          .single();
+
+        if (error) {
+          console.error("Error saving crafted cover letter:", error);
+          toast({
+            title: "Save Error",
+            description:
+              "Cover letter crafted but failed to save. Please contact support.",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        if (data) {
+          const newLetter: GeneratedCoverLetter = {
+            id: data.id,
+            company_name: data.company_name,
+            position_title: data.position_title,
+            cover_letter_url: craftedLetterUrl,
+            created_at: data.created_at,
+          };
+          setResults(newLetter);
+        }
+
+        refreshUsage();
+
+        setTimeout(() => {
+          resultsRef.current?.scrollIntoView({
+            behavior: "smooth",
+            block: "start",
+          });
+        }, 100);
+
+        toast({
+          title: "Agent Crafting Complete! 📋",
+          description:
+            "Your Cover Letter Crafting Agent has created your personalized cover letter.",
+          action: (
+            <Button size="sm" onClick={() => navigate("/saved-cover-letters")}>
+              <Eye className="w-4 h-4 mr-1" />
+              View All
+            </Button>
+          ),
+        });
+      }
+    } catch (error) {
+      console.error("Agent crafting error:", error);
+
+      toast({
+        title: "Agent Error 🤖",
+        description:
+          "Your Cover Letter Crafting Agent encountered an issue. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsCrafting(false);
+      setLoadingStage(0);
+    }
   };
 
   const getJobDescriptionWordCount = () =>
@@ -741,483 +994,494 @@ Requirements:
       .trim()
       .split(/\s+/)
       .filter((word) => word.length > 0).length;
+
   const wordCount = getJobDescriptionWordCount();
 
   return (
     <TooltipProvider>
       <div className="min-h-screen bg-background">
-        <CoverLetterLoadingOverlay show={isGenerating} stage={loadingStage} />
+        <CraftingAgentLoadingOverlay show={isCrafting} stage={loadingStage} />
 
-        <div className="container mx-auto px-4 py-8 md:py-20">
-          <div className="max-w-4xl mx-auto">
-            <Link to="/">
+        {/* Header */}
+        <DashboardHeader />
+
+        {/* Main Content */}
+        <div className="container mx-auto px-4 py-6 sm:py-8 max-w-6xl">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.6 }}
+            className="space-y-6 sm:space-y-8"
+          >
+            {/* Back to Home Button */}
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+            >
               <Button
-                variant="ghost"
-                className="mb-6 hover:bg-appforge-blue/10"
+                variant="outline"
+                onClick={() => navigate("/")}
+                className="border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white backdrop-blur-sm text-sm sm:text-base"
               >
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to Home
+                <Home className="w-4 h-4 mr-2" />
+                Back to Dashboard
               </Button>
-            </Link>
+            </motion.div>
 
-            <div className="text-center mb-8">
+            {/* Hero Section - AI Agent Focused */}
+            <div className="text-center space-y-4 sm:space-y-6">
               <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="mb-6 p-4 rounded-xl w-fit mx-auto bg-appforge-blue/20 text-appforge-blue"
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.6 }}
+                className="flex flex-col items-center gap-4 sm:gap-6"
               >
-                <Mail className="w-8 h-8 md:w-12 md:h-12" />
+                <div className="space-y-3 sm:space-y-4">
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2 }}
+                    className="mx-auto w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-purple-500/10 to-pink-600/10 rounded-full flex items-center justify-center border border-purple-500/20 backdrop-blur-xl"
+                  >
+                    <PenTool className="w-8 h-8 sm:w-10 sm:h-10 text-purple-400" />
+                  </motion.div>
+
+                  <div className="flex items-center justify-center gap-2">
+                    <Badge className="bg-purple-500/20 text-purple-400 border-purple-500/30 text-xs sm:text-sm">
+                      <Sparkles className="w-3 h-3 mr-1" />
+                      AI Crafting
+                    </Badge>
+                  </div>
+
+                  <motion.h1
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.3 }}
+                    className="text-2xl sm:text-3xl md:text-4xl lg:text-6xl font-bold text-white leading-tight"
+                  >
+                    Cover Letter Crafting{" "}
+                    <span className="bg-gradient-to-r from-purple-400 via-purple-400 to-pink-600 bg-clip-text text-transparent">
+                      Agent
+                    </span>
+                  </motion.h1>
+
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.4 }}
+                    className="space-y-2 sm:space-y-3"
+                  >
+                    <p className="text-lg sm:text-xl md:text-2xl text-slate-300 max-w-3xl mx-auto leading-relaxed">
+                      Hey{" "}
+                      <span className="text-purple-400 font-semibold">
+                        {userName}
+                      </span>
+                      ! 👋
+                      <br />
+                      Your intelligent cover letter agent is ready to craft
+                      personalized, compelling cover letters
+                    </p>
+                    <p className="text-sm sm:text-base text-slate-400 max-w-2xl mx-auto">
+                      Get AI-powered cover letter crafting, tailored messaging,
+                      and professional formatting in one powerful package
+                    </p>
+                  </motion.div>
+                </div>
               </motion.div>
 
-              <motion.h1
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 }}
-                className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4"
-              >
-                AI Cover Letter{" "}
-                <span className="bg-gradient-to-r from-blue-500 to-purple-600 bg-clip-text text-transparent">
-                  Generator
-                </span>
-              </motion.h1>
-
-              <motion.p
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
-                className="text-lg md:text-xl text-muted-foreground px-4"
-              >
-                Create personalized cover letters tailored to specific job
-                opportunities
-              </motion.p>
-
+              {/* Agent Capabilities */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 }}
-                className="flex flex-col md:flex-row items-center justify-center gap-4 md:gap-6 mt-4 text-sm text-muted-foreground"
+                transition={{ delay: 0.5 }}
+                className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-6 max-w-5xl mx-auto"
               >
-                <div className="flex items-center gap-2">
-                  <Shield className="w-5 h-5 md:w-4 md:h-4 text-green-500 flex-shrink-0" />
-                  <span>Secure & Private</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Clock className="w-5 h-5 md:w-4 md:h-4 text-blue-500 flex-shrink-0" />
-                  <span>Generated in ~30s</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <CheckCircle className="w-5 h-5 md:w-4 md:h-4 text-purple-500 flex-shrink-0" />
-                  <span>ATS Optimized</span>
-                </div>
+                {[
+                  {
+                    icon: PenTool,
+                    title: "AI Crafting",
+                    desc: "Intelligent content generation",
+                  },
+                  {
+                    icon: Mail,
+                    title: "Personal Touch",
+                    desc: "Customized for each role",
+                  },
+                  {
+                    icon: Brain,
+                    title: "Smart Matching",
+                    desc: "Skills-to-job alignment",
+                  },
+                  {
+                    icon: Star,
+                    title: "Professional Format",
+                    desc: "ATS-friendly structure",
+                  },
+                ].map((capability, index) => (
+                  <motion.div
+                    key={capability.title}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.6 + index * 0.1 }}
+                    className="p-3 sm:p-4 rounded-xl bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl border border-slate-700/50"
+                  >
+                    <capability.icon className="w-6 h-6 sm:w-8 sm:h-8 text-purple-400 mx-auto mb-2 sm:mb-3" />
+                    <h3 className="font-semibold text-white mb-1 sm:mb-2 text-xs sm:text-sm">
+                      {capability.title}
+                    </h3>
+                    <p className="text-xs text-slate-400">{capability.desc}</p>
+                  </motion.div>
+                ))}
               </motion.div>
             </div>
 
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4 }}
-            >
-              <Card className="glass">
-                <CardHeader>
-                  <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-                    <CardTitle className="text-lg md:text-xl flex items-center gap-2">
-                      <Mail className="w-5 h-5 flex-shrink-0" />
-                      <span className="leading-tight">
-                        Generate Cover Letter
-                      </span>
-                    </CardTitle>
-                    <div className="flex flex-wrap gap-2">
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={loadSampleData}
-                            className="text-xs"
-                          >
-                            <Sparkles className="w-3 h-3 md:w-4 md:h-4 mr-1 md:mr-2" />
-                            Try Example
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          Load sample data to see how it works
-                        </TooltipContent>
-                      </Tooltip>
-
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={handleClearForm}
-                        className="text-xs"
-                      >
-                        <RefreshCw className="w-3 h-3 md:w-4 md:h-4 mr-1 md:mr-2" />
-                        Clear All
-                      </Button>
-                    </div>
-                  </div>
-                </CardHeader>
-
-                <CardContent className="space-y-6">
-                  {/* Company and Position */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <motion.div
-                      whileFocus={{ scale: 1.02 }}
-                      className="space-y-2"
-                    >
-                      <Label
-                        htmlFor="company-name"
-                        className="flex items-center gap-2"
-                      >
-                        <Building className="w-4 h-4 flex-shrink-0" />
-                        Company Name *
-                      </Label>
-                      <Input
-                        id="company-name"
-                        value={companyName}
-                        onChange={(e) => setCompanyName(e.target.value)}
-                        placeholder="e.g., Microsoft, Google, Apple"
-                        className={`transition-colors ${
-                          !validation.companyName ? "border-destructive" : ""
-                        }`}
-                      />
-                      {!validation.companyName && (
-                        <p className="text-sm text-destructive">
-                          Company name is required
-                        </p>
-                      )}
-                    </motion.div>
-
-                    <motion.div
-                      whileFocus={{ scale: 1.02 }}
-                      className="space-y-2"
-                    >
-                      <Label
-                        htmlFor="position-title"
-                        className="flex items-center gap-2"
-                      >
-                        <Briefcase className="w-4 h-4 flex-shrink-0" />
-                        Position Title *
-                      </Label>
-                      <Input
-                        id="position-title"
-                        value={positionTitle}
-                        onChange={(e) => setPositionTitle(e.target.value)}
-                        placeholder="e.g., Software Engineer, Product Manager"
-                        className={`transition-colors ${
-                          !validation.positionTitle ? "border-destructive" : ""
-                        }`}
-                      />
-                      {!validation.positionTitle && (
-                        <p className="text-sm text-destructive">
-                          Position title is required
-                        </p>
-                      )}
-                    </motion.div>
-                  </div>
-
-                  {/* Industry and Tone */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="industry">Industry (Optional)</Label>
-                      <Select value={industry} onValueChange={setIndustry}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select industry" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {industries.map((ind) => (
-                            <SelectItem key={ind} value={ind.toLowerCase()}>
-                              {ind}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="tone">Tone</Label>
-                      <Select value={tone} onValueChange={setTone}>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {tones.map((t) => (
-                            <SelectItem key={t.value} value={t.value}>
-                              {t.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-
-                  {/* Job Description */}
-                  <motion.div
-                    whileFocus={{ scale: 1.01 }}
-                    className="space-y-2"
-                  >
-                    <div className="flex items-center justify-between">
-                      <Label
-                        htmlFor="job-description"
-                        className="flex items-center gap-2"
-                      >
-                        Job Description *
+            {/* Agent Interface */}
+            {!results && (
+              <motion.div
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.7 }}
+              >
+                <Card className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl border border-slate-700/50 hover:border-purple-500/30 transition-all duration-300">
+                  <CardHeader className="pb-4 sm:pb-6">
+                    <div className="flex flex-col gap-3 sm:gap-4">
+                      <div>
+                        <CardTitle className="text-lg sm:text-xl md:text-2xl flex items-center gap-2 sm:gap-3 text-white">
+                          <Bot className="w-5 h-5 sm:w-6 sm:h-6 text-purple-400 flex-shrink-0" />
+                          <span className="truncate">Configure Your Agent</span>
+                        </CardTitle>
+                        <CardDescription className="text-slate-400 mt-2 text-sm sm:text-base">
+                          Provide your job details and resume for intelligent
+                          cover letter crafting
+                        </CardDescription>
+                      </div>
+                      <div className="flex flex-col sm:flex-row gap-2">
                         <Tooltip>
-                          <TooltipTrigger>
-                            <Info className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                          </TooltipTrigger>
-                          <TooltipContent className="max-w-xs">
-                            <p>
-                              Paste the complete job posting here. The more
-                              detailed, the better your cover letter will be!
-                            </p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </Label>
-
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <span
-                          className={
-                            wordCount < 50
-                              ? "text-destructive"
-                              : wordCount > 200
-                              ? "text-green-600"
-                              : "text-yellow-600"
-                          }
-                        >
-                          {wordCount} words
-                        </span>
-                        {wordCount < 50 && (
-                          <span className="text-destructive">(min 50)</span>
-                        )}
-                      </div>
-                    </div>
-
-                    <Textarea
-                      id="job-description"
-                      value={jobDescription}
-                      onChange={(e) => setJobDescription(e.target.value)}
-                      placeholder="Paste the complete job posting here including requirements, responsibilities, and company information..."
-                      rows={8}
-                      className={`transition-colors ${
-                        !validation.jobDescription ? "border-destructive" : ""
-                      }`}
-                    />
-
-                    {!validation.jobDescription && (
-                      <p className="text-sm text-destructive">
-                        Job description must be at least 50 characters long
-                      </p>
-                    )}
-                  </motion.div>
-
-                  {/* Resume Upload */}
-                  <div className="space-y-2">
-                    <Label className="flex items-center gap-2">
-                      Upload Your Resume *
-                      <Tooltip>
-                        <TooltipTrigger>
-                          <Info className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>
-                            Upload your most recent resume. We'll extract
-                            relevant experience to personalize your cover
-                            letter.
-                          </p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </Label>
-
-                    <FileUploadArea
-                      onFileSelect={setResume}
-                      selectedFile={resume}
-                      error={!validation.resume}
-                    />
-                  </div>
-
-                  {/* Generate Button */}
-                  <motion.div
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                  >
-                    <Button
-                      onClick={handleGenerateCoverLetter}
-                      disabled={isGenerating}
-                      className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white h-12 text-lg font-semibold shadow-lg"
-                      size="lg"
-                    >
-                      {isGenerating ? (
-                        <>
-                          <motion.div
-                            animate={{ rotate: 360 }}
-                            transition={{
-                              duration: 1,
-                              repeat: Infinity,
-                              ease: "linear",
-                            }}
-                            className="mr-2"
-                          >
-                            <Mail className="w-5 h-5" />
-                          </motion.div>
-                          Generating Your Cover Letter...
-                        </>
-                      ) : (
-                        <>
-                          <Mail className="w-5 h-5 mr-2" />
-                          Generate AI Cover Letter
-                        </>
-                      )}
-                    </Button>
-                  </motion.div>
-
-                  {/* Trust Indicators */}
-                  <div className="bg-muted/30 rounded-lg p-4">
-                    <div className="flex flex-col md:flex-row items-center justify-center gap-4 md:gap-6 text-sm text-muted-foreground">
-                      <div className="flex items-center gap-2">
-                        <Shield className="w-5 h-5 md:w-4 md:h-4 text-green-500 flex-shrink-0" />
-                        <span>SSL Encrypted</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Clock className="w-5 h-5 md:w-4 md:h-4 text-blue-500 flex-shrink-0" />
-                        <span>~30 sec generation</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <FileCheck className="w-5 h-5 md:w-4 md:h-4 text-purple-500 flex-shrink-0" />
-                        <span>ATS Optimized</span>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-
-            {/* Generated Cover Letter Section */}
-            <AnimatePresence>
-              {showGeneratedSection && currentGeneratedLetter && (
-                <motion.div
-                  id="generated-letters-section"
-                  className="mt-8"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  transition={{ duration: 0.5 }}
-                >
-                  <div className="text-center mb-6">
-                    <motion.div
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      transition={{ delay: 0.2, type: "spring" }}
-                      className="mx-auto w-12 h-12 md:w-16 md:h-16 bg-green-500 rounded-full flex items-center justify-center mb-4"
-                    >
-                      <CheckCircle className="w-6 h-6 md:w-8 md:h-8 text-white" />
-                    </motion.div>
-                    <h2 className="text-xl md:text-2xl font-bold mb-2">
-                      Your Cover Letter is Ready! 🎉
-                    </h2>
-                    <p className="text-muted-foreground px-4">
-                      Tailored specifically for{" "}
-                      {currentGeneratedLetter.position_title} at{" "}
-                      {currentGeneratedLetter.company_name}
-                    </p>
-                  </div>
-
-                  <motion.div
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.3 }}
-                    layout
-                  >
-                    <Card className="bg-gradient-to-r from-slate-800/90 to-slate-700/90 dark:from-slate-800/95 dark:to-slate-700/95 border border-slate-600/50 dark:border-slate-500/60">
-                      <CardContent className="p-6">
-                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-3 mb-3">
-                              <div className="p-3 rounded-lg bg-gradient-to-br from-green-500 to-blue-500 text-white">
-                                <Mail className="w-5 h-5 md:w-6 md:h-6" />
-                              </div>
-                              <div className="min-w-0 flex-1">
-                                <h3
-                                  className="font-semibold text-lg md:text-xl truncate"
-                                  title={currentGeneratedLetter.position_title}
-                                >
-                                  {currentGeneratedLetter.position_title}
-                                </h3>
-                                <p
-                                  className="text-muted-foreground truncate"
-                                  title={currentGeneratedLetter.company_name}
-                                >
-                                  {currentGeneratedLetter.company_name}
-                                </p>
-                                <div className="flex items-center gap-2 mt-1">
-                                  <Badge
-                                    variant="secondary"
-                                    className="bg-green-100 text-green-800 text-xs"
-                                  >
-                                    AI Generated
-                                  </Badge>
-                                  <Badge variant="outline" className="text-xs">
-                                    PDF Format
-                                  </Badge>
-                                </div>
-                              </div>
-                            </div>
-                            <p className="text-sm text-muted-foreground">
-                              Generated on{" "}
-                              {formatDateTime(
-                                currentGeneratedLetter.created_at
-                              )}
-                            </p>
-                          </div>
-                          <div className="flex flex-col sm:flex-row gap-2 flex-shrink-0">
-                            <Button
-                              onClick={() =>
-                                handleDownload(
-                                  currentGeneratedLetter.cover_letter_url,
-                                  `${currentGeneratedLetter.company_name}-cover-letter.pdf`
-                                )
-                              }
-                              className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white"
-                            >
-                              <Download className="w-4 h-4 mr-2" />
-                              Download PDF
-                            </Button>
+                          <TooltipTrigger asChild>
                             <Button
                               variant="outline"
-                              size="icon"
-                              onClick={handleRemoveFromSession}
-                              className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                              size="sm"
+                              onClick={loadAgentExample}
+                              className="border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white text-xs sm:text-sm"
                             >
-                              <Trash2 className="w-4 h-4" />
+                              <Sparkles className="w-4 h-4 mr-2 flex-shrink-0" />
+                              <span className="truncate">Try Example</span>
                             </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            Load sample data to test your Cover Letter Crafting
+                            Agent
+                          </TooltipContent>
+                        </Tooltip>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={handleResetAgent}
+                          className="border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white text-xs sm:text-sm"
+                        >
+                          <RefreshCw className="w-4 h-4 mr-2 flex-shrink-0" />
+                          <span className="truncate">Reset Agent</span>
+                        </Button>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <Form {...form}>
+                      <form
+                        onSubmit={form.handleSubmit(onSubmit)}
+                        className="space-y-6 sm:space-y-8"
+                      >
+                        {/* Resume Upload */}
+                        <div className="space-y-2 sm:space-y-3">
+                          <Label className="flex items-center gap-2 text-sm sm:text-base font-semibold text-white">
+                            <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-purple-400 flex-shrink-0" />
+                            <span className="truncate">
+                              Upload Your Resume *
+                            </span>
+                            <Tooltip>
+                              <TooltipTrigger>
+                                <Info className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                              </TooltipTrigger>
+                              <TooltipContent className="max-w-xs">
+                                <p>
+                                  Your agent will extract relevant experience to
+                                  personalize your cover letter
+                                </p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </Label>
+                          <AgentFileUploadArea
+                            onFileSelect={setSelectedFile}
+                            selectedFile={selectedFile}
+                            error={!selectedFile}
+                          />
+                        </div>
+
+                        {/* Company Name and Position Title */}
+                        <div className="grid grid-cols-1 gap-4 sm:gap-6">
+                          <FormField
+                            control={form.control}
+                            name="companyName"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel className="flex items-center gap-2 text-sm sm:text-base font-semibold text-white">
+                                  <Building className="w-4 h-4 sm:w-5 sm:h-5 text-orange-400 flex-shrink-0" />
+                                  <span className="truncate">
+                                    Company Name *
+                                  </span>
+                                </FormLabel>
+                                <FormControl>
+                                  <Input
+                                    placeholder="e.g., Microsoft, Google, Apple"
+                                    className="bg-slate-800/50 border-slate-600 text-white placeholder-slate-400 focus:border-purple-400 text-sm sm:text-base h-10 sm:h-11"
+                                    {...field}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          <FormField
+                            control={form.control}
+                            name="positionTitle"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel className="flex items-center gap-2 text-sm sm:text-base font-semibold text-white">
+                                  <Briefcase className="w-4 h-4 sm:w-5 sm:h-5 text-purple-400 flex-shrink-0" />
+                                  <span className="truncate">
+                                    Position Title *
+                                  </span>
+                                </FormLabel>
+                                <FormControl>
+                                  <Input
+                                    placeholder="e.g., Software Engineer, Product Manager"
+                                    className="bg-slate-800/50 border-slate-600 text-white placeholder-slate-400 focus:border-purple-400 text-sm sm:text-base h-10 sm:h-11"
+                                    {...field}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+
+                        {/* Industry and Tone */}
+                        <div className="grid grid-cols-1 gap-4 sm:gap-6">
+                          <FormField
+                            control={form.control}
+                            name="industry"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel className="flex items-center gap-2 text-sm sm:text-base font-semibold text-white">
+                                  <Users className="w-4 h-4 sm:w-5 sm:h-5 text-cyan-400 flex-shrink-0" />
+                                  <span className="truncate">
+                                    Industry (Optional)
+                                  </span>
+                                </FormLabel>
+                                <Select
+                                  onValueChange={field.onChange}
+                                  defaultValue={field.value}
+                                >
+                                  <FormControl>
+                                    <SelectTrigger className="bg-slate-800/50 border-slate-600 text-white h-10 sm:h-11 text-sm sm:text-base">
+                                      <SelectValue placeholder="Select industry for enhanced crafting" />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    {industries.map((industry) => (
+                                      <SelectItem
+                                        key={industry}
+                                        value={industry.toLowerCase()}
+                                      >
+                                        {industry}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </FormItem>
+                            )}
+                          />
+
+                          <FormField
+                            control={form.control}
+                            name="tone"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel className="flex items-center gap-2 text-sm sm:text-base font-semibold text-white">
+                                  <Palette className="w-4 h-4 sm:w-5 sm:h-5 text-pink-400 flex-shrink-0" />
+                                  <span className="truncate">Writing Tone</span>
+                                </FormLabel>
+                                <Select
+                                  onValueChange={field.onChange}
+                                  defaultValue={field.value}
+                                >
+                                  <FormControl>
+                                    <SelectTrigger className="bg-slate-800/50 border-slate-600 text-white h-10 sm:h-11 text-sm sm:text-base">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    {tones.map((tone) => (
+                                      <SelectItem
+                                        key={tone.value}
+                                        value={tone.value}
+                                      >
+                                        <div className="flex flex-col">
+                                          <span className="font-medium">
+                                            {tone.label}
+                                          </span>
+                                          <span className="text-xs text-slate-400">
+                                            {tone.desc}
+                                          </span>
+                                        </div>
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+
+                        {/* Job Description */}
+                        <FormField
+                          control={form.control}
+                          name="jobDescription"
+                          render={({ field }) => (
+                            <FormItem>
+                              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                                <FormLabel className="flex items-center gap-2 text-sm sm:text-base font-semibold text-white">
+                                  <FileSearch className="w-4 h-4 sm:w-5 sm:h-5 text-blue-400 flex-shrink-0" />
+                                  <span className="truncate">
+                                    Job Description *
+                                  </span>
+                                  <Tooltip>
+                                    <TooltipTrigger>
+                                      <Info className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                                    </TooltipTrigger>
+                                    <TooltipContent className="max-w-xs">
+                                      <p>
+                                        Paste the complete job posting for
+                                        optimal cover letter crafting and
+                                        personalization
+                                      </p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </FormLabel>
+                                <div className="flex items-center gap-2 text-xs sm:text-sm">
+                                  <Activity className="w-3 h-3 sm:w-4 sm:h-4 text-slate-400 flex-shrink-0" />
+                                  <span
+                                    className={
+                                      wordCount < 50
+                                        ? "text-red-400"
+                                        : wordCount > 200
+                                        ? "text-emerald-400"
+                                        : "text-amber-400"
+                                    }
+                                  >
+                                    {wordCount} words
+                                  </span>
+                                  {wordCount < 50 && (
+                                    <span className="text-red-400 text-xs whitespace-nowrap">
+                                      (min 50)
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                              <FormControl>
+                                <Textarea
+                                  placeholder="Paste the complete job posting here including requirements, responsibilities, and company information..."
+                                  className="min-h-[150px] sm:min-h-[200px] bg-slate-800/50 border-slate-600 text-white placeholder-slate-400 focus:border-purple-400 text-sm sm:text-base resize-none"
+                                  {...field}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        {/* Activate Agent Button */}
+                        <motion.div
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                          className="pt-2 sm:pt-4"
+                        >
+                          <Button
+                            type="submit"
+                            className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white h-12 sm:h-14 text-sm sm:text-base md:text-lg font-semibold shadow-lg"
+                            disabled={isCrafting}
+                          >
+                            {isCrafting ? (
+                              <>
+                                <motion.div
+                                  animate={{ rotate: 360 }}
+                                  transition={{
+                                    duration: 1,
+                                    repeat: Infinity,
+                                    ease: "linear",
+                                  }}
+                                  className="mr-2 sm:mr-3 flex-shrink-0"
+                                >
+                                  <Bot className="w-5 h-5 sm:w-6 sm:h-6" />
+                                </motion.div>
+                                <span className="truncate">
+                                  Agent Crafting Letter...
+                                </span>
+                              </>
+                            ) : (
+                              <>
+                                <PenTool className="w-5 h-5 sm:w-6 sm:h-6 mr-2 sm:mr-3 flex-shrink-0" />
+                                <span className="truncate">
+                                  Activate Cover Letter Crafting Agent
+                                </span>
+                                <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 ml-2 flex-shrink-0" />
+                              </>
+                            )}
+                          </Button>
+                        </motion.div>
+
+                        {/* Agent Features */}
+                        <div className="bg-gradient-to-r from-slate-800/30 to-slate-900/30 rounded-xl p-4 sm:p-6 border border-slate-700/30">
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 text-center">
+                            <div className="flex items-center justify-center gap-2 text-xs sm:text-sm text-slate-300">
+                              <Shield className="w-4 h-4 sm:w-5 sm:h-5 text-purple-400 flex-shrink-0" />
+                              <span className="truncate">Secure Crafting</span>
+                            </div>
+                            <div className="flex items-center justify-center gap-2 text-xs sm:text-sm text-slate-300">
+                              <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-purple-400 flex-shrink-0" />
+                              <span className="truncate">
+                                ~30 sec generation
+                              </span>
+                            </div>
+                            <div className="flex items-center justify-center gap-2 text-xs sm:text-sm text-slate-300">
+                              <Brain className="w-4 h-4 sm:w-5 sm:h-5 text-purple-400 flex-shrink-0" />
+                              <span className="truncate">AI-Personalized</span>
+                            </div>
                           </div>
                         </div>
-                      </CardContent>
-                    </Card>
-                  </motion.div>
+                      </form>
+                    </Form>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            )}
 
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.3 }}
-                    className="mt-6 text-center"
-                  >
-                    <Button
-                      onClick={() => navigate("/saved-cover-letters")}
-                      variant="outline"
-                      className="bg-primary/5 hover:bg-primary/10 border-primary/20"
-                    >
-                      <Eye className="w-4 h-4 mr-2" />
-                      View All Cover Letters
-                    </Button>
-                  </motion.div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
+            {/* Agent Results */}
+            {results && (
+              <div ref={resultsRef}>
+                <AgentCraftingResults
+                  results={results}
+                  onNewCraft={handleResetAgent}
+                  onViewAllLetters={() => navigate("/saved-cover-letters")}
+                />
+              </div>
+            )}
+          </motion.div>
         </div>
       </div>
     </TooltipProvider>
   );
 };
 
-export default CoverLetterGenerator;
+export default CoverLetterCraftingAgent;

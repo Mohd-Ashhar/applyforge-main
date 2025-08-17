@@ -1,11 +1,13 @@
-import React, { useState, useRef, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import React, {
+  useState,
+  useRef,
+  useEffect,
+  useMemo,
+  useCallback,
+  memo,
+} from "react";
+import { useNavigate, Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { Progress } from "@/components/ui/progress";
 import {
   Card,
   CardContent,
@@ -13,6 +15,20 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import {
   Tooltip,
   TooltipContent,
@@ -26,35 +42,66 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { useToast } from "@/hooks/use-toast";
 import {
-  ArrowLeft,
+  Target,
   Upload,
+  ArrowLeft,
   FileText,
-  Briefcase,
-  Eye,
-  Download,
-  Trash2,
-  Info,
-  Shield,
-  Clock,
-  RefreshCw,
-  Save,
   CheckCircle,
+  AlertTriangle,
+  Sparkles,
+  TrendingUp,
+  Edit,
+  Info,
+  Clock,
+  Save,
   AlertCircle,
   FileCheck,
-  Target,
   Zap,
-  TrendingUp,
-  Sparkles,
+  BarChart3,
+  Award,
+  RefreshCw,
+  Brain,
+  Bot,
+  Search,
+  Eye,
+  Home,
+  ArrowRight,
+  Star,
+  Crown,
+  Activity,
+  FileSearch,
+  Users,
+  ChevronRight,
+  Download,
+  Trash2,
+  Settings,
+  Palette,
+  Wand2,
+  Briefcase,
   User,
 } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUsageTracking } from "@/hooks/useUsageTracking";
+import { supabase } from "@/integrations/supabase/client";
+import DashboardHeader from "@/components/DashboardHeader";
+import UserAvatar from "@/components/header/UserAvatar";
 
-// Fixed Interface Definitions
+const resumeOptimizerSchema = z.object({
+  jobRole: z.string().min(2, "Job role must be at least 2 characters"),
+  jobDescription: z
+    .string()
+    .min(100, "Job description must be at least 100 characters"),
+  industry: z.string().optional(),
+  resumeStyle: z.string().default("modern"),
+});
+
+type ResumeOptimizerForm = z.infer<typeof resumeOptimizerSchema>;
+
 interface GeneratedResume {
   id: string;
   title: string;
@@ -63,328 +110,626 @@ interface GeneratedResume {
   created_at: string;
 }
 
-interface FormValidation {
-  jobRole: boolean;
-  jobDescription: boolean;
-  resume: boolean;
-}
+// **ENHANCED MOBILE-FIRST AI AGENT LOADING EXPERIENCE**
+const OptimizationAgentLoadingOverlay = memo(
+  ({ show, stage = 0 }: { show: boolean; stage?: number }) => {
+    const agentMessages = [
+      "🔍 Analyzing your resume structure and content...",
+      "🧠 Understanding job requirements and keywords...",
+      "⚡ Optimizing formatting and ATS compatibility...",
+      "🎯 Tailoring content for maximum impact...",
+      "✨ Applying advanced styling and layout...",
+      "🚀 Finalizing your optimized resume...",
+    ];
 
-// Enhanced Loading Overlay with AI Resume Processing Stages
-const ResumeLoadingOverlay = ({
-  show,
-  stage = 0,
-}: {
-  show: boolean;
-  stage?: number;
-}) => {
-  const stages = [
-    "Analyzing your current resume...",
-    "Processing job requirements...",
-    "Identifying key skills and keywords...",
-    "Optimizing for ATS compatibility...",
-    "Tailoring content and formatting...",
-    "Finalizing your optimized resume...",
-  ];
-
-  return (
-    <AnimatePresence>
-      {show && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.3 }}
-          className="fixed inset-0 z-[999] flex flex-col items-center justify-center backdrop-blur-lg bg-background/80"
-        >
+    return (
+      <AnimatePresence>
+        {show && (
           <motion.div
-            className="w-24 h-24 md:w-32 md:h-32 rounded-full bg-gradient-to-br from-blue-500 via-purple-500 to-indigo-600 shadow-2xl"
-            animate={{
-              scale: [1, 1.2, 1],
-              rotate: [0, 180, 360],
-            }}
-            transition={{
-              duration: 2,
-              repeat: Infinity,
-              ease: "easeInOut",
-            }}
-          />
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="mt-6 text-center"
-          >
-            <p className="text-sm text-muted-foreground tracking-wide mb-4">
-              {stages[stage] || stages[0]}
-            </p>
-            <Progress value={(stage + 1) * 16.67} className="w-64 h-2" />
-            <p className="text-xs text-muted-foreground mt-2">
-              {Math.round((stage + 1) * 16.67)}% Complete
-            </p>
-          </motion.div>
-
-          <motion.div
-            className="flex gap-1 mt-4"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ delay: 0.4 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            className="fixed inset-0 z-[999] flex flex-col items-center justify-center backdrop-blur-lg bg-background/90 p-4"
           >
-            {[0, 1, 2].map((i) => (
+            {/* Agent Avatar with Optimization Animation */}
+            <motion.div
+              className="relative mb-6 sm:mb-8"
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ duration: 0.6 }}
+            >
               <motion.div
-                key={i}
-                className="w-2 h-2 bg-blue-500 rounded-full"
-                animate={{ y: [0, -10, 0] }}
+                className="w-20 h-20 sm:w-24 sm:h-24 md:w-32 md:h-32 rounded-full bg-gradient-to-br from-blue-500/20 via-purple-500/15 to-indigo-500/20 border border-blue-500/20 flex items-center justify-center backdrop-blur-xl"
+                animate={{
+                  scale: [1, 1.1, 1],
+                  rotate: [0, 180, 360],
+                }}
                 transition={{
-                  duration: 0.8,
+                  duration: 3,
                   repeat: Infinity,
-                  delay: i * 0.2,
                   ease: "easeInOut",
                 }}
-              />
-            ))}
+              >
+                <Wand2 className="w-8 h-8 sm:w-10 sm:h-10 md:w-16 md:h-16 text-blue-400" />
+
+                {/* Optimization rings */}
+                <motion.div
+                  className="absolute inset-0 rounded-full border-2 border-blue-400/30"
+                  animate={{
+                    scale: [1, 1.5, 2],
+                    opacity: [0.8, 0.3, 0],
+                  }}
+                  transition={{
+                    duration: 2,
+                    repeat: Infinity,
+                    ease: "easeOut",
+                  }}
+                />
+              </motion.div>
+            </motion.div>
+
+            {/* Agent Status */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="text-center space-y-3 sm:space-y-4 max-w-sm sm:max-w-md"
+            >
+              <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-white">
+                Resume Optimization Agent
+              </h3>
+              <p className="text-sm sm:text-base md:text-lg text-blue-400 font-medium leading-relaxed">
+                {agentMessages[stage] || agentMessages[0]}
+              </p>
+
+              <div className="space-y-2 sm:space-y-3">
+                <Progress
+                  value={(stage + 1) * 16.67}
+                  className="w-full max-w-80 h-2 sm:h-3 bg-slate-700/50 mx-auto"
+                />
+                <p className="text-xs sm:text-sm text-slate-400">
+                  {Math.round((stage + 1) * 16.67)}% Complete • Optimizing with
+                  AI precision
+                </p>
+              </div>
+            </motion.div>
+
+            {/* Security Badge */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.8 }}
+              className="mt-6 sm:mt-8 flex items-center gap-2 text-xs text-slate-400 bg-slate-800/30 px-3 sm:px-4 py-2 rounded-full backdrop-blur-sm border border-slate-700/50"
+            >
+              <Settings className="w-3 h-3 sm:w-4 sm:h-4 text-blue-400 flex-shrink-0" />
+              <span className="text-xs sm:text-sm">
+                Your resume is being optimized securely
+              </span>
+            </motion.div>
+
+            {/* Floating particles */}
+            <div className="absolute inset-0 overflow-hidden pointer-events-none">
+              {[...Array(6)].map((_, i) => (
+                <motion.div
+                  key={i}
+                  className="absolute w-1 h-1 sm:w-2 sm:h-2 bg-blue-400/30 rounded-full"
+                  animate={{
+                    x: [0, 100, -100, 0],
+                    y: [0, -100, 100, 0],
+                    opacity: [0, 1, 0],
+                  }}
+                  transition={{
+                    duration: 8,
+                    repeat: Infinity,
+                    delay: i * 1.3,
+                    ease: "easeInOut",
+                  }}
+                  style={{
+                    left: `${20 + i * 10}%`,
+                    top: `${30 + i * 8}%`,
+                  }}
+                />
+              ))}
+            </div>
           </motion.div>
+        )}
+      </AnimatePresence>
+    );
+  }
+);
 
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.6 }}
-            className="mt-6 flex items-center gap-2 text-xs text-muted-foreground"
-          >
-            <Shield className="w-4 h-4" />
-            <span>Your resume data is encrypted and secure</span>
-          </motion.div>
-        </motion.div>
-      )}
-    </AnimatePresence>
-  );
-};
+OptimizationAgentLoadingOverlay.displayName = "OptimizationAgentLoadingOverlay";
 
-// Enhanced File Upload Component with Mobile Optimization
-const FileUploadArea = ({
-  onFileSelect,
-  selectedFile,
-  error,
-}: {
-  onFileSelect: (file: File) => void;
-  selectedFile: File | null;
-  error?: boolean;
-}) => {
-  const [dragOver, setDragOver] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+// **MOBILE-ENHANCED AI AGENT FILE UPLOAD**
+const AgentFileUploadArea = memo(
+  ({
+    onFileSelect,
+    selectedFile,
+    error,
+  }: {
+    onFileSelect: (file: File) => void;
+    selectedFile: File | null;
+    error?: boolean;
+  }) => {
+    const [dragOver, setDragOver] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    setDragOver(true);
-  };
+    const handleDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+      e.preventDefault();
+      setDragOver(true);
+    }, []);
 
-  const handleDragLeave = () => setDragOver(false);
+    const handleDragLeave = useCallback(() => setDragOver(false), []);
 
-  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    setDragOver(false);
+    const handleDrop = useCallback(
+      (e: React.DragEvent<HTMLDivElement>) => {
+        e.preventDefault();
+        setDragOver(false);
 
-    const files = Array.from(e.dataTransfer.files);
-    const validFile = files.find((file) =>
-      [
-        "application/pdf",
-        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-      ].includes(file.type)
+        const files = Array.from(e.dataTransfer.files);
+        const validFile = files.find((file) =>
+          [
+            "application/pdf",
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+          ].includes(file.type)
+        );
+
+        if (validFile) {
+          onFileSelect(validFile);
+        }
+      },
+      [onFileSelect]
     );
 
-    if (validFile) {
-      onFileSelect(validFile);
-    }
-  };
+    const formatFileSize = useCallback((bytes: number) => {
+      return bytes < 1024 * 1024
+        ? `${(bytes / 1024).toFixed(1)} KB`
+        : `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+    }, []);
 
-  const formatFileSize = (bytes: number) => {
-    return bytes < 1024 * 1024
-      ? `${(bytes / 1024).toFixed(1)} KB`
-      : `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-  };
+    const handleFileChange = useCallback(
+      (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (
+          file &&
+          (file.type === "application/pdf" || file.name.endsWith(".docx"))
+        ) {
+          onFileSelect(file);
+        }
+      },
+      [onFileSelect]
+    );
 
-  return (
-    <div className="space-y-2">
+    return (
       <motion.div
         className={`
-          relative border-2 border-dashed rounded-lg p-4 md:p-6 text-center cursor-pointer transition-colors
-          ${
-            dragOver
-              ? "border-primary bg-primary/5"
-              : "border-border hover:border-primary/50"
-          }
-          ${error ? "border-destructive" : ""}
-          ${selectedFile ? "border-green-500 bg-green-50/5" : ""}
-        `}
+        relative border-2 border-dashed rounded-xl p-4 sm:p-6 md:p-8 text-center cursor-pointer transition-all duration-300
+        ${
+          dragOver
+            ? "border-blue-400 bg-blue-500/5 scale-105"
+            : selectedFile
+            ? "border-blue-500/40 bg-blue-500/5"
+            : "border-slate-600 hover:border-blue-400/60 hover:bg-blue-500/5"
+        }
+        ${error ? "border-red-400 bg-red-500/5" : ""}
+      `}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
         onClick={() => fileInputRef.current?.click()}
-        whileHover={{ scale: 1.01 }}
-        whileTap={{ scale: 0.99 }}
+        whileHover={{ scale: dragOver ? 1.05 : 1.02 }}
+        whileTap={{ scale: 0.98 }}
       >
         <input
           ref={fileInputRef}
           type="file"
           accept=".pdf,.docx"
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-            const file = e.target.files?.[0];
-            if (file) onFileSelect(file);
-          }}
+          onChange={handleFileChange}
           className="hidden"
           id="resume-upload"
         />
 
         {selectedFile ? (
           <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="flex items-center justify-center gap-2 md:gap-3"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="space-y-3 sm:space-y-4"
           >
-            <FileCheck className="w-6 h-6 md:w-8 md:h-8 text-green-500 flex-shrink-0" />
-            <div className="text-left">
-              <p className="font-medium text-green-700 text-sm md:text-base truncate max-w-[200px] md:max-w-none">
-                {selectedFile.name}
+            <div className="mx-auto w-12 h-12 sm:w-16 sm:h-16 bg-blue-500/20 rounded-xl flex items-center justify-center">
+              <FileCheck className="w-6 h-6 sm:w-8 sm:h-8 text-blue-400" />
+            </div>
+            <div className="space-y-1 sm:space-y-2">
+              <p className="font-semibold text-blue-400 text-sm sm:text-base md:text-lg">
+                Resume Ready for Optimization! ✨
               </p>
-              <p className="text-xs md:text-sm text-muted-foreground">
-                {formatFileSize(selectedFile.size)} • Click to change
+              <p className="text-xs sm:text-sm text-slate-400 truncate max-w-[250px] sm:max-w-xs mx-auto">
+                {selectedFile.name} • {formatFileSize(selectedFile.size)}
+              </p>
+              <p className="text-xs text-slate-500">
+                Click to select a different file
               </p>
             </div>
           </motion.div>
         ) : (
-          <>
-            <Upload className="w-6 h-6 md:w-8 md:h-8 mx-auto mb-2 text-muted-foreground" />
-            <p className="text-sm font-medium">
-              Drop your resume here or click to browse
-            </p>
-            <p className="text-xs text-muted-foreground mt-1">
-              Supports PDF, DOCX • Max 10MB
-            </p>
-          </>
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="space-y-3 sm:space-y-4"
+          >
+            <div className="mx-auto w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-br from-blue-500/20 to-purple-500/20 rounded-xl flex items-center justify-center border border-blue-500/20">
+              <Upload className="w-6 h-6 sm:w-8 sm:h-8 text-blue-400" />
+            </div>
+            <div className="space-y-2 sm:space-y-4">
+              <p className="font-semibold text-white text-sm sm:text-base md:text-lg">
+                Upload Your Resume
+              </p>
+              <p className="text-xs sm:text-sm text-slate-400">
+                Drop your resume here or click to browse
+              </p>
+              <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-4 text-xs text-slate-500">
+                <Badge
+                  variant="outline"
+                  className="border-slate-600 text-slate-400 text-xs"
+                >
+                  PDF
+                </Badge>
+                <Badge
+                  variant="outline"
+                  className="border-slate-600 text-slate-400 text-xs"
+                >
+                  DOCX
+                </Badge>
+                <span className="whitespace-nowrap">Max 10MB</span>
+              </div>
+            </div>
+          </motion.div>
         )}
 
         {dragOver && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="absolute inset-0 bg-primary/10 border-2 border-primary rounded-lg flex items-center justify-center"
+            className="absolute inset-0 bg-blue-500/10 border-2 border-blue-400 rounded-xl flex items-center justify-center backdrop-blur-sm"
           >
-            <p className="text-primary font-medium">Drop your resume here!</p>
+            <div className="text-center">
+              <Wand2 className="w-6 h-6 sm:w-8 sm:h-8 text-blue-400 mx-auto mb-2" />
+              <p className="text-blue-400 font-semibold text-sm sm:text-base">
+                Drop your resume here! ⚡
+              </p>
+            </div>
           </motion.div>
         )}
       </motion.div>
+    );
+  }
+);
 
-      {error && (
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="text-sm text-destructive flex items-center gap-1"
-        >
-          <AlertCircle className="w-4 h-4 flex-shrink-0" />
-          Please upload your resume
-        </motion.p>
-      )}
-    </div>
-  );
-};
+AgentFileUploadArea.displayName = "AgentFileUploadArea";
 
-const AIResumeTailor = () => {
-  const [jobRole, setJobRole] = useState("");
-  const [jobDescription, setJobDescription] = useState("");
-  const [resume, setResume] = useState<File | null>(null);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [loadingStage, setLoadingStage] = useState(0);
-  const [currentGeneratedResume, setCurrentGeneratedResume] =
-    useState<GeneratedResume | null>(null);
-  const [showGeneratedSection, setShowGeneratedSection] = useState(false);
-  const [validation, setValidation] = useState<FormValidation>({
-    jobRole: true,
-    jobDescription: true,
-    resume: true,
-  });
-  const [industry, setIndustry] = useState("");
-  const [resumeStyle, setResumeStyle] = useState("modern");
-  const [saveAsDraft, setSaveAsDraft] = useState(false);
-
-  const { toast } = useToast();
-  const { user } = useAuth();
-  const navigate = useNavigate();
-  const { refreshUsage } = useUsageTracking();
-
-  const industries = [
-    "Technology",
-    "Healthcare",
-    "Finance",
-    "Marketing",
-    "Sales",
-    "Education",
-    "Manufacturing",
-    "Retail",
-    "Consulting",
-    "Engineering",
-    "Design",
-    "Media",
-    "Legal",
-    "Real Estate",
-    "Other",
-  ];
-
-  const resumeStyles = [
-    { value: "modern", label: "Modern & Clean" },
-    { value: "traditional", label: "Traditional & Professional" },
-    { value: "creative", label: "Creative & Dynamic" },
-    { value: "technical", label: "Technical & Detailed" },
-  ];
-
-  const validateForm = (): boolean => {
-    const newValidation = {
-      jobRole: jobRole.trim().length > 0,
-      jobDescription: jobDescription.trim().length > 100,
-      resume: resume !== null,
+// **MOBILE-ENHANCED AI AGENT RESULTS COMPONENT**
+const AgentOptimizationResults = memo(
+  ({
+    results,
+    onNewOptimization,
+    onViewAllResumes,
+  }: {
+    results: GeneratedResume;
+    onNewOptimization: () => void;
+    onViewAllResumes: () => void;
+  }) => {
+    const handleDownload = async (url: string, fileName: string) => {
+      try {
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = fileName;
+        link.target = "_blank";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      } catch (error) {
+        console.error("Error downloading file:", error);
+      }
     };
 
-    setValidation(newValidation);
-    return Object.values(newValidation).every(Boolean);
-  };
+    const formatDateTime = (dateString: string) => {
+      const date = new Date(dateString);
+      return date.toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    };
 
-  const simulateLoadingStages = () => {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6 }}
+        className="space-y-6 sm:space-y-8"
+      >
+        {/* Agent Completion Header */}
+        <div className="text-center space-y-3 sm:space-y-4">
+          <motion.div
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ delay: 0.2, type: "spring" }}
+            className="mx-auto w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-blue-500/20 via-purple-500/15 to-indigo-500/20 rounded-full flex items-center justify-center border border-blue-500/20 backdrop-blur-xl"
+          >
+            <Wand2 className="w-8 h-8 sm:w-10 sm:h-10 text-blue-400" />
+          </motion.div>
+          <div className="space-y-2">
+            <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-white">
+              Optimization Complete! 🚀
+            </h2>
+            <p className="text-slate-300 text-sm sm:text-base md:text-lg max-w-lg mx-auto">
+              Your Resume Optimization Agent has crafted your perfect resume
+            </p>
+          </div>
+        </div>
+
+        {/* Results Card */}
+        <Card className="bg-gradient-to-br from-blue-500/5 to-purple-600/10 backdrop-blur-xl border border-blue-500/20 hover:border-blue-400/40 transition-all duration-300">
+          <CardContent className="p-4 sm:p-6 md:p-8">
+            <div className="flex flex-col gap-4 sm:gap-6">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-start gap-3 sm:gap-4 mb-3 sm:mb-4">
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ delay: 0.3, type: "spring" }}
+                    className="p-2 sm:p-3 rounded-xl bg-gradient-to-br from-blue-500 to-purple-500 text-white flex-shrink-0"
+                  >
+                    <FileText className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" />
+                  </motion.div>
+                  <div className="min-w-0 flex-1">
+                    <h3
+                      className="font-bold text-base sm:text-lg md:text-xl text-white truncate"
+                      title={results.title}
+                    >
+                      {results.title}
+                    </h3>
+                    <p className="text-slate-400 text-xs sm:text-sm">
+                      {results.file_type.toUpperCase()} Format • Optimized for
+                      ATS
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap gap-1 sm:gap-2 mb-3 sm:mb-4">
+                  <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30 text-xs whitespace-nowrap">
+                    <Bot className="w-3 h-3 mr-1 flex-shrink-0" />
+                    AI Optimized
+                  </Badge>
+                  <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30 text-xs whitespace-nowrap">
+                    <Target className="w-3 h-3 mr-1 flex-shrink-0" />
+                    ATS Compatible
+                  </Badge>
+                  <Badge className="bg-purple-500/20 text-purple-400 border-purple-500/30 text-xs whitespace-nowrap">
+                    <Sparkles className="w-3 h-3 mr-1 flex-shrink-0" />
+                    Enhanced Design
+                  </Badge>
+                </div>
+
+                <p className="text-xs sm:text-sm text-slate-400">
+                  Generated on {formatDateTime(results.created_at)}
+                </p>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+                <Button
+                  onClick={() =>
+                    handleDownload(
+                      results.resume_data,
+                      `${results.title}.${results.file_type}`
+                    )
+                  }
+                  className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-semibold px-4 sm:px-6 h-10 sm:h-11 text-sm sm:text-base"
+                >
+                  <Download className="w-4 h-4 mr-2 flex-shrink-0" />
+                  <span className="truncate">Download Resume</span>
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={onNewOptimization}
+                  className="border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white px-4 sm:px-6 h-10 sm:h-11 text-sm sm:text-base"
+                >
+                  <RefreshCw className="w-4 h-4 mr-2 flex-shrink-0" />
+                  <span className="truncate">Optimize Another</span>
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Agent Insights */}
+        <Card className="bg-gradient-to-br from-purple-500/5 to-blue-600/10 backdrop-blur-xl border border-purple-500/20 hover:border-purple-400/40 transition-all duration-300">
+          <CardHeader className="pb-4 sm:pb-6">
+            <CardTitle className="flex items-center gap-2 sm:gap-3 text-purple-400 text-sm sm:text-base md:text-lg">
+              <Brain className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 flex-shrink-0" />
+              <span className="truncate">Agent Optimization Insights</span>
+            </CardTitle>
+            <CardDescription className="text-slate-300 text-xs sm:text-sm">
+              Key improvements your Resume Optimization Agent applied
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 gap-4 sm:gap-6">
+              {[
+                {
+                  icon: Target,
+                  title: "ATS Optimization",
+                  desc: "Enhanced keyword density and formatting for ATS compatibility",
+                },
+                {
+                  icon: Palette,
+                  title: "Visual Enhancement",
+                  desc: "Improved layout, typography, and visual hierarchy",
+                },
+                {
+                  icon: Brain,
+                  title: "Content Refinement",
+                  desc: "Optimized bullet points and experience descriptions",
+                },
+                {
+                  icon: Zap,
+                  title: "Impact Maximization",
+                  desc: "Strengthened achievements and quantified results",
+                },
+              ].map((insight, index) => (
+                <motion.div
+                  key={insight.title}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.1 * index }}
+                  className="flex items-start gap-2 sm:gap-3"
+                >
+                  <div className="p-1.5 sm:p-2 rounded-lg bg-purple-500/20 border border-purple-500/30 flex-shrink-0">
+                    <insight.icon className="w-3 h-3 sm:w-4 sm:h-4 text-purple-400" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <h4 className="font-semibold text-purple-400 mb-1 text-sm sm:text-base">
+                      {insight.title}
+                    </h4>
+                    <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                      {insight.desc}
+                    </p>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Next Steps */}
+        <div className="text-center">
+          <Button
+            onClick={onViewAllResumes}
+            variant="outline"
+            className="bg-blue-500/5 hover:bg-blue-500/10 border-blue-500/30 text-blue-400 hover:text-blue-300 px-4 sm:px-6 h-10 sm:h-11 text-sm sm:text-base"
+          >
+            <Eye className="w-4 h-4 mr-2 flex-shrink-0" />
+            <span className="truncate">View All Optimized Resumes</span>
+          </Button>
+        </div>
+      </motion.div>
+    );
+  }
+);
+
+AgentOptimizationResults.displayName = "AgentOptimizationResults";
+
+// **MAIN MOBILE-ENHANCED RESUME OPTIMIZATION AGENT COMPONENT**
+const ResumeOptimizationAgent: React.FC = () => {
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [loadingStage, setLoadingStage] = useState(0);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [results, setResults] = useState<GeneratedResume | null>(null);
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const { user } = useAuth();
+  const { refreshUsage } = useUsageTracking();
+  const resultsRef = useRef<HTMLDivElement>(null);
+
+  const form = useForm<ResumeOptimizerForm>({
+    resolver: zodResolver(resumeOptimizerSchema),
+    defaultValues: {
+      jobRole: "",
+      jobDescription: "",
+      industry: "",
+      resumeStyle: "modern",
+    },
+  });
+
+  const jobDescription = form.watch("jobDescription");
+  const jobRole = form.watch("jobRole");
+
+  // Calculate user name for personalized greeting
+  const userName = useMemo(() => {
+    if (!user) return "there";
+    return (
+      user.user_metadata?.full_name?.split(" ")?.[0] ||
+      user.email?.split("@")?.[0] ||
+      "there"
+    );
+  }, [user?.user_metadata?.full_name, user?.email]);
+
+  const industries = useMemo(
+    () => [
+      "Technology",
+      "Healthcare",
+      "Finance",
+      "Marketing",
+      "Sales",
+      "Education",
+      "Manufacturing",
+      "Retail",
+      "Consulting",
+      "Engineering",
+      "Design",
+      "Media",
+      "Legal",
+      "Real Estate",
+      "Other",
+    ],
+    []
+  );
+
+  const resumeStyles = useMemo(
+    () => [
+      {
+        value: "modern",
+        label: "Modern & Clean",
+        desc: "Contemporary design with clean lines",
+      },
+      {
+        value: "traditional",
+        label: "Traditional & Professional",
+        desc: "Classic format preferred by recruiters",
+      },
+      {
+        value: "creative",
+        label: "Creative & Dynamic",
+        desc: "Bold design for creative industries",
+      },
+      {
+        value: "technical",
+        label: "Technical & Detailed",
+        desc: "Structured format for technical roles",
+      },
+    ],
+    []
+  );
+
+  const simulateLoadingStages = useCallback(() => {
     const stages = [0, 1, 2, 3, 4, 5];
     stages.forEach((stage, index) => {
       setTimeout(() => setLoadingStage(stage), index * 3000);
     });
-  };
+  }, []);
 
-  // FIXED: Helper function with proper error handling
+  // Helper function with proper error handling
   const getCurrentUserVersion = async (userId: string) => {
     try {
-      // Check if user_usage record exists first
       const { data, error } = await supabase
         .from("user_usage")
-        .select("*") // Select all columns to see what's available
+        .select("*")
         .eq("user_id", userId)
         .single();
 
       if (error) {
-        console.error("Error getting user usage record:", error);
-
-        // If no record exists, return 0 as default version
         if (error.code === "PGRST116") {
-          console.log("No user_usage record found, using default version 0");
           return 0;
         }
-
-        return 0; // Default version for any error
+        return 0;
       }
 
-      // Check if the version column exists on the returned data
       if (data && "version" in data && typeof data.version === "number") {
         return data.version;
       }
 
-      // If version column doesn't exist, return 0 as default
-      console.log(
-        "Version column not found in user_usage table, using default version 0"
-      );
       return 0;
     } catch (error) {
       console.error("Error in getCurrentUserVersion:", error);
@@ -392,10 +737,12 @@ const AIResumeTailor = () => {
     }
   };
 
-  const loadSampleData = () => {
-    setJobRole("Senior Software Engineer");
-    setIndustry("technology");
-    setJobDescription(`We are seeking an experienced Senior Software Engineer to join our growing engineering team. The ideal candidate will have 5+ years of experience in full-stack development and will be responsible for architecting scalable solutions.
+  const loadAgentExample = useCallback(() => {
+    form.setValue("jobRole", "Senior Software Engineer");
+    form.setValue("industry", "technology");
+    form.setValue(
+      "jobDescription",
+      `We are seeking an experienced Senior Software Engineer to join our growing engineering team. The ideal candidate will have 5+ years of experience in full-stack development and will be responsible for architecting scalable solutions.
 
 Key Responsibilities:
 • Lead the design and development of complex software systems
@@ -417,24 +764,32 @@ Preferred Qualifications:
 • Bachelor's degree in Computer Science or related field
 • Experience with DevOps practices and CI/CD pipelines
 • Knowledge of machine learning or AI technologies
-• Previous experience in a senior or lead role`);
+• Previous experience in a senior or lead role`
+    );
 
     toast({
-      title: "Sample Data Loaded",
+      title: "Example Loaded! 🚀",
       description:
-        "Form filled with example data. Don't forget to upload your resume!",
+        "Agent training data loaded. Upload your resume to begin optimization!",
     });
-  };
+  }, [form, toast]);
 
-  // FIXED: Main handler with proper usage limit enforcement
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+  const handleResetAgent = useCallback(() => {
+    form.reset();
+    setSelectedFile(null);
+    setResults(null);
 
-    if (!validateForm()) {
+    toast({
+      title: "Agent Reset ✨",
+      description: "Ready for your next resume optimization!",
+    });
+  }, [form, toast]);
+
+  const onSubmit = async (formData: ResumeOptimizerForm) => {
+    if (!selectedFile) {
       toast({
-        title: "Please Complete All Required Fields",
-        description:
-          "Job role, detailed job description (min 100 characters), and resume are required.",
+        title: "Resume Required 📄",
+        description: "Please upload your resume for the agent to optimize.",
         variant: "destructive",
       });
       return;
@@ -442,10 +797,12 @@ Preferred Qualifications:
 
     if (!user) {
       toast({
-        title: "Authentication Required",
-        description: "Please log in to tailor resumes.",
+        title: "Authentication Required 🔐",
+        description:
+          "Please log in to activate your Resume Optimization Agent.",
         variant: "destructive",
       });
+      navigate("/auth");
       return;
     }
 
@@ -454,7 +811,6 @@ Preferred Qualifications:
     simulateLoadingStages();
 
     try {
-      // ✅ CRITICAL FIX: Check usage limits FIRST
       const currentVersion = await getCurrentUserVersion(user.id);
 
       const { data: usageData, error: usageError } = await supabase.rpc(
@@ -465,31 +821,30 @@ Preferred Qualifications:
           p_increment_amount: 1,
           p_current_version: currentVersion,
           p_audit_metadata: {
-            action: "resume_tailor",
-            job_role: jobRole,
-            industry: industry || "unspecified",
-            resume_style: resumeStyle,
-            file_type: resume!.type === "application/pdf" ? "pdf" : "docx",
-            file_size: resume!.size,
+            action: "resume_optimization_agent",
+            job_role: formData.jobRole,
+            industry: formData.industry || "unspecified",
+            resume_style: formData.resumeStyle,
+            file_type: selectedFile.type === "application/pdf" ? "pdf" : "docx",
+            file_size: selectedFile.size,
           },
         }
       );
 
       if (usageError) {
-        // Handle specific limit exceeded error
         if (usageError.message.includes("Usage limit exceeded")) {
           toast({
-            title: "Usage Limit Reached 📊",
+            title: "Agent Limit Reached 🤖",
             description:
-              "You've reached your resume tailoring limit for your current plan. Upgrade to continue creating unlimited tailored resumes!",
+              "You've reached your Resume Optimization Agent limit. Upgrade to activate unlimited optimization!",
             variant: "destructive",
             action: (
               <Button
                 size="sm"
                 onClick={() => navigate("/pricing")}
-                className="bg-primary hover:bg-primary/90"
+                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
               >
-                <TrendingUp className="w-4 h-4 mr-1" />
+                <Crown className="w-4 h-4 mr-1" />
                 Upgrade Plan
               </Button>
             ),
@@ -497,41 +852,34 @@ Preferred Qualifications:
           return;
         }
 
-        // Handle version conflict error
         if (usageError.message.includes("version_conflict")) {
           toast({
-            title: "Please Try Again",
-            description:
-              "Your usage data was updated by another session. Please try again.",
+            title: "Agent Sync Issue 🔄",
+            description: "Your agent data was updated. Please try again.",
             variant: "destructive",
           });
           return;
         }
 
-        // Handle other usage-related errors
         console.error("Usage increment error:", usageError);
         toast({
-          title: "Usage Check Failed",
-          description: "Unable to verify your usage limits. Please try again.",
+          title: "Agent Activation Failed ⚠️",
+          description:
+            "Unable to activate your Resume Optimization Agent. Please try again.",
           variant: "destructive",
         });
         return;
       }
-
-      // ✅ Only proceed with resume tailoring if usage increment succeeded
-      console.log(
-        "Usage incremented successfully, proceeding with resume tailoring"
-      );
 
       // Convert file to base64
       const base64Resume = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = () => {
           const result = reader.result as string;
-          resolve(result.split(",")[1]); // Remove data prefix
+          resolve(result.split(",")[1]);
         };
         reader.onerror = reject;
-        reader.readAsDataURL(resume!);
+        reader.readAsDataURL(selectedFile);
       });
 
       // Send request to webhook
@@ -544,31 +892,31 @@ Preferred Qualifications:
           },
           body: JSON.stringify({
             user_id: user.id,
-            feature: "resume_tailors",
+            feature: "resume_optimization_agent",
             resume: base64Resume,
-            jobDescription: jobDescription,
-            jobIndustry: industry,
-            resumeStyle: resumeStyle,
-            jobRole: jobRole,
-            fileType: resume!.type === "application/pdf" ? "pdf" : "docx",
+            jobDescription: formData.jobDescription,
+            jobIndustry: formData.industry,
+            resumeStyle: formData.resumeStyle,
+            jobRole: formData.jobRole,
+            fileType: selectedFile.type === "application/pdf" ? "pdf" : "docx",
           }),
         }
       );
 
       if (!response.ok) {
         throw new Error(
-          `Failed to tailor resume: ${response.status} ${response.statusText}`
+          `Agent optimization failed: ${response.status} ${response.statusText}`
         );
       }
 
       // Get the iframe HTML as text
       const iframeHtml = await response.text();
 
-      // Check if limit reached (legacy check for API response)
       if (iframeHtml.includes("allowed") && iframeHtml.includes("false")) {
         toast({
-          title: "Limit Reached",
-          description: "You've reached your limit for this feature.",
+          title: "Agent Access Denied 🚫",
+          description:
+            "Unable to access Resume Optimization Agent with your current plan.",
           variant: "destructive",
         });
         return;
@@ -576,9 +924,9 @@ Preferred Qualifications:
 
       // Extract the PDF URL from the srcdoc attribute
       const pdfUrlMatch = iframeHtml.match(/srcdoc="([^"]+)"/);
-      const tailoredResumeUrl = pdfUrlMatch ? pdfUrlMatch[1] : null;
+      const optimizedResumeUrl = pdfUrlMatch ? pdfUrlMatch[1] : null;
 
-      if (tailoredResumeUrl) {
+      if (optimizedResumeUrl) {
         // Get user's name from profile or use email
         let userName = "User";
         try {
@@ -597,15 +945,15 @@ Preferred Qualifications:
           console.log("Could not fetch user profile:", error);
         }
 
-        const resumeTitle = `${userName} ${jobRole} Resume`;
+        const resumeTitle = `${userName} ${formData.jobRole} Resume (Optimized)`;
 
-        // Store the tailored resume in Supabase
+        // Store the optimized resume in Supabase
         const { data, error } = await supabase
           .from("tailored_resumes")
           .insert({
             user_id: user.id,
-            job_description: jobDescription,
-            resume_data: tailoredResumeUrl,
+            job_description: formData.jobDescription,
+            resume_data: optimizedResumeUrl,
             title: resumeTitle,
             file_type: "pdf",
           })
@@ -613,17 +961,16 @@ Preferred Qualifications:
           .single();
 
         if (error) {
-          console.error("Error saving tailored resume:", error);
+          console.error("Error saving optimized resume:", error);
           toast({
             title: "Save Error",
             description:
-              "Resume tailored but failed to save. Please contact support.",
+              "Resume optimized but failed to save. Please contact support.",
             variant: "destructive",
           });
           return;
         }
 
-        // Add to local state for immediate display
         if (data) {
           const newResume: GeneratedResume = {
             id: data.id,
@@ -632,126 +979,37 @@ Preferred Qualifications:
             file_type: data.file_type,
             created_at: data.created_at,
           };
-          setCurrentGeneratedResume(newResume);
-          setShowGeneratedSection(true);
+          setResults(newResume);
         }
 
-        // Clear draft
-        localStorage.removeItem("resumeTailorDraft");
-
-        toast({
-          title: "Resume Tailored Successfully! 🚀",
-          description: `Your optimized resume "${resumeTitle}" has been generated and is ready for download.`,
-          action: (
-            <Button
-              size="sm"
-              onClick={() =>
-                handleDownload(tailoredResumeUrl, `${resumeTitle}.pdf`)
-              }
-              className="bg-green-600 hover:bg-green-700"
-            >
-              <Download className="w-4 h-4 mr-1" />
-              Download
-            </Button>
-          ),
-        });
-
-        // Refresh usage data
         refreshUsage();
 
-        // Reset form
-        setJobRole("");
-        setJobDescription("");
-        setResume(null);
-        setIndustry("");
-        setResumeStyle("modern");
+        setTimeout(() => {
+          resultsRef.current?.scrollIntoView({
+            behavior: "smooth",
+            block: "start",
+          });
+        }, 100);
 
-        // Reset file input
-        const fileInput = document.getElementById(
-          "resume-upload"
-        ) as HTMLInputElement;
-        if (fileInput) fileInput.value = "";
-
-        // Scroll to results on mobile
-        if (window.innerWidth < 768) {
-          setTimeout(() => {
-            const generatedSection = document.getElementById(
-              "generated-resumes-section"
-            );
-            if (generatedSection) {
-              generatedSection.scrollIntoView({ behavior: "smooth" });
-            }
-          }, 500);
-        }
-      }
-    } catch (error) {
-      console.error("Error tailoring resume:", error);
-
-      // ✅ FIXED: Proper usage limit error handling
-      if (error.message.includes("Usage limit exceeded")) {
         toast({
-          title: "Usage Limit Reached 📊",
+          title: "Agent Optimization Complete! 🚀",
           description:
-            "You've reached your resume tailoring limit for your current plan. Upgrade to continue creating unlimited tailored resumes!",
-          variant: "destructive",
+            "Your Resume Optimization Agent has crafted your perfect resume.",
           action: (
-            <Button
-              size="sm"
-              onClick={() => navigate("/pricing")}
-              className="bg-primary hover:bg-primary/90"
-            >
-              <TrendingUp className="w-4 h-4 mr-1" />
-              Upgrade Plan
+            <Button size="sm" onClick={() => navigate("/tailored-resumes")}>
+              <Eye className="w-4 h-4 mr-1" />
+              View All
             </Button>
           ),
         });
-        return; // ✅ Important: Return here to avoid the generic error toast below
       }
+    } catch (error) {
+      console.error("Agent optimization error:", error);
 
-      // Enhanced error handling with specific messages
-      let errorTitle = "Tailoring Failed";
-      let errorDescription = "Failed to tailor resume. Please try again.";
-
-      // ✅ FIXED: More specific error categorization
-      if (
-        error.message.includes("403") ||
-        error.message.includes("Forbidden")
-      ) {
-        errorTitle = "Access Denied";
-        errorDescription =
-          "You don't have permission to use resume tailoring with your current plan.";
-      } else if (
-        error.message.includes("401") ||
-        error.message.includes("Unauthorized")
-      ) {
-        errorTitle = "Authentication Error";
-        errorDescription = "Please log in again to continue.";
-      } else if (error.message.includes("version_conflict")) {
-        errorTitle = "Please Try Again";
-        errorDescription =
-          "Your usage data was updated by another session. Please try again.";
-      } else if (
-        error.message.includes("Network") ||
-        error.message.includes("fetch") ||
-        error.message.includes("Failed to fetch")
-      ) {
-        // ✅ FIXED: More specific network error detection
-        errorTitle = "Connection Error";
-        errorDescription =
-          "Please check your internet connection and try again.";
-      } else if (
-        error.message.includes("500") ||
-        error.message.includes("Internal Server Error")
-      ) {
-        errorTitle = "Server Error";
-        errorDescription =
-          "Our servers are experiencing issues. Please try again in a moment.";
-      }
-
-      // ✅ Only show generic error toast for non-usage-limit errors
       toast({
-        title: errorTitle,
-        description: errorDescription,
+        title: "Agent Error 🤖",
+        description:
+          "Your Resume Optimization Agent encountered an issue. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -760,535 +1018,442 @@ Preferred Qualifications:
     }
   };
 
-  const handleDownload = async (url: string, fileName: string) => {
-    try {
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = fileName;
-      link.target = "_blank";
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-
-      toast({
-        title: "Download Started 📥",
-        description: "Your tailored resume is being downloaded.",
-      });
-    } catch (error) {
-      console.error("Error downloading file:", error);
-      toast({
-        title: "Download Failed",
-        description: "There was an error downloading your resume.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleRemoveFromSession = () => {
-    setCurrentGeneratedResume(null);
-    setShowGeneratedSection(false);
-
-    toast({
-      title: "Removed",
-      description: "Tailored resume has been removed from current session.",
-    });
-  };
-
-  const handleClearForm = () => {
-    setJobRole("");
-    setJobDescription("");
-    setResume(null);
-    setIndustry("");
-    setResumeStyle("modern");
-    localStorage.removeItem("resumeTailorDraft");
-
-    // Clear file input
-    const fileInput = document.getElementById(
-      "resume-upload"
-    ) as HTMLInputElement;
-    if (fileInput) fileInput.value = "";
-
-    toast({
-      title: "Form Cleared",
-      description: "All fields have been reset.",
-    });
-  };
-
-  const formatDateTime = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  };
-
   const getJobDescriptionWordCount = () =>
     jobDescription
       .trim()
       .split(/\s+/)
       .filter((word) => word.length > 0).length;
+
   const wordCount = getJobDescriptionWordCount();
 
   return (
     <TooltipProvider>
       <div className="min-h-screen bg-background">
-        <ResumeLoadingOverlay show={isProcessing} stage={loadingStage} />
+        <OptimizationAgentLoadingOverlay
+          show={isProcessing}
+          stage={loadingStage}
+        />
 
-        <div className="container mx-auto px-4 py-8 md:py-20">
-          <div className="max-w-4xl mx-auto">
-            <Link to="/">
+        {/* Header */}
+        <DashboardHeader />
+
+        {/* Main Content */}
+        <div className="container mx-auto px-4 py-6 sm:py-8 max-w-6xl">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.6 }}
+            className="space-y-6 sm:space-y-8"
+          >
+            {/* Back to Home Button */}
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+            >
               <Button
-                variant="ghost"
-                className="mb-6 hover:bg-appforge-blue/10"
+                variant="outline"
+                onClick={() => navigate("/")}
+                className="border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white backdrop-blur-sm text-sm sm:text-base"
               >
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to Home
+                <Home className="w-4 h-4 mr-2" />
+                Back to Dashboard
               </Button>
-            </Link>
+            </motion.div>
 
-            <div className="text-center mb-8">
+            {/* Hero Section - AI Agent Focused */}
+            <div className="text-center space-y-4 sm:space-y-6">
               <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="mb-6 p-4 rounded-xl w-fit mx-auto bg-blue-500/20 text-blue-500"
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.6 }}
+                className="flex flex-col items-center gap-4 sm:gap-6"
               >
-                <FileText className="w-8 h-8 md:w-12 md:h-12" />
+
+                <div className="space-y-3 sm:space-y-4">
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2 }}
+                    className="mx-auto w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-blue-500/20 via-purple-500/15 to-indigo-500/20 rounded-full flex items-center justify-center border border-blue-500/20 backdrop-blur-xl"
+                  >
+                    <Wand2 className="w-8 h-8 sm:w-10 sm:h-10 text-blue-400" />
+                  </motion.div>
+
+                  <div className="flex items-center justify-center gap-2">
+                    <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30 text-xs sm:text-sm">
+                      <Sparkles className="w-3 h-3 mr-1" />
+                      AI Optimization
+                    </Badge>
+                  </div>
+
+                  <motion.h1
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.3 }}
+                    className="text-2xl sm:text-3xl md:text-4xl lg:text-6xl font-bold text-white leading-tight"
+                  >
+                    Resume Optimization{" "}
+                    <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-indigo-400 bg-clip-text text-transparent">
+                      Agent
+                    </span>
+                  </motion.h1>
+
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.4 }}
+                    className="space-y-2 sm:space-y-3"
+                  >
+                    <p className="text-lg sm:text-xl md:text-2xl text-slate-300 max-w-3xl mx-auto leading-relaxed">
+                      Hey{" "}
+                      <span className="text-blue-400 font-semibold">
+                        {userName}
+                      </span>
+                      ! 👋
+                      <br />
+                      Your intelligent resume agent is ready to craft your
+                      perfect, job-winning resume
+                    </p>
+                    <p className="text-sm sm:text-base text-slate-400 max-w-2xl mx-auto">
+                      Get AI-powered resume optimization, enhanced design, and
+                      ATS compatibility in one powerful package
+                    </p>
+                  </motion.div>
+                </div>
               </motion.div>
 
-              <motion.h1
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 }}
-                className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4"
-              >
-                AI Resume{" "}
-                <span className="bg-gradient-to-r from-blue-500 to-purple-600 bg-clip-text text-transparent">
-                  Tailor
-                </span>
-              </motion.h1>
-
-              <motion.p
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
-                className="text-lg md:text-xl text-muted-foreground px-4"
-              >
-                Customize your resume for specific job roles using advanced AI
-              </motion.p>
-
+              {/* Agent Capabilities */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 }}
-                className="flex flex-col md:flex-row items-center justify-center gap-4 md:gap-6 mt-4 text-sm text-muted-foreground"
+                transition={{ delay: 0.5 }}
+                className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-6 max-w-5xl mx-auto"
               >
-                <div className="flex items-center gap-2">
-                  <Target className="w-5 h-5 md:w-4 md:h-4 text-blue-500 flex-shrink-0" />
-                  <span>ATS Optimized</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Zap className="w-5 h-5 md:w-4 md:h-4 text-purple-500 flex-shrink-0" />
-                  <span>AI Powered</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <TrendingUp className="w-5 h-5 md:w-4 md:h-4 text-green-500 flex-shrink-0" />
-                  <span>Higher Match Rate</span>
-                </div>
+                {[
+                  {
+                    icon: Wand2,
+                    title: "AI Optimization",
+                    desc: "Intelligent content enhancement",
+                  },
+                  {
+                    icon: Palette,
+                    title: "Design Enhancement",
+                    desc: "Professional visual styling",
+                  },
+                  {
+                    icon: Target,
+                    title: "ATS Compatibility",
+                    desc: "Optimized for applicant tracking",
+                  },
+                  {
+                    icon: Brain,
+                    title: "Smart Tailoring",
+                    desc: "Job-specific customization",
+                  },
+                ].map((capability, index) => (
+                  <motion.div
+                    key={capability.title}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.6 + index * 0.1 }}
+                    className="p-3 sm:p-4 rounded-xl bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl border border-slate-700/50"
+                  >
+                    <capability.icon className="w-6 h-6 sm:w-8 sm:h-8 text-blue-400 mx-auto mb-2 sm:mb-3" />
+                    <h3 className="font-semibold text-white mb-1 sm:mb-2 text-xs sm:text-sm">
+                      {capability.title}
+                    </h3>
+                    <p className="text-xs text-slate-400">{capability.desc}</p>
+                  </motion.div>
+                ))}
               </motion.div>
             </div>
 
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4 }}
-            >
-              <Card className="glass">
-                <CardHeader>
-                  <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-                    <div>
-                      <CardTitle className="text-lg md:text-xl flex items-center gap-2">
-                        <FileText className="w-5 h-5 flex-shrink-0" />
-                        <span className="leading-tight">
-                          Tailor Your Resume
-                        </span>
-                      </CardTitle>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={loadSampleData}
-                            className="text-xs"
-                          >
-                            <Sparkles className="w-3 h-3 md:w-4 md:h-4 mr-1 md:mr-2" />
-                            Try Example
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          Load sample job data to see how it works
-                        </TooltipContent>
-                      </Tooltip>
-
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={handleClearForm}
-                        className="text-xs"
-                      >
-                        <RefreshCw className="w-3 h-3 md:w-4 md:h-4 mr-1 md:mr-2" />
-                        Clear All
-                      </Button>
-                    </div>
-                  </div>
-                </CardHeader>
-
-                <CardContent>
-                  <form onSubmit={handleSubmit} className="space-y-6">
-                    {/* Job Role and Industry */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <motion.div
-                        whileFocus={{ scale: 1.02 }}
-                        className="space-y-2"
-                      >
-                        <Label
-                          htmlFor="jobRole"
-                          className="flex items-center gap-2"
-                        >
-                          <User className="w-4 h-4 flex-shrink-0" />
-                          Job Role/Title *
-                        </Label>
-                        <Input
-                          id="jobRole"
-                          value={jobRole}
-                          onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                            setJobRole(e.target.value)
-                          }
-                          placeholder="e.g., Senior Software Engineer, Product Manager"
-                          className={`transition-colors ${
-                            !validation.jobRole ? "border-destructive" : ""
-                          }`}
-                        />
-                        {!validation.jobRole && (
-                          <p className="text-sm text-destructive">
-                            Job role is required
-                          </p>
-                        )}
-                      </motion.div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="industry">Industry (Optional)</Label>
-                        <Select value={industry} onValueChange={setIndustry}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select industry" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {industries.map((ind) => (
-                              <SelectItem key={ind} value={ind.toLowerCase()}>
-                                {ind}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+            {/* Agent Interface */}
+            {!results && (
+              <motion.div
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.7 }}
+              >
+                <Card className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl border border-slate-700/50 hover:border-blue-500/30 transition-all duration-300">
+                  <CardHeader className="pb-4 sm:pb-6">
+                    <div className="flex flex-col gap-3 sm:gap-4">
+                      <div>
+                        <CardTitle className="text-lg sm:text-xl md:text-2xl flex items-center gap-2 sm:gap-3 text-white">
+                          <Bot className="w-5 h-5 sm:w-6 sm:h-6 text-blue-400 flex-shrink-0" />
+                          <span className="truncate">Configure Your Agent</span>
+                        </CardTitle>
+                        <CardDescription className="text-slate-400 mt-2 text-sm sm:text-base">
+                          Provide your job details and resume for intelligent
+                          optimization
+                        </CardDescription>
                       </div>
-                    </div>
-
-                    {/* Resume Style Selection */}
-                    <div className="space-y-2">
-                      <Label htmlFor="resumeStyle">Resume Style</Label>
-                      <Select
-                        value={resumeStyle}
-                        onValueChange={setResumeStyle}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {resumeStyles.map((style) => (
-                            <SelectItem key={style.value} value={style.value}>
-                              {style.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    {/* Job Description */}
-                    <motion.div
-                      whileFocus={{ scale: 1.01 }}
-                      className="space-y-2"
-                    >
-                      <div className="flex items-center justify-between">
-                        <Label
-                          htmlFor="jobDescription"
-                          className="flex items-center gap-2"
-                        >
-                          Job Description *
-                          <Tooltip>
-                            <TooltipTrigger>
-                              <Info className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                            </TooltipTrigger>
-                            <TooltipContent className="max-w-xs">
-                              <p>
-                                Paste the complete job posting here. Include
-                                requirements, responsibilities, and skills. The
-                                more detailed, the better your tailored resume
-                                will be!
-                              </p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </Label>
-
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                          <span
-                            className={
-                              wordCount < 100
-                                ? "text-destructive"
-                                : wordCount > 300
-                                ? "text-green-600"
-                                : "text-yellow-600"
-                            }
-                          >
-                            {wordCount} words
-                          </span>
-                          {wordCount < 100 && (
-                            <span className="text-destructive">(min 100)</span>
-                          )}
-                        </div>
-                      </div>
-
-                      <Textarea
-                        id="jobDescription"
-                        value={jobDescription}
-                        onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
-                          setJobDescription(e.target.value)
-                        }
-                        placeholder="Paste the complete job posting here including requirements, responsibilities, skills, and company information..."
-                        rows={8}
-                        className={`transition-colors ${
-                          !validation.jobDescription ? "border-destructive" : ""
-                        }`}
-                      />
-
-                      {!validation.jobDescription && (
-                        <p className="text-sm text-destructive">
-                          Job description must be at least 100 characters long
-                        </p>
-                      )}
-                    </motion.div>
-
-                    {/* Resume Upload */}
-                    <div className="space-y-2">
-                      <Label className="flex items-center gap-2">
-                        Upload Your Current Resume *
+                      <div className="flex flex-col sm:flex-row gap-2">
                         <Tooltip>
-                          <TooltipTrigger>
-                            <Info className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>
-                              Upload your current resume. Our AI will analyze it
-                              and optimize it specifically for the job you're
-                              applying to.
-                            </p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </Label>
-
-                      <FileUploadArea
-                        onFileSelect={setResume}
-                        selectedFile={resume}
-                        error={!validation.resume}
-                      />
-                    </div>
-
-                    {/* Submit Button */}
-                    <motion.div
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                    >
-                      <Button
-                        type="submit"
-                        disabled={isProcessing}
-                        className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white h-12 text-lg font-semibold shadow-lg"
-                        size="lg"
-                      >
-                        {isProcessing ? (
-                          <>
-                            <motion.div
-                              animate={{ rotate: 360 }}
-                              transition={{
-                                duration: 1,
-                                repeat: Infinity,
-                                ease: "linear",
-                              }}
-                              className="mr-2"
-                            >
-                              <FileText className="w-5 h-5" />
-                            </motion.div>
-                            Tailoring Your Resume...
-                          </>
-                        ) : (
-                          <>
-                            <FileText className="w-5 h-5 mr-2" />
-                            Tailor Resume with AI
-                          </>
-                        )}
-                      </Button>
-                    </motion.div>
-
-                    {/* Trust Indicators */}
-                    <div className="bg-muted/30 rounded-lg p-4">
-                      <div className="flex flex-col md:flex-row items-center justify-center gap-4 md:gap-6 text-sm text-muted-foreground">
-                        <div className="flex items-center gap-2">
-                          <Shield className="w-5 h-5 md:w-4 md:h-4 text-green-500 flex-shrink-0" />
-                          <span>Secure Processing</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Clock className="w-5 h-5 md:w-4 md:h-4 text-blue-500 flex-shrink-0" />
-                          <span>~45 sec generation</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Target className="w-5 h-5 md:w-4 md:h-4 text-purple-500 flex-shrink-0" />
-                          <span>ATS Optimized</span>
-                        </div>
-                      </div>
-                    </div>
-                  </form>
-                </CardContent>
-              </Card>
-            </motion.div>
-
-            {/* Generated Resume Section */}
-            <AnimatePresence>
-              {showGeneratedSection && currentGeneratedResume && (
-                <motion.div
-                  id="generated-resumes-section"
-                  className="mt-8"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  transition={{ duration: 0.5 }}
-                >
-                  <div className="text-center mb-6">
-                    <motion.div
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      transition={{ delay: 0.2, type: "spring" }}
-                      className="mx-auto w-12 h-12 md:w-16 md:h-16 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center mb-4"
-                    >
-                      <CheckCircle className="w-6 h-6 md:w-8 md:h-8 text-white" />
-                    </motion.div>
-                    <h2 className="text-xl md:text-2xl font-bold mb-2">
-                      Your Tailored Resume is Ready! 🚀
-                    </h2>
-                    <p className="text-muted-foreground px-4">
-                      Optimized specifically for {jobRole} positions
-                    </p>
-                  </div>
-
-                  <motion.div
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.3 }}
-                    layout
-                  >
-                    <Card className="bg-gradient-to-r from-slate-800/90 to-slate-700/90 dark:from-slate-800/95 dark:to-slate-700/95 border border-slate-600/50 dark:border-slate-500/60">
-                      <CardContent className="p-6">
-                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-3 mb-3">
-                              <div className="p-3 rounded-lg bg-gradient-to-br from-blue-500 to-purple-500 text-white">
-                                <FileText className="w-5 h-5 md:w-6 md:h-6" />
-                              </div>
-                              <div className="min-w-0 flex-1">
-                                <h3
-                                  className="font-semibold text-lg md:text-xl truncate"
-                                  title={currentGeneratedResume.title}
-                                >
-                                  {currentGeneratedResume.title}
-                                </h3>
-                                <p className="text-muted-foreground">
-                                  {currentGeneratedResume.file_type.toUpperCase()}{" "}
-                                  Format
-                                </p>
-                                <div className="flex items-center gap-2 mt-1">
-                                  <Badge
-                                    variant="secondary"
-                                    className="bg-blue-100 text-blue-800 text-xs"
-                                  >
-                                    AI Tailored
-                                  </Badge>
-                                  <Badge
-                                    variant="secondary"
-                                    className="bg-green-100 text-green-800 text-xs"
-                                  >
-                                    ATS Optimized
-                                  </Badge>
-                                </div>
-                              </div>
-                            </div>
-                            <p className="text-sm text-muted-foreground">
-                              Generated on{" "}
-                              {formatDateTime(
-                                currentGeneratedResume.created_at
-                              )}
-                            </p>
-                          </div>
-                          <div className="flex flex-col sm:flex-row gap-2 flex-shrink-0">
-                            <Button
-                              onClick={() =>
-                                handleDownload(
-                                  currentGeneratedResume.resume_data,
-                                  `${currentGeneratedResume.title}.${currentGeneratedResume.file_type}`
-                                )
-                              }
-                              className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white"
-                            >
-                              <Download className="w-4 h-4 mr-2" />
-                              Download PDF
-                            </Button>
+                          <TooltipTrigger asChild>
                             <Button
                               variant="outline"
-                              size="icon"
-                              onClick={handleRemoveFromSession}
-                              className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                              size="sm"
+                              onClick={loadAgentExample}
+                              className="border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white text-xs sm:text-sm"
                             >
-                              <Trash2 className="w-4 h-4" />
+                              <Sparkles className="w-4 h-4 mr-2 flex-shrink-0" />
+                              <span className="truncate">Try Example</span>
                             </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            Load sample data to test your Resume Optimization
+                            Agent
+                          </TooltipContent>
+                        </Tooltip>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={handleResetAgent}
+                          className="border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white text-xs sm:text-sm"
+                        >
+                          <RefreshCw className="w-4 h-4 mr-2 flex-shrink-0" />
+                          <span className="truncate">Reset Agent</span>
+                        </Button>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <Form {...form}>
+                      <form
+                        onSubmit={form.handleSubmit(onSubmit)}
+                        className="space-y-6 sm:space-y-8"
+                      >
+                        {/* Resume Upload */}
+                        <div className="space-y-2 sm:space-y-3">
+                          <Label className="flex items-center gap-2 text-sm sm:text-base font-semibold text-white">
+                            <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-blue-400 flex-shrink-0" />
+                            <span className="truncate">
+                              Upload Your Resume *
+                            </span>
+                            <Tooltip>
+                              <TooltipTrigger>
+                                <Info className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                              </TooltipTrigger>
+                              <TooltipContent className="max-w-xs">
+                                <p>
+                                  Your agent will optimize this resume with
+                                  AI-powered enhancements and job-specific
+                                  tailoring
+                                </p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </Label>
+                          <AgentFileUploadArea
+                            onFileSelect={setSelectedFile}
+                            selectedFile={selectedFile}
+                            error={!selectedFile}
+                          />
+                        </div>
+
+                        {/* Job Role and Industry */}
+                        <div className="grid grid-cols-1 gap-4 sm:gap-6">
+                          <FormField
+                            control={form.control}
+                            name="jobRole"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel className="flex items-center gap-2 text-sm sm:text-base font-semibold text-white">
+                                  <User className="w-4 h-4 sm:w-5 sm:h-5 text-purple-400 flex-shrink-0" />
+                                  <span className="truncate">
+                                    Job Role/Title *
+                                  </span>
+                                </FormLabel>
+                                <FormControl>
+                                  <Input
+                                    placeholder="e.g., Senior Software Engineer, Product Manager"
+                                    className="bg-slate-800/50 border-slate-600 text-white placeholder-slate-400 focus:border-blue-500 text-sm sm:text-base h-10 sm:h-11"
+                                    {...field}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          <FormField
+                            control={form.control}
+                            name="industry"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel className="flex items-center gap-2 text-sm sm:text-base font-semibold text-white">
+                                  <Users className="w-4 h-4 sm:w-5 sm:h-5 text-cyan-400 flex-shrink-0" />
+                                  <span className="truncate">
+                                    Industry (Optional)
+                                  </span>
+                                </FormLabel>
+                                <Select
+                                  onValueChange={field.onChange}
+                                  defaultValue={field.value}
+                                >
+                                  <FormControl>
+                                    <SelectTrigger className="bg-slate-800/50 border-slate-600 text-white h-10 sm:h-11 text-sm sm:text-base">
+                                      <SelectValue placeholder="Select industry for enhanced optimization" />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    {industries.map((industry) => (
+                                      <SelectItem
+                                        key={industry}
+                                        value={industry.toLowerCase()}
+                                      >
+                                        {industry}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+
+                        {/* Job Description */}
+                        <FormField
+                          control={form.control}
+                          name="jobDescription"
+                          render={({ field }) => (
+                            <FormItem>
+                              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                                <FormLabel className="flex items-center gap-2 text-sm sm:text-base font-semibold text-white">
+                                  <FileSearch className="w-4 h-4 sm:w-5 sm:h-5 text-orange-400 flex-shrink-0" />
+                                  <span className="truncate">
+                                    Job Description *
+                                  </span>
+                                  <Tooltip>
+                                    <TooltipTrigger>
+                                      <Info className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                                    </TooltipTrigger>
+                                    <TooltipContent className="max-w-xs">
+                                      <p>
+                                        Paste the complete job posting for
+                                        optimal resume optimization and keyword
+                                        matching
+                                      </p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </FormLabel>
+                                <div className="flex items-center gap-2 text-xs sm:text-sm">
+                                  <Activity className="w-3 h-3 sm:w-4 sm:h-4 text-slate-400 flex-shrink-0" />
+                                  <span
+                                    className={
+                                      wordCount < 100
+                                        ? "text-red-400"
+                                        : wordCount > 200
+                                        ? "text-emerald-400"
+                                        : "text-amber-400"
+                                    }
+                                  >
+                                    {wordCount} words
+                                  </span>
+                                  {wordCount < 100 && (
+                                    <span className="text-red-400 text-xs whitespace-nowrap">
+                                      (min 100)
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                              <FormControl>
+                                <Textarea
+                                  placeholder="Paste the complete job posting here including requirements, responsibilities, and preferred qualifications..."
+                                  className="min-h-[150px] sm:min-h-[200px] bg-slate-800/50 border-slate-600 text-white placeholder-slate-400 focus:border-blue-500 text-sm sm:text-base resize-none"
+                                  {...field}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        {/* Activate Agent Button */}
+                        <motion.div
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                          className="pt-2 sm:pt-4"
+                        >
+                          <Button
+                            type="submit"
+                            className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white h-12 sm:h-14 text-sm sm:text-base md:text-lg font-semibold shadow-lg"
+                            disabled={isProcessing}
+                          >
+                            {isProcessing ? (
+                              <>
+                                <motion.div
+                                  animate={{ rotate: 360 }}
+                                  transition={{
+                                    duration: 1,
+                                    repeat: Infinity,
+                                    ease: "linear",
+                                  }}
+                                  className="mr-2 sm:mr-3 flex-shrink-0"
+                                >
+                                  <Bot className="w-5 h-5 sm:w-6 sm:h-6" />
+                                </motion.div>
+                                <span className="truncate">
+                                  Agent Optimizing Resume...
+                                </span>
+                              </>
+                            ) : (
+                              <>
+                                <Wand2 className="w-5 h-5 sm:w-6 sm:h-6 mr-2 sm:mr-3 flex-shrink-0" />
+                                <span className="truncate">
+                                  Activate Resume Optimization Agent
+                                </span>
+                                <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 ml-2 flex-shrink-0" />
+                              </>
+                            )}
+                          </Button>
+                        </motion.div>
+
+                        {/* Agent Features */}
+                        <div className="bg-gradient-to-r from-slate-800/30 to-slate-900/30 rounded-xl p-4 sm:p-6 border border-slate-700/30">
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 text-center">
+                            <div className="flex items-center justify-center gap-2 text-xs sm:text-sm text-slate-300">
+                              <Settings className="w-4 h-4 sm:w-5 sm:h-5 text-blue-400 flex-shrink-0" />
+                              <span className="truncate">
+                                Secure Processing
+                              </span>
+                            </div>
+                            <div className="flex items-center justify-center gap-2 text-xs sm:text-sm text-slate-300">
+                              <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-purple-400 flex-shrink-0" />
+                              <span className="truncate">
+                                ~45 sec optimization
+                              </span>
+                            </div>
+                            <div className="flex items-center justify-center gap-2 text-xs sm:text-sm text-slate-300">
+                              <Brain className="w-4 h-4 sm:w-5 sm:h-5 text-cyan-400 flex-shrink-0" />
+                              <span className="truncate">
+                                AI-Enhanced Results
+                              </span>
+                            </div>
                           </div>
                         </div>
-                      </CardContent>
-                    </Card>
-                  </motion.div>
+                      </form>
+                    </Form>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            )}
 
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.3 }}
-                    className="mt-6 text-center"
-                  >
-                    <Button
-                      onClick={() => navigate("/tailored-resumes")}
-                      variant="outline"
-                      className="bg-primary/5 hover:bg-primary/10 border-primary/20"
-                    >
-                      <Eye className="w-4 h-4 mr-2" />
-                      View All Tailored Resumes
-                    </Button>
-                  </motion.div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
+            {/* Agent Results */}
+            {results && (
+              <div ref={resultsRef}>
+                <AgentOptimizationResults
+                  results={results}
+                  onNewOptimization={handleResetAgent}
+                  onViewAllResumes={() => navigate("/tailored-resumes")}
+                />
+              </div>
+            )}
+          </motion.div>
         </div>
       </div>
     </TooltipProvider>
   );
 };
 
-export default AIResumeTailor;
+export default ResumeOptimizationAgent;

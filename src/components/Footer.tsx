@@ -1,19 +1,28 @@
 import React, { memo } from "react";
-import { Twitter, Linkedin, Github, Mail, ArrowUpRight } from "lucide-react";
+import {
+  Twitter,
+  Linkedin,
+  Github,
+  Mail,
+  ArrowUpRight,
+  Bot,
+  Activity,
+  Users,
+} from "lucide-react";
 import { motion, Variants } from "framer-motion";
 import Logo from "@/components/ui/Logo";
 
-// --- CONSTANTS (Moved outside component for performance) ---
+// --- ENHANCED: AI Agent-focused constants ---
 
 const FOOTER_SECTIONS = [
   {
-    title: "Product",
+    title: "AI Agents",
     links: [
-      { label: "ATS Checker", href: "/ats-checker" },
-      { label: "Resume Tailor", href: "/ai-resume-tailor" },
-      { label: "Cover Letters", href: "/cover-letter-generator" },
-      { label: "Job Finder", href: "/job-finder" },
-      { label: "Templates", href: "/templates" },
+      { label: "ATS Screening Agent", href: "/ats-checker" },
+      { label: "Resume Optimization Agent", href: "/ai-resume-tailor" },
+      { label: "Cover Letter Crafting Agent", href: "/cover-letter-generator" },
+      { label: "Job Discovery Agent", href: "/job-finder" },
+      { label: "Agent Templates", href: "/templates" },
     ],
   },
   {
@@ -31,9 +40,9 @@ const FOOTER_SECTIONS = [
     links: [
       { label: "Help Center", href: "/help", external: true },
       { label: "Community", href: "/community", external: true },
-      { label: "Tutorials", href: "/tutorials", external: true },
+      { label: "Agent Tutorials", href: "/tutorials", external: true },
       { label: "API Docs", href: "/docs", external: true },
-      { label: "Status", href: "/status", external: true },
+      { label: "Agent Status", href: "/status", external: true },
     ],
   },
 ];
@@ -53,6 +62,13 @@ const LEGAL_LINKS = [
   { label: "Privacy Policy", href: "/privacy" },
   { label: "Terms of Service", href: "/terms" },
   { label: "Cookie Policy", href: "/cookies" },
+];
+
+// **NEW: Agent Performance Metrics**
+const AGENT_METRICS = [
+  { icon: Bot, metric: "6 Active Agents", color: "text-green-400" },
+  { icon: Activity, metric: "24/7 Operation", color: "text-blue-400" },
+  { icon: Users, metric: "95% Success Rate", color: "text-purple-400" },
 ];
 
 // --- ANIMATION VARIANTS (Typed correctly) ---
@@ -129,7 +145,6 @@ const FooterLink = memo(
     </motion.a>
   )
 );
-FooterLink.displayName = "FooterLink";
 
 // --- MAIN FOOTER COMPONENT ---
 
@@ -154,16 +169,19 @@ const Footer = memo(() => {
         >
           {/* Main Content Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8 lg:gap-12">
-            {/* Brand Section */}
+            {/* **ENHANCED: Agent-focused Brand Section** */}
             <motion.div
               variants={itemVariants}
               className="lg:col-span-2 space-y-6"
             >
               <Logo showTagline={true} linkTo="/" />
               <p className="text-muted-foreground text-sm md:text-base leading-relaxed max-w-sm">
-                AI-powered tools that help job seekers land more interviews and
-                get hired faster. Transform your career today.
+                Get AI agents that help optimize your job applications
+                automatically. These tools work in the background to improve
+                your resume, find relevant positions, and increase your
+                interview chances.
               </p>
+
               <div className="flex items-center gap-3">
                 {SOCIAL_LINKS.map((social) => (
                   <SocialIcon key={social.label} {...social} />
@@ -174,8 +192,14 @@ const Footer = memo(() => {
             {/* Link Sections */}
             {FOOTER_SECTIONS.map((section) => (
               <motion.div key={section.title} variants={itemVariants}>
-                <h3 className="font-semibold text-white mb-4 text-sm md:text-base">
+                <h3 className="font-semibold text-white mb-4 text-sm md:text-base flex items-center gap-2">
+                  {section.title === "AI Agents" && (
+                    <Bot className="w-4 h-4 text-blue-400" />
+                  )}
                   {section.title}
+                  {section.title === "AI Agents" && (
+                    <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse ml-1"></div>
+                  )}
                 </h3>
                 <div className="space-y-3">
                   {section.links.map((link) => (
@@ -192,15 +216,21 @@ const Footer = memo(() => {
             ))}
           </div>
 
-          {/* Bottom Bar */}
+          {/* **ENHANCED: Agent-focused Bottom Bar** */}
           <motion.div
             variants={itemVariants}
             className="mt-16 pt-8 border-t border-white/10"
           >
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-y-4">
-              <p className="text-muted-foreground text-sm">
-                © {currentYear} ApplyForge. All rights reserved.
-              </p>
+              <div className="flex flex-col md:flex-row md:items-center gap-y-2 md:gap-x-4">
+                <p className="text-muted-foreground text-sm">
+                  © {currentYear} ApplyForge. All rights reserved.
+                </p>
+                <div className="hidden md:flex items-center gap-2 text-xs text-green-400">
+                  <div className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></div>
+                  <span>AI Agents Active</span>
+                </div>
+              </div>
               <nav className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
                 {LEGAL_LINKS.map((link) => (
                   <FooterLink key={link.label} href={link.href}>
@@ -210,8 +240,11 @@ const Footer = memo(() => {
               </nav>
             </div>
             <div className="mt-6 pt-6 border-t border-white/5 md:hidden">
-              <p className="text-xs text-muted-foreground text-center">
-                Made with ❤️ for job seekers worldwide
+              <p className="text-xs text-muted-foreground text-center flex items-center justify-center gap-2">
+                <Bot className="w-3 h-3 text-blue-400" />
+                <span>
+                  Powered by AI agents, built for job seekers worldwide
+                </span>
               </p>
             </div>
           </motion.div>

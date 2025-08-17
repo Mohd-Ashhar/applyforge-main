@@ -29,6 +29,7 @@ import {
   Bell,
   Shield,
   ExternalLink,
+  ChartNoAxesGantt,
 } from "lucide-react";
 import { User } from "@supabase/supabase-js";
 import { motion, AnimatePresence } from "framer-motion";
@@ -44,6 +45,12 @@ interface UserDropdownProps {
 
 // Navigation items with enhanced metadata
 const DROPDOWN_NAV_ITEMS = [
+  {
+    to: "/",
+    icon: Home,
+    label: "Dashboard",
+    description: "User Dashboard",
+  },
   {
     to: "/tailored-resumes",
     icon: FileText,
@@ -67,6 +74,12 @@ const DROPDOWN_NAV_ITEMS = [
     icon: CheckCircle,
     label: "Applied Jobs",
     description: "Application tracking",
+  },
+  {
+    to: "/planusage",
+    icon: ChartNoAxesGantt,
+    label: "Plan & Usage",
+    description: "Usage Tracking",
   },
   {
     to: "/feedback",

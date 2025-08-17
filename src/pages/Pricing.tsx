@@ -3,14 +3,24 @@ import { Link } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Check, Loader2, Brain, Cpu, Sparkles, ArrowLeft } from "lucide-react";
+import {
+  Check,
+  Loader2,
+  Bot,
+  Cpu,
+  Sparkles,
+  ArrowLeft,
+  Users,
+} from "lucide-react";
 import { usePayment } from "@/hooks/usePayment";
 import { useAuth } from "@/contexts/AuthContext";
 import { SubscriptionPlan } from "@/services/paymentService";
-// FIX: Import the `Variants` type from framer-motion
 import { motion, Variants } from "framer-motion";
 
-// TypeScript interfaces
+/* ------------------------------------------------------------------ */
+/* Types                                                               */
+/* ------------------------------------------------------------------ */
+
 interface PricingData {
   monthly: number;
   yearly: number;
@@ -26,7 +36,7 @@ interface PlanData {
   savings: string | null;
   period: string;
   description: string;
-  aiModel: string;
+  agentCount: string;
   icon: React.ReactElement;
   features: string[];
   limitations?: string[];
@@ -35,21 +45,27 @@ interface PlanData {
   badge?: string;
 }
 
-// Pricing data with regional support
+/* ------------------------------------------------------------------ */
+/* Price table                                                         */
+/* ------------------------------------------------------------------ */
+
 const PRICING_DATA: Record<"INR" | "USD", Record<string, PricingData>> = {
   INR: {
     Free: { monthly: 0, yearly: 0 },
-    Basic: { monthly: 399, yearly: 3591, yearlyMonthly: 299 }, // 25% off
-    Pro: { monthly: 999, yearly: 8991, yearlyMonthly: 749 }, // 25% off
+    Basic: { monthly: 399, yearly: 3591, yearlyMonthly: 299 }, // 25 % off
+    Pro: { monthly: 999, yearly: 8991, yearlyMonthly: 749 }, // 25 % off
   },
   USD: {
     Free: { monthly: 0, yearly: 0 },
-    Basic: { monthly: 15, yearly: 135, yearlyMonthly: 11 }, // 25% off
-    Pro: { monthly: 35, yearly: 315, yearlyMonthly: 26 }, // 25% off
+    Basic: { monthly: 15, yearly: 135, yearlyMonthly: 11 }, // 25 % off
+    Pro: { monthly: 35, yearly: 315, yearlyMonthly: 26 }, // 25 % off
   },
 };
 
-// Region detection hook
+/* ------------------------------------------------------------------ */
+/* Region detection                                                    */
+/* ------------------------------------------------------------------ */
+
 interface RegionDetection {
   detectedCurrency: "INR" | "USD";
   isLoading: boolean;
@@ -59,71 +75,75 @@ const useRegionDetection = (): RegionDetection => {
   const [detectedCurrency, setDetectedCurrency] = useState<"INR" | "USD">(
     "INR"
   );
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const detectRegion = async (): Promise<void> => {
+    const detect = async () => {
       try {
-        const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-        if (
-          timezone.includes("Asia/Kolkata") ||
-          timezone.includes("Asia/Calcutta")
-        ) {
+        const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        if (tz.includes("Asia/Kolkata") || tz.includes("Asia/Calcutta")) {
           setDetectedCurrency("INR");
-          setIsLoading(false);
           return;
         }
-
         const locale = navigator.language || "en-US";
         if (locale.includes("hi") || locale === "en-IN") {
           setDetectedCurrency("INR");
-          setIsLoading(false);
           return;
         }
-
-        setDetectedCurrency("USD");
-      } catch (error) {
         setDetectedCurrency("USD");
       } finally {
         setIsLoading(false);
       }
     };
-
-    detectRegion();
+    detect();
   }, []);
 
   return { detectedCurrency, isLoading };
 };
 
-// Animation variants
+/* ------------------------------------------------------------------ */
+/* Motion helpers                                                      */
+/* ------------------------------------------------------------------ */
+
 const fadeStagger = {
-  show: { transition: { staggerChildren: 0.05 } },
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: { staggerChildren: 0.05 },
+  },
 };
 
-// FIX: Explicitly type the variants object with the `Variants` type.
 const cardVariants: Variants = {
-  hidden: { opacity: 0, y: 20 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.3, ease: "easeOut" } },
+  hidden: { opacity: 0, y: 20, scale: 1 },
+  show: {
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    transition: { duration: 0.3, ease: "easeOut", opacity: { duration: 0.25 } },
+  },
 };
+
+/* ------------------------------------------------------------------ */
+/* Main component                                                      */
+/* ------------------------------------------------------------------ */
 
 const Pricing: React.FC = () => {
+  /* currency / auth / payment ---------------------------------------------- */
   const { detectedCurrency, isLoading } = useRegionDetection();
   const [currency, setCurrency] = useState<"INR" | "USD">("INR");
   const [billingPeriod, setBillingPeriod] = useState<"monthly" | "yearly">(
     "yearly"
   );
+
   const { processPayment, isProcessing } = usePayment();
   const { user } = useAuth();
 
-  // Set detected currency when detection completes
   useEffect(() => {
-    if (!isLoading) {
-      setCurrency(detectedCurrency);
-    }
+    if (!isLoading) setCurrency(detectedCurrency);
   }, [detectedCurrency, isLoading]);
 
   const handleSubscribe = useCallback(
-    async (plan: SubscriptionPlan): Promise<void> => {
+    async (plan: SubscriptionPlan) => {
       if (!user) {
         window.location.href = "/auth";
         return;
@@ -133,22 +153,22 @@ const Pricing: React.FC = () => {
     [user, processPayment]
   );
 
-  // Enhanced plans with yearly pricing
-  const plans = useMemo((): PlanData[] => {
-    const currencySymbol = currency === "INR" ? "₹" : "$";
+  /* Plans ------------------------------------------------------------------- */
+  const plans = useMemo<PlanData[]>(() => {
+    const cs = currency === "INR" ? "₹" : "$";
 
     return [
       {
-        name: "Free" as SubscriptionPlan,
-        displayName: "AI Starter",
-        price: PRICING_DATA[currency]["Free"][billingPeriod],
+        name: "Free",
+        displayName: "AI Agent Starter",
+        price: PRICING_DATA[currency].Free[billingPeriod],
         originalPrice: null,
         monthlyEquivalent: null,
         savings: null,
         period: billingPeriod === "yearly" ? "per year" : "per month",
         description: "Powered by foundational AI models",
-        aiModel: "Basic AI Models",
-        icon: <Brain className="w-6 h-6 sm:w-7 sm:h-7" />,
+        agentCount: "Basic AI Models",
+        icon: <Bot className="w-6 h-6 sm:w-7 sm:h-7" />,
         features: [
           "AI ATS Resume Scanner (5/month)",
           "AI Resume Optimizer (5/month)",
@@ -159,35 +179,35 @@ const Pricing: React.FC = () => {
           "Basic grammar & formatting checks",
         ],
         limitations: [
-          "Basic AI accuracy",
           "Limited processing speed",
           "Standard templates only",
+          "Basic AI accuracy",
         ],
         cta: "Start with AI Free",
         highlight: false,
       },
       {
-        name: "Basic" as SubscriptionPlan,
+        name: "Basic",
         displayName: "AI Professional",
-        price: PRICING_DATA[currency]["Basic"][billingPeriod],
+        price: PRICING_DATA[currency].Basic[billingPeriod],
         originalPrice:
           billingPeriod === "yearly"
-            ? PRICING_DATA[currency]["Basic"].monthly * 12
+            ? PRICING_DATA[currency].Basic.monthly * 12
             : null,
         monthlyEquivalent:
           billingPeriod === "yearly"
-            ? PRICING_DATA[currency]["Basic"].yearlyMonthly || 0
+            ? PRICING_DATA[currency].Basic.yearlyMonthly || 0
             : null,
         savings:
           billingPeriod === "yearly"
-            ? `${currencySymbol}${
-                PRICING_DATA[currency]["Basic"].monthly * 12 -
-                PRICING_DATA[currency]["Basic"].yearly
+            ? `${cs}${
+                PRICING_DATA[currency].Basic.monthly * 12 -
+                PRICING_DATA[currency].Basic.yearly
               }`
             : null,
         period: billingPeriod === "yearly" ? "per year" : "per month",
         description: "Enhanced with mid-tier AI for professional results",
-        aiModel: "GPT-3.5 Class AI",
+        agentCount: "GPT-3.5 Class AI",
         icon: <Cpu className="w-6 h-6 sm:w-7 sm:h-7" />,
         features: [
           "Advanced ATS Analyzer (25/month)",
@@ -205,36 +225,36 @@ const Pricing: React.FC = () => {
         badge: "Most Popular",
       },
       {
-        name: "Pro" as SubscriptionPlan,
+        name: "Pro",
         displayName: "AI Career Accelerator",
-        price: PRICING_DATA[currency]["Pro"][billingPeriod],
+        price: PRICING_DATA[currency].Pro[billingPeriod],
         originalPrice:
           billingPeriod === "yearly"
-            ? PRICING_DATA[currency]["Pro"].monthly * 12
+            ? PRICING_DATA[currency].Pro.monthly * 12
             : null,
         monthlyEquivalent:
           billingPeriod === "yearly"
-            ? PRICING_DATA[currency]["Pro"].yearlyMonthly || 0
+            ? PRICING_DATA[currency].Pro.yearlyMonthly || 0
             : null,
         savings:
           billingPeriod === "yearly"
-            ? `${currencySymbol}${
-                PRICING_DATA[currency]["Pro"].monthly * 12 -
-                PRICING_DATA[currency]["Pro"].yearly
+            ? `${cs}${
+                PRICING_DATA[currency].Pro.monthly * 12 -
+                PRICING_DATA[currency].Pro.yearly
               }`
             : null,
         period: billingPeriod === "yearly" ? "per year" : "per month",
         description: "Fueled by cutting-edge AI for maximum career impact",
-        aiModel: "GPT-4 Class AI",
+        agentCount: "GPT-4 Class AI",
         icon: <Sparkles className="w-6 h-6 sm:w-7 sm:h-7" />,
         features: [
-          "Unlimited AI Tools (State-of-the-art models)",
+          "Unlimited AI Tools (state-of-the-art models)",
           "Hyper-Personalized Resume AI",
           "Advanced Cover Letter AI",
           "Predictive Job Matching",
-          "One-Click AI Mastery (Unlimited)",
+          "One-Click AI Mastery (unlimited)",
           "Auto Apply AI Agent (75/month)",
-          "AI Career Coach (Weekly insights)",
+          "AI Career Coach (weekly insights)",
           "Advanced AI Analytics",
           "Custom AI Training",
           "Priority AI Processing",
@@ -246,33 +266,37 @@ const Pricing: React.FC = () => {
     ];
   }, [currency, billingPeriod]);
 
+  /* Helpers ----------------------------------------------------------------- */
   const formatPrice = useCallback(
-    (price: number): string => {
-      if (price === 0) return currency === "INR" ? "₹0" : "$0";
-      return currency === "INR" ? `₹${price.toLocaleString()}` : `$${price}`;
-    },
+    (price: number) =>
+      price === 0
+        ? currency === "INR"
+          ? "₹0"
+          : "$0"
+        : currency === "INR"
+        ? `₹${price.toLocaleString()}`
+        : `$${price}`,
     [currency]
   );
 
-  // PricingCard component
+  /* ------------------------------------------------------------------ */
+  /* PricingCard                                                         */
+  /* ------------------------------------------------------------------ */
+
   interface PricingCardProps {
     plan: PlanData;
     index: number;
   }
 
-  const PricingCard = React.memo<PricingCardProps>(({ plan, index }) => {
+  const PricingCard: React.FC<PricingCardProps> = React.memo(({ plan }) => {
     const baseRing = plan.highlight
       ? "ring-2 ring-appforge-blue/50 border-appforge-blue/50"
       : plan.badge === "Best AI"
       ? "ring-2 ring-purple-500/80 border-purple-500/60"
       : "border-white/10";
 
-    const hoverTransform =
-      plan.name === "Pro"
-        ? { scale: 1.05, y: -8, boxShadow: "0 16px 64px rgba(168,85,247,0.4)" }
-        : plan.highlight
-        ? { scale: 1.05, y: -8, boxShadow: "0 8px 48px rgba(24,118,242,0.3)" }
-        : { scale: 1.03, y: -6, boxShadow: "0 5px 24px rgba(80,150,255,0.08)" };
+    /* Only the target values go in whileHover ------------------------ */
+    const hoverTarget = { y: -6, scale: 1.02 } as const;
 
     const badgeClass = plan.highlight
       ? "bg-appforge-blue text-black border border-appforge-blue/20"
@@ -280,62 +304,74 @@ const Pricing: React.FC = () => {
       ? "bg-purple-500 text-white border border-purple-500/30"
       : "";
 
-    const getIconBgClass = (planName: SubscriptionPlan): string => {
-      switch (planName) {
-        case "Free":
-          return "bg-gradient-to-br from-gray-400 to-gray-600 text-white";
-        case "Basic":
-          return "bg-gradient-to-br from-blue-500 to-blue-800 text-white";
-        case "Pro":
-          return "bg-gradient-to-br from-purple-500 to-pink-600 text-white";
-        default:
-          return "bg-gradient-to-br from-gray-400 to-gray-600 text-white";
-      }
-    };
+    const iconBg = {
+      Free: "bg-gradient-to-br from-gray-400 to-gray-600",
+      Basic: "bg-gradient-to-br from-blue-500 to-blue-800",
+      Pro: "bg-gradient-to-br from-purple-500 to-pink-600",
+    }[plan.name] as string;
 
-    const handleCardClick = (): void => {
-      handleSubscribe(plan.name);
-    };
+    const handleClick = () => handleSubscribe(plan.name);
 
     return (
       <motion.div
         variants={cardVariants}
-        whileHover={hoverTransform}
-        className="transition-transform"
+        whileHover={hoverTarget}
+        transition={{ duration: 0.2, ease: "easeOut" }}
+        className="transition-transform will-change-transform"
+        style={{
+          willChange: "transform, opacity",
+          backfaceVisibility: "hidden",
+          transform: "translateZ(0)",
+          isolation: "isolate",
+        }}
       >
         <Card
-          className={`relative glass bg-background/75 backdrop-blur shadow-xl overflow-hidden ${baseRing} rounded-2xl p-4 sm:p-6 md:p-8 flex flex-col h-full`}
+          className={`relative glass bg-background/75 backdrop-blur-sm shadow-xl overflow-hidden ${baseRing} rounded-2xl p-4 sm:p-6 md:p-8 flex flex-col h-full`}
         >
+          {/* Badge */}
           {plan.badge && (
             <div
-              className={`absolute top-3 right-3 sm:top-4 sm:right-4 px-2 py-1 sm:px-3 sm:py-1 rounded-full text-xs font-semibold shadow-md ${badgeClass}`}
+              className={`absolute top-3 right-3 sm:top-4 sm:right-4 px-2 py-1 sm:px-3 sm:py-1 rounded-full text-xs font-semibold shadow-md ${badgeClass} z-10`}
             >
               {plan.badge}
             </div>
           )}
 
+          {/* Agent count */}
+          <div className="absolute top-3 left-3 flex items-center gap-1 bg-green-600/20 border border-green-400/30 rounded-full px-2 py-1 z-10">
+            <Users className="w-3 h-3 text-green-400" />
+            <span className="text-xs text-green-300 font-medium">
+              {plan.name === "Free"
+                ? "3 Agents"
+                : plan.name === "Basic"
+                ? "6 Agents"
+                : "6+ Agents"}
+            </span>
+          </div>
+
+          {/* Icon */}
           <div
-            className={`${getIconBgClass(
-              plan.name
-            )} mb-4 sm:mb-6 mx-auto p-3 sm:p-4 rounded-xl shadow-md flex justify-center items-center w-fit group-hover:scale-110 transition-transform duration-200`}
+            className={`${iconBg} text-white mb-4 sm:mb-6 mx-auto p-3 sm:p-4 rounded-xl shadow-md flex justify-center items-center`}
           >
             {plan.icon}
           </div>
 
+          {/* Header */}
           <div className="text-center mb-4 sm:mb-6">
             <h3 className="text-lg sm:text-xl md:text-2xl font-bold mb-1">
               {plan.displayName}
             </h3>
             <div className="flex items-center justify-center gap-2 mb-2">
-              <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+              <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
               <span className="text-xs sm:text-sm text-green-400 font-medium">
-                {plan.aiModel}
+                {plan.agentCount}
               </span>
             </div>
             <p className="text-muted-foreground text-xs sm:text-sm md:text-base mb-3">
               {plan.description}
             </p>
 
+            {/* Price */}
             <div className="mb-2">
               <div className="flex items-center justify-center gap-2 mb-1">
                 <span className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-white">
@@ -354,7 +390,7 @@ const Pricing: React.FC = () => {
               {plan.monthlyEquivalent && (
                 <div className="mt-2">
                   <div className="text-green-400 text-xs font-medium">
-                    {formatPrice(plan.monthlyEquivalent)}/month when billed
+                    {formatPrice(plan.monthlyEquivalent)} / month when billed
                     annually
                   </div>
                   {plan.savings && (
@@ -367,34 +403,36 @@ const Pricing: React.FC = () => {
             </div>
           </div>
 
+          {/* Feature list */}
           <ul className="space-y-2 sm:space-y-3 mb-4 sm:mb-6 md:mb-8 flex-1">
-            {plan.features.map((feature: string, idx: number) => (
+            {plan.features.map((f, i) => (
               <li
-                key={`feature-${idx}`}
+                key={i}
                 className="flex items-start gap-2 sm:gap-3 text-xs sm:text-sm md:text-base"
               >
-                <Check className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 text-green-400 flex-shrink-0 mt-0.5 sm:mt-1" />
-                <span className="leading-tight">{feature}</span>
+                <Check className="w-3 h-3 sm:w-4 sm:h-4 text-green-400 mt-0.5" />
+                <span className="leading-tight">{f}</span>
               </li>
             ))}
-            {plan.limitations?.map((lim: string, idx: number) => (
+            {plan.limitations?.map((l, i) => (
               <li
-                key={`limitation-${idx}`}
+                key={`lim-${i}`}
                 className="flex items-start gap-2 sm:gap-3 opacity-50"
               >
-                <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-slate-500/30 block mt-1.5 sm:mt-[7px] flex-shrink-0"></span>
+                <span className="w-1.5 h-1.5 rounded-full bg-slate-500/30 mt-1.5" />
                 <span className="text-xs sm:text-sm text-muted-foreground leading-tight">
-                  {lim}
+                  {l}
                 </span>
               </li>
             ))}
           </ul>
 
+          {/* CTA */}
           <Button
             size="lg"
-            onClick={handleCardClick}
             disabled={isProcessing}
-            className={`w-full font-bold tracking-wide rounded-xl shadow-md text-xs sm:text-sm md:text-base py-2.5 sm:py-3 ${
+            onClick={handleClick}
+            className={`w-full font-bold tracking-wide rounded-xl py-2.5 sm:py-3 text-xs sm:text-sm md:text-base ${
               plan.name === "Pro"
                 ? "bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white"
                 : plan.highlight
@@ -405,7 +443,7 @@ const Pricing: React.FC = () => {
             {isProcessing ? (
               <>
                 <Loader2 className="w-3 h-3 sm:w-4 sm:h-4 mr-2 animate-spin" />
-                Processing...
+                Activating Agents…
               </>
             ) : (
               plan.cta
@@ -415,29 +453,39 @@ const Pricing: React.FC = () => {
       </motion.div>
     );
   });
-
   PricingCard.displayName = "PricingCard";
+
+  /* ------------------------------------------------------------------ */
+  /* Loading state                                                       */
+  /* ------------------------------------------------------------------ */
 
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-muted-foreground">Loading pricing...</p>
+          <p className="text-muted-foreground">Loading agent plans…</p>
         </div>
       </div>
     );
   }
 
+  /* ------------------------------------------------------------------ */
+  /* Render                                                              */
+  /* ------------------------------------------------------------------ */
+
   return (
-    <div className="min-h-screen bg-background overflow-hidden">
-      {/* Enhanced Background accents - same as homepage */}
+    <div
+      className="min-h-screen bg-background overflow-hidden"
+      style={{ contain: "layout style paint", willChange: "auto" }}
+    >
+      {/* background blobs */}
       <span className="pointer-events-none absolute -left-40 top-1/4 w-80 h-80 bg-blue-400/15 rounded-full blur-3xl" />
       <span className="pointer-events-none absolute right-0 top-0 w-80 h-56 bg-purple-500/10 rounded-full blur-3xl" />
-      <span className="pointer-events-none absolute left-1/2 top-1/2 w-96 h-96 bg-pink-500/5 rounded-full blur-3xl transform -translate-x-1/2 -translate-y-1/2" />
+      <span className="pointer-events-none absolute left-1/2 top-1/2 w-96 h-96 bg-pink-500/5 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2" />
 
       <div className="container mx-auto px-4 sm:px-6 lg:px-10 py-8 relative z-10">
-        {/* Navigation */}
+        {/* nav */}
         <div className="mb-8">
           <Link to="/">
             <Button
@@ -450,7 +498,7 @@ const Pricing: React.FC = () => {
           </Link>
         </div>
 
-        {/* Header - same design as homepage */}
+        {/* header */}
         <motion.header
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
@@ -458,30 +506,29 @@ const Pricing: React.FC = () => {
           className="text-center mb-12 md:mb-16"
         >
           <div className="flex items-center justify-center gap-2 mb-4">
-            <Brain className="w-6 h-6 text-blue-400" />
+            <Bot className="w-6 h-6 text-blue-400" />
             <span className="text-blue-400 font-medium text-sm sm:text-base">
-              AI-Powered Career Transformation
+              Deploy Your AI Agent Workforce
             </span>
           </div>
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 sm:mb-6">
             Choose Your{" "}
             <span className="bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500 bg-clip-text text-transparent">
-              AI Plan
+              AI Agent Plan
             </span>
           </h2>
           <p className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto mb-6 sm:mb-8 px-4">
-            Upgrade your career with the perfect AI-powered plan for your goals
+            Deploy intelligent agents to accelerate your career while you focus
+            on interviews.
           </p>
 
-          {/* Enhanced controls with billing toggle */}
+          {/* toggles */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-6">
-            {/* Currency Toggle */}
             <div className="flex items-center gap-2">
               <Button
                 variant={currency === "INR" ? "default" : "outline"}
                 onClick={() => setCurrency("INR")}
                 size="sm"
-                className="transition-all text-xs sm:text-sm"
               >
                 India (₹)
               </Button>
@@ -489,33 +536,30 @@ const Pricing: React.FC = () => {
                 variant={currency === "USD" ? "default" : "outline"}
                 onClick={() => setCurrency("USD")}
                 size="sm"
-                className="transition-all text-xs sm:text-sm"
               >
                 International ($)
               </Button>
             </div>
-
-            {/* Billing period toggle */}
             <div className="flex items-center bg-white/5 rounded-lg p-1 border border-white/10">
               <button
+                type="button"
                 onClick={() => setBillingPeriod("monthly")}
                 className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
                   billingPeriod === "monthly"
                     ? "bg-white text-black"
                     : "text-muted-foreground hover:text-white"
                 }`}
-                type="button"
               >
                 Monthly
               </button>
               <button
+                type="button"
                 onClick={() => setBillingPeriod("yearly")}
                 className={`px-4 py-2 rounded-md text-sm font-medium transition-all flex items-center gap-2 ${
                   billingPeriod === "yearly"
                     ? "bg-white text-black"
                     : "text-muted-foreground hover:text-white"
                 }`}
-                type="button"
               >
                 Yearly
                 <Badge className="bg-green-500 text-white text-xs px-1.5 py-0.5">
@@ -526,9 +570,9 @@ const Pricing: React.FC = () => {
           </div>
         </motion.header>
 
-        {/* Pricing grids - exact same layout as homepage */}
+        {/* pricing grids ---------------------------------------------------- */}
         <div className="max-w-7xl mx-auto">
-          {/* Desktop Pricing Grid */}
+          {/* desktop */}
           <motion.div
             className="hidden lg:grid lg:grid-cols-3 gap-6 xl:gap-10"
             variants={fadeStagger}
@@ -536,16 +580,12 @@ const Pricing: React.FC = () => {
             animate="show"
             key={`desktop-${currency}-${billingPeriod}`}
           >
-            {plans.map((plan: PlanData, index: number) => (
-              <PricingCard
-                key={`${plan.name}-desktop`}
-                plan={plan}
-                index={index}
-              />
+            {plans.map((plan, i) => (
+              <PricingCard key={plan.name} plan={plan} index={i} />
             ))}
           </motion.div>
 
-          {/* Tablet Pricing Grid */}
+          {/* tablet */}
           <motion.div
             className="hidden md:grid lg:hidden md:grid-cols-2 gap-6 max-w-4xl mx-auto"
             variants={fadeStagger}
@@ -553,93 +593,79 @@ const Pricing: React.FC = () => {
             animate="show"
             key={`tablet-${currency}-${billingPeriod}`}
           >
-            {plans.slice(0, 2).map((plan: PlanData, index: number) => (
-              <PricingCard
-                key={`${plan.name}-tablet`}
-                plan={plan}
-                index={index}
-              />
+            {plans.slice(0, 2).map((plan, i) => (
+              <PricingCard key={plan.name} plan={plan} index={i} />
             ))}
             <div className="md:col-span-2 max-w-sm mx-auto">
-              <PricingCard key="pro-tablet" plan={plans[2]} index={2} />
+              <PricingCard plan={plans[2]} index={2} />
             </div>
           </motion.div>
 
-          {/* Mobile Horizontal Scrolling Carousel */}
+          {/* mobile carousel */}
           <div className="md:hidden mt-8 sm:mt-12">
             <motion.div
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6 }}
-              className="relative"
             >
               <p className="text-center text-muted-foreground text-sm mb-6 px-4">
-                ← Swipe to see all AI plans →
+                ← Swipe to see all agent plans →
               </p>
-
               <div className="overflow-x-auto pb-8 -mx-4 px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                 <div
                   className="flex gap-4 w-max"
                   style={{ scrollSnapType: "x mandatory" }}
                 >
-                  {plans.map((plan: PlanData, index: number) => (
+                  {plans.map((plan, i) => (
                     <div
-                      key={`${plan.name}-mobile-${currency}-${billingPeriod}`}
+                      key={plan.name}
                       className="w-[85vw] max-w-sm flex-shrink-0"
                       style={{ scrollSnapAlign: "center" }}
                     >
-                      <PricingCard plan={plan} index={index} />
+                      <PricingCard plan={plan} index={i} />
                     </div>
                   ))}
                 </div>
-              </div>
-
-              <div className="flex justify-center gap-2 mt-6">
-                {plans.map((_: PlanData, index: number) => (
-                  <div
-                    key={`indicator-${index}`}
-                    className="w-2 h-2 rounded-full bg-white/30"
-                  />
-                ))}
               </div>
             </motion.div>
           </div>
         </div>
 
-        {/* AI Feature Highlight - same as homepage */}
+        {/* feature highlight */}
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2, duration: 0.6 }}
           viewport={{ once: true }}
+          transition={{ delay: 0.2, duration: 0.6 }}
           className="mt-16 sm:mt-20 text-center"
         >
           <div className="bg-gradient-to-r from-blue-500/10 to-purple-500/10 rounded-2xl p-6 sm:p-8 max-w-4xl mx-auto">
             <h3 className="text-xl sm:text-2xl font-bold mb-4">
-              🚀 Experience the Future of Job Applications
+              🚀 Deploy Your AI Agent Workforce Today
             </h3>
             <p className="text-muted-foreground text-sm sm:text-base">
-              Every plan includes AI-powered features. Higher tiers unlock more
-              advanced AI models with better accuracy, faster processing, and
-              deeper personalization for maximum career impact.
+              Every plan deploys intelligent agents that work 24/7. Higher tiers
+              unlock more advanced agents with better autonomous
+              decision-making, faster processing and deeper personalization for
+              maximum career acceleration.
             </p>
             {billingPeriod === "yearly" && (
               <div className="mt-4 inline-flex items-center gap-2 bg-green-500/20 text-green-400 px-4 py-2 rounded-full text-sm font-medium">
-                <span>🎉</span>
-                <span>Save 25% with annual billing!</span>
+                🎉 Save 25 % with annual agent deployment!
               </div>
             )}
           </div>
         </motion.div>
 
-        {/* Support section for purchasing help */}
+        {/* support box */}
         <div className="mt-16 sm:mt-20 text-center">
           <div className="bg-white/5 rounded-2xl p-6 sm:p-8 max-w-2xl mx-auto backdrop-blur-sm border border-white/10">
             <h4 className="text-lg sm:text-xl font-bold text-white mb-4">
-              Need Help Choosing?
+              Ready to Deploy Your AI Agents?
             </h4>
             <p className="text-muted-foreground text-sm sm:text-base mb-6">
-              All paid plans include a 7-day free trial. Cancel anytime, no
+              All paid plans include a 7-day free trial with full agent access.
+              Your AI workforce activates instantly – cancel anytime, no
               questions asked.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -648,7 +674,7 @@ const Pricing: React.FC = () => {
                   variant="outline"
                   className="bg-white/5 border-white/20 hover:bg-white/10 text-sm"
                 >
-                  Contact Support
+                  Contact Agent Support
                 </Button>
               </Link>
               <Button
@@ -659,10 +685,10 @@ const Pricing: React.FC = () => {
                 {isProcessing ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Processing...
+                    Activating Agents…
                   </>
                 ) : (
-                  "Start Free Trial"
+                  "Activate Agent Trial"
                 )}
               </Button>
             </div>

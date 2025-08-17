@@ -1,10 +1,9 @@
 import React, { memo, useMemo, useState, useRef, useEffect } from "react";
 import { Card } from "@/components/ui/card";
-import { Star, Quote } from "lucide-react";
-// FIX 1: Import the `Variants` type from framer-motion
+import { Star, Quote, Bot, Activity } from "lucide-react";
 import { motion, Variants } from "framer-motion";
 
-// **ENHANCED: AI-Driven testimonials with realistic companies**
+// **ENHANCED: Agent-focused testimonials with realistic agent language**
 const TESTIMONIALS = [
   {
     name: "Siddharth Sharma",
@@ -13,8 +12,9 @@ const TESTIMONIALS = [
     avatar:
       "https://images.pexels.com/photos/2379004/pexels-photo-2379004.jpeg?auto=compress&cs=tinysrgb&w=64&h=64&fit=crop&crop=face",
     content:
-      "ApplyForge's AI completely transformed my job hunt. The ATS scanner showed my resume was only 12% compatible - after the AI optimization, it jumped to 94%. Got 3 interviews within a week!",
+      "ApplyForge's AI agents completely transformed my job hunt. The ATS screening agent showed my resume was only 12% compatible - after my optimization agent worked on it, it jumped to 94%. Got 3 interviews within a week!",
     rating: 5,
+    agentUsed: "ATS Screening Agent",
   },
   {
     name: "Maya Patel",
@@ -23,8 +23,9 @@ const TESTIMONIALS = [
     avatar:
       "https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg?auto=compress&cs=tinysrgb&w=64&h=64&fit=crop&crop=face",
     content:
-      "As a freelancer switching to full-time, the AI cover letter generator was incredible. It analyzed each job posting and created personalized letters that actually mentioned the company's recent projects. Smart AI!",
+      "As a freelancer switching to full-time, my cover letter crafting agent was incredible. It analyzed each job posting and created personalized letters that actually mentioned the company's recent projects. My agents work smarter than I do!",
     rating: 5,
+    agentUsed: "Cover Letter Crafting Agent",
   },
   {
     name: "Jordan Kim",
@@ -33,8 +34,9 @@ const TESTIMONIALS = [
     avatar:
       "https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=64&h=64&fit=crop&crop=face",
     content:
-      "The AI keyword optimization is insane! It found industry terms I didn't even know were important. My resume now passes through ATS systems that used to reject me instantly. The AI learns from each job description.",
+      "The resume optimization agent is insane! It found industry terms I didn't even know were important. My resume now passes through ATS systems that used to reject me instantly. The agents learn from each job description autonomously.",
     rating: 5,
+    agentUsed: "Resume Optimization Agent",
   },
   {
     name: "Peter Rezz",
@@ -43,8 +45,9 @@ const TESTIMONIALS = [
     avatar:
       "https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg?auto=compress&cs=tinysrgb&w=64&h=64&fit=crop&crop=face",
     content:
-      "I was skeptical about AI tools, but ApplyForge's resume tailor actually understands context. It repositioned my retail experience to highlight transferable skills for tech roles. The AI suggestions were spot-on!",
+      "I was skeptical about AI agents, but ApplyForge's resume optimization agent actually understands context. It repositioned my retail experience to highlight transferable skills for tech roles. My personal agent workforce is spot-on!",
     rating: 5,
+    agentUsed: "Resume Optimization Agent",
   },
   {
     name: "Haris Aly",
@@ -53,8 +56,9 @@ const TESTIMONIALS = [
     avatar:
       "https://images.pexels.com/photos/1040880/pexels-photo-1040880.jpeg?auto=compress&cs=tinysrgb&w=64&h=64&fit=crop&crop=face",
     content:
-      "The one-click AI tailoring saved me hours. Instead of manually editing my resume for each application, the AI does it in seconds while keeping my core achievements intact. Smart technology!",
+      "My instant tailoring agent saved me hours. Instead of manually editing my resume for each application, my agents do it in seconds while keeping my core achievements intact. It's like having a 24/7 career assistant!",
     rating: 5,
+    agentUsed: "Instant Tailoring Agent",
   },
   {
     name: "Priya Shah",
@@ -63,15 +67,15 @@ const TESTIMONIALS = [
     avatar:
       "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=64&h=64&fit=crop&crop=face",
     content:
-      "Coming from a non-tech background, I needed help translating my skills. ApplyForge's AI understood exactly how to frame my project management experience for product roles. The AI coaching is phenomenal!",
+      "Coming from a non-tech background, I needed help translating my skills. ApplyForge's agent workforce understood exactly how to frame my project management experience for product roles. Having personal AI agents is phenomenal!",
     rating: 5,
+    agentUsed: "Job Discovery Agent",
   },
 ] as const;
 
-// FIX 2: Create an explicit `Testimonial` type from the `as const` object.
 type Testimonial = (typeof TESTIMONIALS)[number];
 
-// **REALISTIC: Early-adopter companies for a launching SaaS**
+// **ENHANCED: More startup/tech focused for agent credibility**
 const TRUSTED_COMPANIES = [
   "BuildSpace",
   "TechFlow Solutions",
@@ -80,7 +84,6 @@ const TRUSTED_COMPANIES = [
   "StartupXYZ",
 ] as const;
 
-// FIX 1: Apply the `Variants` type to the animation objects.
 const containerVariants: Variants = {
   hidden: { opacity: 0 },
   visible: {
@@ -111,8 +114,7 @@ const StarRating = memo(({ rating }: { rating: number }) => (
 ));
 StarRating.displayName = "StarRating";
 
-// Enhanced Testimonial Card
-// FIX 2: Use the new `Testimonial` type in the component props.
+// **Enhanced Agent-focused Testimonial Card**
 const TestimonialCard = memo(
   ({
     testimonial,
@@ -134,8 +136,16 @@ const TestimonialCard = memo(
       }
     >
       <Card className="h-full bg-background/85 backdrop-blur border border-white/10 rounded-2xl p-5 md:p-6 flex flex-col hover:shadow-xl hover:shadow-blue-500/10 hover:border-blue-400/30 transition-all duration-300">
-        {/* Quote Icon */}
-        <Quote className="w-6 h-6 text-blue-400/60 mb-3 shrink-0" />
+        {/* **NEW: Agent Used Badge** */}
+        <div className="flex items-center justify-between mb-3">
+          <Quote className="w-6 h-6 text-blue-400/60 shrink-0" />
+          <div className="flex items-center gap-1 bg-blue-600/20 border border-blue-400/30 rounded-full px-2 py-1">
+            <Bot className="w-3 h-3 text-blue-400" />
+            <span className="text-xs text-blue-300 font-medium">
+              {testimonial.agentUsed}
+            </span>
+          </div>
+        </div>
 
         {/* Rating */}
         <StarRating rating={testimonial.rating} />
@@ -169,20 +179,18 @@ const TestimonialCard = memo(
 );
 TestimonialCard.displayName = "TestimonialCard";
 
-// **Clean Mobile Carousel - NO BLUE DOTS**
-// FIX 2: Use the `Testimonial` type for the carousel's props.
+// Mobile Carousel (unchanged functionality, just updated for agent context)
 const MobileCarousel = memo(
   ({ testimonials }: { testimonials: readonly Testimonial[] }) => {
     const scrollRef = useRef<HTMLDivElement>(null);
     const [currentIndex, setCurrentIndex] = useState(0);
 
-    // Auto-scroll functionality
     useEffect(() => {
       const interval = setInterval(() => {
         if (scrollRef.current) {
           const { scrollLeft, scrollWidth, clientWidth } = scrollRef.current;
           const maxScroll = scrollWidth - clientWidth;
-          const cardWidth = window.innerWidth * 0.85 + 16; // 85vw + gap
+          const cardWidth = window.innerWidth * 0.85 + 16;
 
           if (scrollLeft >= maxScroll - 10) {
             scrollRef.current.scrollTo({ left: 0, behavior: "smooth" });
@@ -216,9 +224,6 @@ const MobileCarousel = memo(
 
     return (
       <div className="relative">
-        {/* **REMOVED: Blue cylindrical dots section completely** */}
-
-        {/* Clean Scrollable Container */}
         <div
           ref={scrollRef}
           onScroll={handleScroll}
@@ -237,7 +242,7 @@ const MobileCarousel = memo(
 );
 MobileCarousel.displayName = "MobileCarousel";
 
-// **Enhanced Trust Badges - Startup-focused companies**
+// **Enhanced Trust Badges - Agent-focused companies**
 const TrustBadges = memo(() => (
   <motion.div
     initial={{ opacity: 0, y: 20 }}
@@ -251,11 +256,10 @@ const TrustBadges = memo(() => (
         Trusted by Early Adopters at
       </h3>
       <p className="text-sm text-muted-foreground">
-        Join innovative professionals using AI to transform their careers
+        Join innovative professionals using AI agents to transform their careers
       </p>
     </div>
 
-    {/* **Single row layout for 5 companies - looks more balanced** */}
     <div className="flex flex-wrap justify-center items-center gap-4 md:gap-8">
       {TRUSTED_COMPANIES.map((company, index) => (
         <motion.div
@@ -278,6 +282,7 @@ const TrustBadges = memo(() => (
 ));
 TrustBadges.displayName = "TrustBadges";
 
+
 const Testimonials = memo(() => {
   const testimonialsList = useMemo(() => TESTIMONIALS, []);
 
@@ -293,7 +298,7 @@ const Testimonials = memo(() => {
       </div>
 
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-        {/* **ENHANCED: Section Header with AI emphasis** */}
+        {/* **ENHANCED: Agent-oriented Section Header** */}
         <motion.header
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -313,7 +318,7 @@ const Testimonials = memo(() => {
             their dream jobs faster than ever.
           </p>
 
-          {/* **NEW: Trust-boosting tagline** */}
+          {/* **ENHANCED: Agent-focused trust tagline** */}
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             whileInView={{ opacity: 1, scale: 1 }}
@@ -321,10 +326,12 @@ const Testimonials = memo(() => {
             viewport={{ once: true }}
           >
             <span className="inline-flex items-center gap-2 px-4 py-2 bg-blue-500/10 text-blue-400 rounded-full border border-blue-500/20 text-sm font-medium">
+              <Bot className="w-4 h-4" />
               Real stories. Real results. Powered by AI.
             </span>
           </motion.div>
         </motion.header>
+
 
         {/* Testimonials Display */}
         <motion.div
@@ -334,7 +341,7 @@ const Testimonials = memo(() => {
           viewport={{ once: true, margin: "-50px" }}
           className="relative"
         >
-          {/* Mobile: Clean Carousel (No Blue Dots) */}
+          {/* Mobile: Clean Carousel */}
           <div className="block md:hidden">
             <MobileCarousel testimonials={testimonialsList} />
           </div>

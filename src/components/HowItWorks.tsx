@@ -1,6 +1,13 @@
 import React, { memo, useCallback } from "react";
 import { Card } from "@/components/ui/card";
-import { Upload, Wand2, Download, Send, type LucideIcon } from "lucide-react";
+import {
+  Bot,
+  Brain,
+  Zap,
+  Rocket,
+  type LucideIcon,
+  Activity,
+} from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { motion, type Variants } from "framer-motion";
@@ -12,6 +19,7 @@ interface Step {
   description: string;
   step: string;
   iconBg: string;
+  agentType: string;
 }
 
 interface StepCardProps {
@@ -26,32 +34,40 @@ interface CTASectionProps {
 // ---- Constants ----
 const STEPS: readonly Step[] = [
   {
-    icon: Upload,
-    title: "Upload Your Resume",
-    description: "Drop in your resume for AI-based analysis.",
+    icon: Bot,
+    title: "Activate Your Agents",
+    description:
+      "Your AI workforce analyzes your experience and prepares for autonomous operation.",
     step: "01",
     iconBg: "from-blue-500 to-blue-400",
+    agentType: "Analysis Agent",
   },
   {
-    icon: Wand2,
-    title: "Analyze Job Description",
-    description: "Let our LLMs scan and decode the JD.",
+    icon: Brain,
+    title: "Agents Decode Opportunity",
+    description:
+      "Multiple AI agents simultaneously analyze requirements and identify optimization targets.",
     step: "02",
     iconBg: "from-indigo-600 to-blue-400",
+    agentType: "Research Agent",
   },
   {
-    icon: Download,
-    title: "Generate Optimized Resume",
-    description: "Get an ATS-ready resume, tailored by AI.",
+    icon: Zap,
+    title: "Agents Optimize Everything",
+    description:
+      "Your workforce creates ATS-perfect resumes and cover letters while you watch.",
     step: "03",
     iconBg: "from-green-500 to-blue-400",
+    agentType: "Optimization Agent",
   },
   {
-    icon: Send,
-    title: "Apply with Confidence",
-    description: "Use your AI-tailored resume to apply instantly.",
+    icon: Rocket,
+    title: "Agents Deploy Applications",
+    description:
+      "Your AI team submits optimized applications instantly, maximizing interview potential.",
     step: "04",
     iconBg: "from-purple-400 to-blue-400",
+    agentType: "Deployment Agent",
   },
 ] as const;
 
@@ -102,6 +118,12 @@ const StepCard = memo<StepCardProps>(function StepCard({
           shadow-lg shadow-black/5
         "
       >
+        {/* Agent Status Indicator */}
+        {/* <div className="absolute top-3 right-3 flex items-center gap-1 bg-green-600/20 border border-green-400/30 rounded-full px-2 py-1">
+          <div className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></div>
+          <span className="text-xs text-green-300 font-medium">Active</span>
+        </div> */}
+
         <div
           className={
             isMobile
@@ -113,6 +135,14 @@ const StepCard = memo<StepCardProps>(function StepCard({
             {step.step}
           </div>
         </div>
+
+        {/* Agent Type Badge */}
+        <div className="mb-2">
+          <span className="text-xs font-medium text-blue-400 bg-blue-400/10 px-2 py-1 rounded-full">
+            {step.agentType}
+          </span>
+        </div>
+
         <div
           className={`
             w-12 h-12 md:w-14 md:h-14 
@@ -131,7 +161,7 @@ const StepCard = memo<StepCardProps>(function StepCard({
             isMobile ? "flex-1 flex flex-col justify-center" : ""
           }`}
         >
-          <h3 className="text-base md:text-xl font-bold mb-2 md:mb-3 text-white leading-tight">
+          <h3 className="text-base md:text-xl font-bold mb-2 md:mb-3 text-blue-200 leading-tight">
             {step.title}
           </h3>
           <p className="text-muted-foreground text-xs md:text-base leading-relaxed">
@@ -142,6 +172,32 @@ const StepCard = memo<StepCardProps>(function StepCard({
     </motion.div>
   );
 });
+
+// ---- Agent Collaboration Indicator ----
+// const AgentCollaboration = memo(function AgentCollaboration() {
+//   return (
+//     <motion.div
+//       initial={{ opacity: 0, y: 10 }}
+//       whileInView={{ opacity: 1, y: 0 }}
+//       transition={{ duration: 0.5, delay: 0.2 }}
+//       viewport={{ once: true }}
+//       className="text-center mb-8 md:mb-12"
+//     >
+//       <div className="bg-background/60 backdrop-blur-sm border border-blue-400/30 rounded-xl p-4 md:p-6 max-w-2xl mx-auto">
+//         <div className="flex items-center justify-center gap-2 mb-2">
+//           <Activity className="w-4 h-4 text-blue-400" />
+//           <h4 className="text-sm md:text-base font-semibold text-blue-300">
+//             Your Agents Work Together
+//           </h4>
+//         </div>
+//         <p className="text-xs md:text-sm text-muted-foreground">
+//           While one agent analyzes job requirements, another optimizes your
+//           resume, and a third crafts your cover letter - all simultaneously.
+//         </p>
+//       </div>
+//     </motion.div>
+//   );
+// });
 
 // ---- CTA ----
 const CTASection = memo<CTASectionProps>(function CTASection({ onGetStarted }) {
@@ -165,25 +221,27 @@ const CTASection = memo<CTASectionProps>(function CTASection({ onGetStarted }) {
           shadow-lg shadow-black/5
         "
       >
-        <h3 className="text-base sm:text-lg md:text-2xl font-bold mb-2 sm:mb-3 md:mb-4 text-white">
-          Transform Your Job Hunt with{" "}
+        {/* <h3 className="text-base sm:text-lg md:text-2xl font-bold mb-2 sm:mb-3 md:mb-4 text-white">
+          Deploy Your{" "}
           <span className="bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-            AI
-          </span>
-        </h3>
-        <p className="text-xs sm:text-sm md:text-base text-muted-foreground mb-4 sm:mb-5">
+            AI Agent Workforce
+          </span>{" "}
+          Today
+        </h3> */}
+        <h3 className="text-base sm:text-lg text-muted-foreground  md:text-l font-bold mb-2 sm:mb-3 md:mb-4">
           Join{" "}
           <span className="font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
             ApplyForge
           </span>{" "}
-          and take control of your future.
-        </p>
+          and let intelligent agents accelerate your career.
+        </h3>
+
         <button
           onClick={onGetStarted}
           className="
             w-full sm:w-auto
-            bg-gradient-to-r from-blue-500 to-blue-600 
-            hover:from-blue-600 hover:to-blue-700
+            bg-gradient-to-r from-blue-500 to-purple-600 
+            hover:from-blue-600 hover:to-purple-700
             text-white font-bold
             px-4 sm:px-6 md:px-8
             py-2 sm:py-2.5 md:py-4
@@ -196,7 +254,7 @@ const CTASection = memo<CTASectionProps>(function CTASection({ onGetStarted }) {
             active:scale-95
           "
         >
-          Start Your Free Trial
+          Activate My Agents
         </button>
       </Card>
     </motion.div>
@@ -249,16 +307,20 @@ const HowItWorks = memo(function HowItWorks() {
           className="text-center mb-10 md:mb-16"
         >
           <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-3 md:mb-6 leading-tight">
-            How{" "}
+            Your{" "}
             <span className="bg-gradient-to-r from-blue-400 via-blue-500 to-purple-400 bg-clip-text text-transparent">
-              ApplyForge
+              AI Agents
             </span>{" "}
-            Works
+            in Action
           </h2>
           <p className="text-sm md:text-lg lg:text-xl text-muted-foreground max-w-xl mx-auto">
-            Go from resume upload to job application in just 4 simple steps
+            Autonomous agents work 24/7 to accelerate your career in 4 seamless
+            steps
           </p>
         </motion.div>
+
+        {/* Agent Collaboration Indicator */}
+        {/* <AgentCollaboration /> */}
 
         {/* DESKTOP: Inline steps */}
         <div className="hidden lg:block relative mb-12 md:mb-16">
@@ -286,7 +348,7 @@ const HowItWorks = memo(function HowItWorks() {
             className="relative z-10"
           >
             <p className="text-center text-muted-foreground text-xs mb-5">
-              ← Swipe to see all steps →
+              ← Swipe to see your agent workflow →
             </p>
 
             {/* Scroll Container */}

@@ -14,20 +14,21 @@ import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { motion, Variants } from "framer-motion";
 
+
 // **OPTIMIZED: Shortened AI-first descriptions that fit perfectly in cards**
 // **FIXED: Ultra-short descriptions and single-line benefits**
 const FEATURES = [
   {
     icon: Target,
     iconBg: "from-blue-600/90 to-blue-400/70",
-    title: "ATS Resume Checker",
+    title: "ATS Screening Agent",
     description:
-      "Advanced AI scans resumes, detects gaps, and recommends optimizations.",
+      "Continuously monitors and search for optimization in your resume.",
     tagline: "Beat the Bots",
     label: "Most Popular",
     benefits: [
-      "AI-powered ATS compatibility scan",
-      "Intelligent skill gap detection",
+      "Autonomous ATS monitoring",
+      "Intelligent gap detection & alerts",
       "Smart optimization recommendations",
     ],
     clickable: true,
@@ -37,14 +38,14 @@ const FEATURES = [
   {
     icon: FileText,
     iconBg: "from-blue-500/90 to-indigo-400/70",
-    title: "AI Resume Tailor",
+    title: "Resume Optimization Agent",
     description:
-      "AI rewrites your experience to make hiring managers interested. Boost interviews 3-5x.",
+      "Automatically customizes your resume for each application, maximizing relevance.",
     tagline: "3x Interview Booster",
     benefits: [
-      "AI finds missing keywords",
-      "AI matches your roles",
-      "Instant 95%+ ATS score",
+      "Missing keywords detection",
+      "Matches qualifications intelligently",
+      "Delivers instant 95%+ ATS scores",
     ],
     clickable: true,
     path: "/ai-resume-tailor",
@@ -53,14 +54,14 @@ const FEATURES = [
   {
     icon: Mail,
     iconBg: "from-fuchsia-600/80 to-blue-400/50",
-    title: "Cover Letter Generator",
+    title: "Cover Letter Crafting Agent",
     description:
-      "AI crafts compelling cover letters in 30 seconds. Get replies in hours, not weeks.",
+      "Creates compelling, personalized cover letters in 30 seconds for any company.",
     tagline: "Story-Powered AI",
     benefits: [
+      "Intelligent personalization engine",
       "50% higher response rate",
-      "AI personalization engine",
-      "Written in 30 seconds",
+      "Crafted in 30 seconds autonomously",
     ],
     clickable: true,
     path: "/cover-letter-generator",
@@ -69,14 +70,14 @@ const FEATURES = [
   {
     icon: Search,
     iconBg: "from-emerald-500/90 to-cyan-400/70",
-    title: "Smart Job Finder",
+    title: "Job Discovery Agent",
     description:
-      "AI discovers jobs from exclusive networks. Get matched before others see roles.",
+      "Scans exclusive networks to find hidden opportunities before competitors see them.",
     tagline: "Opportunity Hunter",
     benefits: [
-      "70% more jobs than competitors",
-      "AI predicts perfect culture fit",
-      "Find roles 2-3 days early",
+      "70% more opportunities",
+      "Predicts perfect culture fit",
+      "Finds roles 2-3 days earlier",
     ],
     clickable: true,
     path: "/job-finder",
@@ -85,14 +86,13 @@ const FEATURES = [
   {
     icon: Zap,
     iconBg: "from-yellow-400/80 to-orange-500/60",
-    title: "One-Click Tailoring",
-    description:
-      "Paste job posting; AI creates perfect application in 30 seconds. 90% faster than manual.",
+    title: "Instant Tailoring Agent",
+    description:"Creates perfectly tailored applications in 30 seconds, 90% faster than manual.",
     tagline: "30-Second Applications",
     benefits: [
-      "90% faster than manual",
-      "AI reads job requirements",
-      "Perfect resume + cover letter",
+      "90% faster than manual tailoring",
+      "Reads job requirements instantly",
+      "Delivers perfect resume + cover letter",
     ],
     clickable: true,
     path: "/one-click-tailoring",
@@ -103,12 +103,12 @@ const FEATURES = [
     iconBg: "from-purple-500/90 to-indigo-600/60",
     title: "Auto-Apply Agent",
     description:
-      "Your AI clone applies to perfect matches 24/7. Wake up to interview invites daily.",
+      "Applies to matched opportunities 24/7, managing deadlines so you never miss out.",
     tagline: "Never-Sleep Agent",
     label: "Coming Soon",
     benefits: [
-      "AI applies to 50+ jobs weekly",
-      "Never miss deadlines again",
+      "Applies to 50+ jobs weekly",
+      "Never misses deadlines again",
       "Focus on interviews only",
     ],
     comingSoon: true,
@@ -118,27 +118,29 @@ const FEATURES = [
   },
 ] as const;
 
+
 // **ENHANCED: Success-focused stats with stronger proof points**
 const STATS = [
   {
     value: "95%",
-    label: "ATS Pass Rate",
+    label: "Agent Success Rate",
     from: "from-green-400",
     to: "to-green-500",
   },
   {
     value: "5x",
-    label: "More Interviews",
+    label: "Interview Acceleration",
     from: "from-blue-400",
     to: "to-blue-600",
   },
   {
     value: "30sec",
-    label: "Application Time",
+    label: "Agent Activation",
     from: "from-purple-400",
     to: "to-pink-500",
   },
 ] as const;
+
 
 // Simplified animation variants
 const containerVariants: Variants = {
@@ -152,6 +154,7 @@ const containerVariants: Variants = {
   },
 };
 
+
 const cardVariants: Variants = {
   hidden: { opacity: 0, y: 10 },
   show: {
@@ -160,6 +163,7 @@ const cardVariants: Variants = {
     transition: { duration: 0.3, ease: "easeOut" },
   },
 };
+
 
 // Optimized Feature Card with reduced complexity
 const FeatureCard = memo(
@@ -174,11 +178,13 @@ const FeatureCard = memo(
   }) => {
     const Icon = feature.icon;
 
+
     const handleClick = useCallback(() => {
       if (feature.clickable) {
         onFeatureClick(feature.path, feature.implemented);
       }
     }, [feature.clickable, feature.path, feature.implemented, onFeatureClick]);
+
 
     return (
       <motion.div
@@ -211,6 +217,7 @@ const FeatureCard = memo(
             </div>
           )}
 
+
           {/* Icon */}
           <div
             className={`inline-flex ${isMobile ? "p-3" : "p-4 md:p-5"} ${
@@ -223,6 +230,7 @@ const FeatureCard = memo(
               className={`${isMobile ? "w-5 h-5" : "w-6 h-6 md:w-7 md:h-7"}`}
             />
           </div>
+
 
           {/* Title */}
           <h3
@@ -237,6 +245,7 @@ const FeatureCard = memo(
             {feature.title}
           </h3>
 
+
           {/* **FIXED: Shorter description with proper line limiting** */}
           <p
             className={`text-muted-foreground ${
@@ -245,6 +254,7 @@ const FeatureCard = memo(
           >
             {feature.description}
           </p>
+
 
           {/* Benefits */}
           <ul
@@ -273,6 +283,7 @@ const FeatureCard = memo(
 );
 FeatureCard.displayName = "FeatureCard";
 
+
 // Optimized Mobile Carousel with better performance
 const MobileCarousel = memo(
   ({
@@ -286,6 +297,7 @@ const MobileCarousel = memo(
     const intervalRef = useRef<NodeJS.Timeout>();
     const [isUserScrolling, setIsUserScrolling] = useState(false);
 
+
     useEffect(() => {
       const startAutoScroll = () => {
         intervalRef.current = setInterval(() => {
@@ -293,6 +305,7 @@ const MobileCarousel = memo(
             const { scrollLeft, scrollWidth, clientWidth } = scrollRef.current;
             const maxScroll = scrollWidth - clientWidth;
             const cardWidth = 320 + 16;
+
 
             if (scrollLeft >= maxScroll - 10) {
               scrollRef.current.scrollTo({ left: 0, behavior: "smooth" });
@@ -307,6 +320,7 @@ const MobileCarousel = memo(
         }, 4000);
       };
 
+
       startAutoScroll();
       return () => {
         if (intervalRef.current) {
@@ -315,6 +329,7 @@ const MobileCarousel = memo(
       };
     }, [isUserScrolling]);
 
+
     const handleScrollStart = useCallback(() => {
       setIsUserScrolling(true);
       if (intervalRef.current) {
@@ -322,10 +337,12 @@ const MobileCarousel = memo(
       }
     }, []);
 
+
     const handleScrollEnd = useCallback(() => {
       const timer = setTimeout(() => setIsUserScrolling(false), 2000);
       return () => clearTimeout(timer);
     }, []);
+
 
     return (
       <div className="relative">
@@ -357,6 +374,7 @@ const MobileCarousel = memo(
 );
 MobileCarousel.displayName = "MobileCarousel";
 
+
 // Simplified Stats Component
 const StatsSection = memo(() => (
   <div className="mt-12 md:mt-20 bg-background/80 backdrop-blur-sm border border-white/10 rounded-xl px-4 md:px-8 py-4 md:py-10">
@@ -378,10 +396,12 @@ const StatsSection = memo(() => (
 ));
 StatsSection.displayName = "StatsSection";
 
+
 const Features = memo(() => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+
 
   const handleFeatureClick = useCallback(
     (path: string, implemented = false) => {
@@ -396,10 +416,12 @@ const Features = memo(() => {
         return;
       }
 
+
       if (!user) {
         navigate("/auth");
         return;
       }
+
 
       if (!implemented) {
         toast({
@@ -411,10 +433,12 @@ const Features = memo(() => {
         return;
       }
 
+
       navigate(path);
     },
     [user, navigate, toast]
   );
+
 
   return (
     <section
@@ -426,19 +450,21 @@ const Features = memo(() => {
         <div className="absolute right-[10vw] bottom-[7vw] w-60 h-44 bg-purple-500/5 rounded-3xl blur-2xl" />
       </div>
 
+
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <div className="text-center max-w-3xl mx-auto mb-12 md:mb-16">
           <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-4 md:mb-6 leading-tight">
-            AI-Powered Features for{" "}
+            Intelligent Agents Working for Your{" "}
             <span className="bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-              Career Success
+              Success
             </span>
           </h2>
           <p className="text-sm sm:text-base md:text-lg lg:text-xl text-muted-foreground px-4">
-            Revolutionary AI technology that gives you the competitive edge to
-            land your dream job faster than ever
+            Autonomous AI agents that work 24/7 to optimize applications,
+            discover opportunities, and accelerate your career
           </p>
         </div>
+
 
         <motion.div
           variants={containerVariants}
@@ -453,6 +479,7 @@ const Features = memo(() => {
             />
           </div>
 
+
           <div className="hidden sm:grid md:hidden grid-cols-2 gap-4">
             {FEATURES.map((feature) => (
               <FeatureCard
@@ -462,6 +489,7 @@ const Features = memo(() => {
               />
             ))}
           </div>
+
 
           <div className="hidden md:grid lg:grid-cols-3 md:grid-cols-2 gap-6 lg:gap-8">
             {FEATURES.map((feature) => (
@@ -474,11 +502,13 @@ const Features = memo(() => {
           </div>
         </motion.div>
 
+
         <StatsSection />
       </div>
     </section>
   );
 });
+
 
 Features.displayName = "Features";
 export default Features;

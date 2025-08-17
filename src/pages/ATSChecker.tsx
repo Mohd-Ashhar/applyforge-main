@@ -1,4 +1,11 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, {
+  useState,
+  useRef,
+  useEffect,
+  useMemo,
+  useCallback,
+  memo,
+} from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -59,10 +66,32 @@ import {
   BarChart3,
   Award,
   RefreshCw,
+  Brain,
+  Scan,
+  Bot,
+  Search,
+  Eye,
+  Home,
+  ArrowRight,
+  Star,
+  Crown,
+  Activity,
+  FileSearch,
+  Users,
+  ChevronRight,
+  Download,
+  Trash2,
+  Settings,
+  Palette,
+  Wand2,
+  Briefcase,
+  User,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUsageTracking } from "@/hooks/useUsageTracking";
 import { supabase } from "@/integrations/supabase/client";
+import DashboardHeader from "@/components/DashboardHeader";
+import UserAvatar from "@/components/header/UserAvatar";
 
 const atsCheckerSchema = z.object({
   jobDescription: z
@@ -78,238 +107,569 @@ interface ATSResult {
   feedback: string;
 }
 
-// Enhanced Loading Overlay with ATS-specific stages
-const ATSLoadingOverlay = ({
-  show,
-  stage = 0,
-}: {
-  show: boolean;
-  stage?: number;
-}) => {
-  const stages = [
-    "Parsing your resume content...",
-    "Analyzing job requirements...",
-    "Checking ATS compatibility...",
-    "Scoring keyword matches...",
-    "Identifying skill gaps...",
-    "Generating improvement recommendations...",
-  ];
+// **MOBILE-ENHANCED AI AGENT LOADING EXPERIENCE**
+const ATSAgentLoadingOverlay = memo(
+  ({ show, stage = 0 }: { show: boolean; stage?: number }) => {
+    const agentMessages = [
+      "🔍 Scanning your resume structure...",
+      "🧠 Understanding job requirements...",
+      "⚡ Running ATS compatibility checks...",
+      "📊 Analyzing keyword density...",
+      "🎯 Identifying optimization opportunities...",
+      "✨ Preparing personalized recommendations...",
+    ];
 
-  return (
-    <AnimatePresence>
-      {show && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.3 }}
-          className="fixed inset-0 z-[999] flex flex-col items-center justify-center backdrop-blur-lg bg-background/80"
-        >
+    return (
+      <AnimatePresence>
+        {show && (
           <motion.div
-            className="w-24 h-24 md:w-32 md:h-32 rounded-full bg-gradient-to-br from-green-500 via-blue-500 to-purple-600 shadow-2xl"
-            animate={{
-              scale: [1, 1.2, 1],
-              rotate: [0, 180, 360],
-            }}
-            transition={{
-              duration: 2,
-              repeat: Infinity,
-              ease: "easeInOut",
-            }}
-          />
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="mt-6 text-center"
-          >
-            <p className="text-sm text-muted-foreground tracking-wide mb-4">
-              {stages[stage] || stages[0]}
-            </p>
-            <Progress value={(stage + 1) * 16.67} className="w-64 h-2" />
-            <p className="text-xs text-muted-foreground mt-2">
-              {Math.round((stage + 1) * 16.67)}% Complete
-            </p>
-          </motion.div>
-
-          <motion.div
-            className="flex gap-1 mt-4"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ delay: 0.4 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            className="fixed inset-0 z-[999] flex flex-col items-center justify-center backdrop-blur-lg bg-background/90 p-4"
           >
-            {[0, 1, 2].map((i) => (
+            {/* Agent Avatar with Scanning Animation */}
+            <motion.div
+              className="relative mb-6 sm:mb-8"
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ duration: 0.6 }}
+            >
               <motion.div
-                key={i}
-                className="w-2 h-2 bg-green-500 rounded-full"
-                animate={{ y: [0, -10, 0] }}
+                className="w-20 h-20 sm:w-24 sm:h-24 md:w-32 md:h-32 rounded-full bg-gradient-to-br from-emerald-500/20 via-green-500/15 to-teal-500/20 border border-emerald-500/20 flex items-center justify-center backdrop-blur-xl"
+                animate={{
+                  scale: [1, 1.1, 1],
+                  rotate: [0, 180, 360],
+                }}
                 transition={{
-                  duration: 0.8,
+                  duration: 3,
                   repeat: Infinity,
-                  delay: i * 0.2,
                   ease: "easeInOut",
                 }}
-              />
-            ))}
+              >
+                <Shield className="w-8 h-8 sm:w-10 sm:h-10 md:w-16 md:h-16 text-emerald-400" />
+
+                {/* Scanning rings */}
+                <motion.div
+                  className="absolute inset-0 rounded-full border-2 border-emerald-400/30"
+                  animate={{
+                    scale: [1, 1.5, 2],
+                    opacity: [0.8, 0.3, 0],
+                  }}
+                  transition={{
+                    duration: 2,
+                    repeat: Infinity,
+                    ease: "easeOut",
+                  }}
+                />
+              </motion.div>
+            </motion.div>
+
+            {/* Agent Status */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="text-center space-y-3 sm:space-y-4 max-w-sm sm:max-w-md"
+            >
+              <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-white">
+                ATS Screening Agent
+              </h3>
+              <p className="text-sm sm:text-base md:text-lg text-emerald-400 font-medium leading-relaxed">
+                {agentMessages[stage] || agentMessages[0]}
+              </p>
+
+              <div className="space-y-2 sm:space-y-3">
+                <Progress
+                  value={(stage + 1) * 16.67}
+                  className="w-full max-w-80 h-2 sm:h-3 bg-slate-700/50 mx-auto"
+                />
+                <p className="text-xs sm:text-sm text-slate-400">
+                  {Math.round((stage + 1) * 16.67)}% Complete • Analyzing with
+                  AI precision
+                </p>
+              </div>
+            </motion.div>
+
+            {/* Security Badge */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.8 }}
+              className="mt-6 sm:mt-8 flex items-center gap-2 text-xs text-slate-400 bg-slate-800/30 px-3 sm:px-4 py-2 rounded-full backdrop-blur-sm border border-slate-700/50"
+            >
+              <Shield className="w-3 h-3 sm:w-4 sm:h-4 text-emerald-400 flex-shrink-0" />
+              <span className="text-xs sm:text-sm">
+                Your data is encrypted and processed securely
+              </span>
+            </motion.div>
+
+            {/* Floating particles */}
+            <div className="absolute inset-0 overflow-hidden pointer-events-none">
+              {[...Array(6)].map((_, i) => (
+                <motion.div
+                  key={i}
+                  className="absolute w-1 h-1 sm:w-2 sm:h-2 bg-emerald-400/30 rounded-full"
+                  animate={{
+                    x: [0, 100, -100, 0],
+                    y: [0, -100, 100, 0],
+                    opacity: [0, 1, 0],
+                  }}
+                  transition={{
+                    duration: 8,
+                    repeat: Infinity,
+                    delay: i * 1.3,
+                    ease: "easeInOut",
+                  }}
+                  style={{
+                    left: `${20 + i * 10}%`,
+                    top: `${30 + i * 8}%`,
+                  }}
+                />
+              ))}
+            </div>
           </motion.div>
+        )}
+      </AnimatePresence>
+    );
+  }
+);
 
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.6 }}
-            className="mt-6 flex items-center gap-2 text-xs text-muted-foreground"
-          >
-            <Shield className="w-4 h-4" />
-            <span>Your resume data is encrypted and secure</span>
-          </motion.div>
-        </motion.div>
-      )}
-    </AnimatePresence>
-  );
-};
+ATSAgentLoadingOverlay.displayName = "ATSAgentLoadingOverlay";
 
-// Enhanced File Upload Component
-const FileUploadArea = ({
-  onFileSelect,
-  selectedFile,
-  error,
-}: {
-  onFileSelect: (file: File) => void;
-  selectedFile: File | null;
-  error?: boolean;
-}) => {
-  const [dragOver, setDragOver] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+// **MOBILE-ENHANCED AI AGENT FILE UPLOAD**
+const AgentFileUploadArea = memo(
+  ({
+    onFileSelect,
+    selectedFile,
+    error,
+  }: {
+    onFileSelect: (file: File) => void;
+    selectedFile: File | null;
+    error?: boolean;
+  }) => {
+    const [dragOver, setDragOver] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    setDragOver(true);
-  };
+    const handleDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+      e.preventDefault();
+      setDragOver(true);
+    }, []);
 
-  const handleDragLeave = () => setDragOver(false);
+    const handleDragLeave = useCallback(() => setDragOver(false), []);
 
-  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    setDragOver(false);
+    const handleDrop = useCallback(
+      (e: React.DragEvent<HTMLDivElement>) => {
+        e.preventDefault();
+        setDragOver(false);
 
-    const files = Array.from(e.dataTransfer.files);
-    const validFile = files.find((file) =>
-      [
-        "application/pdf",
-        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-      ].includes(file.type)
+        const files = Array.from(e.dataTransfer.files);
+        const validFile = files.find((file) =>
+          [
+            "application/pdf",
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+          ].includes(file.type)
+        );
+
+        if (validFile) {
+          onFileSelect(validFile);
+        }
+      },
+      [onFileSelect]
     );
 
-    if (validFile) {
-      onFileSelect(validFile);
-    }
-  };
+    const formatFileSize = useCallback((bytes: number) => {
+      return bytes < 1024 * 1024
+        ? `${(bytes / 1024).toFixed(1)} KB`
+        : `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+    }, []);
 
-  const formatFileSize = (bytes: number) => {
-    return bytes < 1024 * 1024
-      ? `${(bytes / 1024).toFixed(1)} KB`
-      : `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-  };
+    const handleFileChange = useCallback(
+      (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (
+          file &&
+          (file.type === "application/pdf" || file.name.endsWith(".docx"))
+        ) {
+          onFileSelect(file);
+        }
+      },
+      [onFileSelect]
+    );
 
-  return (
-    <div className="space-y-2">
+    return (
       <motion.div
         className={`
-          relative border-2 border-dashed rounded-lg p-4 md:p-6 text-center cursor-pointer transition-colors
-          ${
-            dragOver
-              ? "border-primary bg-primary/5"
-              : "border-border hover:border-primary/50"
-          }
-          ${error ? "border-destructive" : ""}
-          ${selectedFile ? "border-green-500 bg-green-50/5" : ""}
-        `}
+        relative border-2 border-dashed rounded-xl p-4 sm:p-6 md:p-8 text-center cursor-pointer transition-all duration-300
+        ${
+          dragOver
+            ? "border-emerald-400 bg-emerald-500/5 scale-105"
+            : selectedFile
+            ? "border-emerald-500/40 bg-emerald-500/5"
+            : "border-slate-600 hover:border-emerald-400/60 hover:bg-emerald-500/5"
+        }
+        ${error ? "border-red-400 bg-red-500/5" : ""}
+      `}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
         onClick={() => fileInputRef.current?.click()}
-        whileHover={{ scale: 1.01 }}
-        whileTap={{ scale: 0.99 }}
+        whileHover={{ scale: dragOver ? 1.05 : 1.02 }}
+        whileTap={{ scale: 0.98 }}
       >
         <input
           ref={fileInputRef}
           type="file"
           accept=".pdf,.docx"
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-            const file = e.target.files?.[0];
-            if (file) {
-              if (
-                file.type === "application/pdf" ||
-                file.name.endsWith(".docx")
-              ) {
-                onFileSelect(file);
-              }
-            }
-          }}
+          onChange={handleFileChange}
           className="hidden"
           id="resume-upload"
         />
 
         {selectedFile ? (
           <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="flex items-center justify-center gap-2 md:gap-3"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="space-y-3 sm:space-y-4"
           >
-            <FileCheck className="w-6 h-6 md:w-8 md:h-8 text-green-500 flex-shrink-0" />
-            <div className="text-left">
-              <p className="font-medium text-green-700 text-sm md:text-base truncate max-w-[200px] md:max-w-none">
-                {selectedFile.name}
+            <div className="mx-auto w-12 h-12 sm:w-16 sm:h-16 bg-emerald-500/20 rounded-xl flex items-center justify-center">
+              <FileCheck className="w-6 h-6 sm:w-8 sm:h-8 text-emerald-400" />
+            </div>
+            <div className="space-y-1 sm:space-y-2">
+              <p className="font-semibold text-emerald-400 text-sm sm:text-base md:text-lg">
+                Resume Ready for Analysis! ✨
               </p>
-              <p className="text-xs md:text-sm text-muted-foreground">
-                {formatFileSize(selectedFile.size)} • Click to change
+              <p className="text-xs sm:text-sm text-slate-400 truncate max-w-[250px] sm:max-w-xs mx-auto">
+                {selectedFile.name} • {formatFileSize(selectedFile.size)}
+              </p>
+              <p className="text-xs text-slate-500">
+                Click to select a different file
               </p>
             </div>
           </motion.div>
         ) : (
-          <>
-            <Upload className="w-6 h-6 md:w-8 md:h-8 mx-auto mb-2 text-muted-foreground" />
-            <p className="text-sm font-medium">
-              Drop your resume here or click to browse
-            </p>
-            <p className="text-xs text-muted-foreground mt-1">
-              Supports PDF, DOCX • Max 10MB
-            </p>
-          </>
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="space-y-3 sm:space-y-4"
+          >
+            <div className="mx-auto w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-br from-emerald-500/20 to-teal-500/20 rounded-xl flex items-center justify-center border border-emerald-500/20">
+              <Upload className="w-6 h-6 sm:w-8 sm:h-8 text-emerald-400" />
+            </div>
+            <div className="space-y-2 sm:space-y-4">
+              <p className="font-semibold text-white text-sm sm:text-base md:text-lg">
+                Upload Your Resume
+              </p>
+              <p className="text-xs sm:text-sm text-slate-400">
+                Drop your resume here or click to browse
+              </p>
+              <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-4 text-xs text-slate-500">
+                <Badge
+                  variant="outline"
+                  className="border-slate-600 text-slate-400 text-xs"
+                >
+                  PDF
+                </Badge>
+                <Badge
+                  variant="outline"
+                  className="border-slate-600 text-slate-400 text-xs"
+                >
+                  DOCX
+                </Badge>
+                <span className="whitespace-nowrap">Max 10MB</span>
+              </div>
+            </div>
+          </motion.div>
         )}
 
         {dragOver && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="absolute inset-0 bg-primary/10 border-2 border-primary rounded-lg flex items-center justify-center"
+            className="absolute inset-0 bg-emerald-500/10 border-2 border-emerald-400 rounded-xl flex items-center justify-center backdrop-blur-sm"
           >
-            <p className="text-primary font-medium">Drop your resume here!</p>
+            <div className="text-center">
+              <Zap className="w-6 h-6 sm:w-8 sm:h-8 text-emerald-400 mx-auto mb-2" />
+              <p className="text-emerald-400 font-semibold text-sm sm:text-base">
+                Drop your resume here! ⚡
+              </p>
+            </div>
           </motion.div>
         )}
       </motion.div>
+    );
+  }
+);
 
-      {error && (
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="text-sm text-destructive flex items-center gap-1"
+AgentFileUploadArea.displayName = "AgentFileUploadArea";
+
+// **MOBILE-ENHANCED AI AGENT RESULTS COMPONENT**
+const AgentAnalysisResults = memo(
+  ({
+    results,
+    onNewAnalysis,
+    onImproveResume,
+  }: {
+    results: ATSResult;
+    onNewAnalysis: () => void;
+    onImproveResume: () => void;
+  }) => {
+    const getScoreLevel = useCallback((score: string) => {
+      const numScore = parseInt(score.replace("%", ""));
+      if (numScore >= 80)
+        return {
+          level: "excellent",
+          color: "emerald",
+          bgClass: "bg-gradient-to-br from-emerald-500/5 to-emerald-600/10",
+          borderClass: "border-emerald-500/20 hover:border-emerald-400/40",
+          textClass: "text-emerald-400",
+          gradientClass: "bg-gradient-to-r from-emerald-400 to-emerald-600",
+          strokeClass: "stroke-emerald-400",
+          message: "Outstanding ATS compatibility! 🚀",
+        };
+      if (numScore >= 60)
+        return {
+          level: "good",
+          color: "blue",
+          bgClass: "bg-gradient-to-br from-blue-500/5 to-blue-600/10",
+          borderClass: "border-blue-500/20 hover:border-blue-400/40",
+          textClass: "text-blue-400",
+          gradientClass: "bg-gradient-to-r from-blue-400 to-blue-600",
+          strokeClass: "stroke-blue-400",
+          message: "Good foundation, with room for optimization 📈",
+        };
+      return {
+        level: "needs-work",
+        color: "amber",
+        bgClass: "bg-gradient-to-br from-amber-500/5 to-amber-600/10",
+        borderClass: "border-amber-500/20 hover:border-amber-400/40",
+        textClass: "text-amber-400",
+        gradientClass: "bg-gradient-to-r from-amber-400 to-amber-600",
+        strokeClass: "stroke-amber-400",
+        message: "Significant improvements recommended 🎯",
+      };
+    }, []);
+
+    const scoreInfo = getScoreLevel(results.matchScore);
+    const scoreValue = parseInt(results.matchScore.replace("%", ""));
+
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6 }}
+        className="space-y-6 sm:space-y-8"
+      >
+        {/* Agent Completion Header */}
+        <div className="text-center space-y-3 sm:space-y-4">
+          <motion.div
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ delay: 0.2, type: "spring" }}
+            className="mx-auto w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-emerald-500/20 via-green-500/15 to-teal-500/20 rounded-full flex items-center justify-center border border-emerald-500/20 backdrop-blur-xl"
+          >
+            <Shield className="w-8 h-8 sm:w-10 sm:h-10 text-emerald-400" />
+          </motion.div>
+          <div className="space-y-2">
+            <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-white">
+              Analysis Complete! 🎯
+            </h2>
+            <p className="text-slate-300 text-sm sm:text-base md:text-lg max-w-lg mx-auto">
+              Your ATS Screening Agent has finished the analysis
+            </p>
+          </div>
+        </div>
+
+        {/* Score Card - FIXED className */}
+        <Card
+          className={`${scoreInfo.bgClass} backdrop-blur-xl border ${scoreInfo.borderClass} transition-all duration-300`}
         >
-          <AlertCircle className="w-4 h-4 flex-shrink-0" />
-          Please upload your resume
-        </motion.p>
-      )}
-    </div>
-  );
-};
+          <CardContent className="p-4 sm:p-6 md:p-8">
+            <div className="text-center space-y-4 sm:space-y-6">
+              <div className="space-y-2">
+                <h3 className="text-sm sm:text-base md:text-lg font-semibold text-slate-300">
+                  ATS Compatibility Score
+                </h3>
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ delay: 0.3, type: "spring" }}
+                  className={`text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-bold ${scoreInfo.gradientClass} bg-clip-text text-transparent`}
+                >
+                  {results.matchScore}
+                </motion.div>
+                <p
+                  className={`${scoreInfo.textClass} font-medium text-sm sm:text-base md:text-lg`}
+                >
+                  {scoreInfo.message}
+                </p>
+              </div>
 
-const ATSChecker = () => {
+              {/* Progress Ring Visualization */}
+              <div className="relative w-24 h-24 sm:w-32 sm:h-32 mx-auto">
+                <svg
+                  className="w-24 h-24 sm:w-32 sm:h-32 transform -rotate-90"
+                  viewBox="0 0 36 36"
+                >
+                  <path
+                    className="stroke-slate-700"
+                    strokeWidth="3"
+                    fill="none"
+                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                  />
+                  <motion.path
+                    className={scoreInfo.strokeClass}
+                    strokeWidth="3"
+                    strokeLinecap="round"
+                    fill="none"
+                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                    initial={{ strokeDasharray: "0 100" }}
+                    animate={{ strokeDasharray: `${scoreValue} 100` }}
+                    transition={{ duration: 2, delay: 0.5, ease: "easeOut" }}
+                  />
+                </svg>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <span
+                    className={`text-lg sm:text-2xl font-bold ${scoreInfo.textClass}`}
+                  >
+                    {scoreValue}%
+                  </span>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-2 sm:pt-4">
+                <Button
+                  onClick={onImproveResume}
+                  className="flex-1 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-semibold h-11 sm:h-12 text-sm sm:text-base"
+                >
+                  <Bot className="w-4 h-4 sm:w-5 sm:h-5 mr-2 flex-shrink-0" />
+                  <span className="truncate">
+                    Optimize with AI Resume Tailor
+                  </span>
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={onNewAnalysis}
+                  className="flex-1 border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white h-11 sm:h-12 text-sm sm:text-base"
+                >
+                  <RefreshCw className="w-4 h-4 sm:w-5 sm:h-5 mr-2 flex-shrink-0" />
+                  <span className="truncate">Analyze Another Resume</span>
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Missing Skills */}
+        {results.missingSkills && results.missingSkills.length > 0 && (
+          <Card className="bg-gradient-to-br from-amber-500/5 to-orange-600/10 backdrop-blur-xl border border-amber-500/20 hover:border-amber-400/40 transition-all duration-300">
+            <CardHeader className="pb-4 sm:pb-6">
+              <CardTitle className="flex items-center gap-2 sm:gap-3 text-amber-400 text-sm sm:text-base md:text-lg">
+                <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 flex-shrink-0" />
+                <span className="truncate">Missing Keywords Detected</span>
+              </CardTitle>
+              <CardDescription className="text-slate-300 text-xs sm:text-sm">
+                The agent found these important keywords from the job
+                description that aren't in your resume
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-wrap gap-1.5 sm:gap-2 md:gap-3">
+                {results.missingSkills.map((skill, index) => (
+                  <motion.div
+                    key={index}
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: 0.1 * index }}
+                  >
+                    <Badge
+                      variant="outline"
+                      className="border-amber-500/40 text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 transition-colors px-2 sm:px-3 py-1 text-xs whitespace-nowrap flex-shrink-0"
+                    >
+                      <Search className="w-3 h-3 mr-1 sm:mr-2 flex-shrink-0" />
+                      <span className="truncate max-w-[100px] sm:max-w-none">
+                        {skill}
+                      </span>
+                    </Badge>
+                  </motion.div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Agent Recommendations */}
+        <Card className="bg-gradient-to-br from-blue-500/5 to-indigo-600/10 backdrop-blur-xl border border-blue-500/20 hover:border-blue-400/40 transition-all duration-300">
+          <CardHeader className="pb-4 sm:pb-6">
+            <CardTitle className="flex items-center gap-2 sm:gap-3 text-blue-400 text-sm sm:text-base md:text-lg">
+              <Brain className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 flex-shrink-0" />
+              <span className="truncate">AI Agent Recommendations</span>
+            </CardTitle>
+            <CardDescription className="text-slate-300 text-xs sm:text-sm">
+              Personalized optimization strategies from your ATS Screening Agent
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3 sm:space-y-4">
+              {results.feedback.split(". ").map((sentence, index) => {
+                if (sentence.trim() === "") return null;
+
+                if (sentence.includes(":")) {
+                  const [header, content] = sentence.split(":", 2);
+                  return (
+                    <motion.div
+                      key={index}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.1 * index }}
+                      className="space-y-2"
+                    >
+                      <h4 className="font-semibold text-blue-400 flex items-center gap-2 text-sm sm:text-base">
+                        <Star className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
+                        <span className="truncate">{header.trim()}:</span>
+                      </h4>
+                      {content && (
+                        <p className="text-slate-300 ml-4 sm:ml-6 leading-relaxed text-xs sm:text-sm">
+                          {content.trim()}
+                        </p>
+                      )}
+                    </motion.div>
+                  );
+                } else {
+                  return (
+                    <motion.div
+                      key={index}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.1 * index }}
+                      className="flex items-start gap-2 sm:gap-3 ml-4 sm:ml-6"
+                    >
+                      <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-blue-400 rounded-full mt-1.5 sm:mt-2 flex-shrink-0" />
+                      <p className="text-slate-300 leading-relaxed text-xs sm:text-sm">
+                        {sentence.trim()}.
+                      </p>
+                    </motion.div>
+                  );
+                }
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
+    );
+  }
+);
+
+AgentAnalysisResults.displayName = "AgentAnalysisResults";
+
+// **MAIN MOBILE-ENHANCED ATS SCREENING AGENT COMPONENT**
+const ATSScreeningAgent: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [loadingStage, setLoadingStage] = useState(0);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [results, setResults] = useState<ATSResult | null>(null);
-  const [saveAsDraft, setSaveAsDraft] = useState(false);
   const [industry, setIndustry] = useState("");
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -326,104 +686,64 @@ const ATSChecker = () => {
 
   const jobDescription = form.watch("jobDescription");
 
-  // Auto-save draft functionality
-  useEffect(() => {
-    if (saveAsDraft) {
-      const draftData = { jobDescription, industry };
-      localStorage.setItem("atsCheckerDraft", JSON.stringify(draftData));
-    }
-  }, [jobDescription, industry, saveAsDraft]);
+  // Calculate user name for personalized greeting
+  const userName = useMemo(() => {
+    if (!user) return "there";
+    return (
+      user.user_metadata?.full_name?.split(" ")?.[0] ||
+      user.email?.split("@")?.[0] ||
+      "there"
+    );
+  }, [user?.user_metadata?.full_name, user?.email]);
 
-  // Load draft on mount
-  useEffect(() => {
-    const draft = localStorage.getItem("atsCheckerDraft");
-    if (draft) {
-      try {
-        const draftData = JSON.parse(draft);
-        if (draftData.jobDescription) {
-          toast({
-            title: "Draft Found",
-            description:
-              "We found a saved draft. Click 'Load Draft' to restore it.",
-            action: (
-              <Button
-                size="sm"
-                onClick={() => {
-                  form.setValue(
-                    "jobDescription",
-                    draftData.jobDescription || ""
-                  );
-                  setIndustry(draftData.industry || "");
-                }}
-              >
-                Load Draft
-              </Button>
-            ),
-          });
-        }
-      } catch (error) {
-        console.error("Error loading draft:", error);
-      }
-    }
-  }, [toast, form]);
+  const industries = useMemo(
+    () => [
+      "Technology",
+      "Healthcare",
+      "Finance",
+      "Marketing",
+      "Sales",
+      "Education",
+      "Manufacturing",
+      "Retail",
+      "Consulting",
+      "Engineering",
+      "Design",
+      "Media",
+      "Legal",
+      "Real Estate",
+      "Other",
+    ],
+    []
+  );
 
-  const industries = [
-    "Technology",
-    "Healthcare",
-    "Finance",
-    "Marketing",
-    "Sales",
-    "Education",
-    "Manufacturing",
-    "Retail",
-    "Consulting",
-    "Engineering",
-    "Design",
-    "Media",
-    "Legal",
-    "Real Estate",
-    "Other",
-  ];
-
-  const simulateLoadingStages = () => {
+  const simulateLoadingStages = useCallback(() => {
     const stages = [0, 1, 2, 3, 4, 5];
     stages.forEach((stage, index) => {
       setTimeout(() => setLoadingStage(stage), index * 2500);
     });
-  };
+  }, []);
 
-  // Helper function to get current user version for optimistic locking
-  // FIXED: Helper function with proper error handling
+  // Helper function with proper error handling
   const getCurrentUserVersion = async (userId: string) => {
     try {
-      // Check if user_usage record exists first
       const { data, error } = await supabase
         .from("user_usage")
-        .select("*") // Select all columns to see what's available
+        .select("*")
         .eq("user_id", userId)
         .single();
 
       if (error) {
-        console.error("Error getting user usage record:", error);
-
-        // If no record exists, return 0 as default version
         if (error.code === "PGRST116") {
-          console.log("No user_usage record found, using default version 0");
           return 0;
         }
-
-        return 0; // Default version for any error
+        return 0;
       }
 
-      // Check if the version column exists on the returned data
       if (data && "version" in data && typeof data.version === "number") {
         return data.version;
       }
 
-      // If version column doesn't exist, return 0 as default
-      console.log(
-        "Version column not found in user_usage table, using default version 0"
-      );
       return 0;
     } catch (error) {
       console.error("Error in getCurrentUserVersion:", error);
@@ -431,7 +751,7 @@ const ATSChecker = () => {
     }
   };
 
-  const loadSampleData = () => {
+  const loadAgentExample = useCallback(() => {
     setIndustry("technology");
     form.setValue(
       "jobDescription",
@@ -462,13 +782,13 @@ Preferred Qualifications:
     );
 
     toast({
-      title: "Sample Data Loaded",
+      title: "Example Loaded! 🚀",
       description:
-        "Form filled with example data. Don't forget to upload your resume!",
+        "Agent training data loaded. Upload your resume to begin analysis!",
     });
-  };
+  }, [form, toast]);
 
-  const handleClearForm = () => {
+  const handleResetAgent = useCallback(() => {
     form.reset();
     setSelectedFile(null);
     setIndustry("");
@@ -476,17 +796,16 @@ Preferred Qualifications:
     localStorage.removeItem("atsCheckerDraft");
 
     toast({
-      title: "Form Cleared",
-      description: "All fields have been reset.",
+      title: "Agent Reset ✨",
+      description: "Ready for your next resume analysis!",
     });
-  };
+  }, [form, toast]);
 
-  // FIXED: Main handler with proper usage limit enforcement
   const onSubmit = async (formData: ATSCheckerForm) => {
     if (!selectedFile) {
       toast({
-        title: "File Required",
-        description: "Please select a resume file to check.",
+        title: "Resume Required 📄",
+        description: "Please upload your resume for the agent to analyze.",
         variant: "destructive",
       });
       return;
@@ -494,8 +813,8 @@ Preferred Qualifications:
 
     if (!user) {
       toast({
-        title: "Authentication Required",
-        description: "Please log in to use the ATS checker.",
+        title: "Authentication Required 🔐",
+        description: "Please log in to activate your ATS Screening Agent.",
         variant: "destructive",
       });
       navigate("/auth");
@@ -507,7 +826,6 @@ Preferred Qualifications:
     simulateLoadingStages();
 
     try {
-      // ✅ CRITICAL FIX: Check usage limits FIRST
       const currentVersion = await getCurrentUserVersion(user.id);
 
       const { data: usageData, error: usageError } = await supabase.rpc(
@@ -518,7 +836,7 @@ Preferred Qualifications:
           p_increment_amount: 1,
           p_current_version: currentVersion,
           p_audit_metadata: {
-            action: "ats_check",
+            action: "ats_screening_agent",
             industry: industry || "unspecified",
             file_type: selectedFile.type === "application/pdf" ? "pdf" : "docx",
             file_size: selectedFile.size,
@@ -527,20 +845,19 @@ Preferred Qualifications:
       );
 
       if (usageError) {
-        // Handle specific limit exceeded error
         if (usageError.message.includes("Usage limit exceeded")) {
           toast({
-            title: "Usage Limit Reached 📊",
+            title: "Agent Limit Reached 🤖",
             description:
-              "You've reached your ATS check limit for your current plan. Upgrade to continue analyzing unlimited resumes!",
+              "You've reached your ATS Screening Agent limit. Upgrade to activate unlimited screening!",
             variant: "destructive",
             action: (
               <Button
                 size="sm"
                 onClick={() => navigate("/pricing")}
-                className="bg-primary hover:bg-primary/90"
+                className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700"
               >
-                <TrendingUp className="w-4 h-4 mr-1" />
+                <Crown className="w-4 h-4 mr-1" />
                 Upgrade Plan
               </Button>
             ),
@@ -548,29 +865,24 @@ Preferred Qualifications:
           return;
         }
 
-        // Handle version conflict error
         if (usageError.message.includes("version_conflict")) {
           toast({
-            title: "Please Try Again",
-            description:
-              "Your usage data was updated by another session. Please try again.",
+            title: "Agent Sync Issue 🔄",
+            description: "Your agent data was updated. Please try again.",
             variant: "destructive",
           });
           return;
         }
 
-        // Handle other usage-related errors
         console.error("Usage increment error:", usageError);
         toast({
-          title: "Usage Check Failed",
-          description: "Unable to verify your usage limits. Please try again.",
+          title: "Agent Activation Failed ⚠️",
+          description:
+            "Unable to activate your ATS Screening Agent. Please try again.",
           variant: "destructive",
         });
         return;
       }
-
-      // ✅ Only proceed with ATS check if usage increment succeeded
-      console.log("Usage incremented successfully, proceeding with ATS check");
 
       // Convert file to base64
       const base64Resume = await new Promise<string>((resolve, reject) => {
@@ -592,7 +904,7 @@ Preferred Qualifications:
           },
           body: JSON.stringify({
             user_id: user.id,
-            feature: "ats_checks",
+            feature: "ats_screening_agent",
             resume: base64Resume,
             jobDescription: formData.jobDescription,
             industry: industry,
@@ -603,19 +915,18 @@ Preferred Qualifications:
 
       if (!response.ok) {
         throw new Error(
-          `Failed to check ATS compatibility: ${response.status} ${response.statusText}`
+          `Agent analysis failed: ${response.status} ${response.statusText}`
         );
       }
 
       const responseData = await response.json();
 
-      // Check if limit reached (legacy check for API response)
       if (responseData.allowed === false) {
         toast({
-          title: "Limit Reached",
+          title: "Agent Access Denied 🚫",
           description:
             responseData.message ||
-            "You've reached your limit for this feature.",
+            "Unable to access ATS Screening Agent with your current plan.",
           variant: "destructive",
         });
         return;
@@ -624,13 +935,8 @@ Preferred Qualifications:
       const result = responseData.results || responseData;
       setResults(result);
 
-      // Clear draft
-      localStorage.removeItem("atsCheckerDraft");
-
-      // Refresh usage data to get updated counts
       refreshUsage();
 
-      // Scroll to results section
       setTimeout(() => {
         resultsRef.current?.scrollIntoView({
           behavior: "smooth",
@@ -639,46 +945,22 @@ Preferred Qualifications:
       }, 100);
 
       toast({
-        title: "ATS Analysis Complete! 🎯",
-        description: "Your resume has been analyzed for ATS compatibility.",
+        title: "Agent Analysis Complete! 🎯",
+        description: "Your ATS Screening Agent has completed its analysis.",
         action: (
           <Button size="sm" onClick={() => navigate("/ai-resume-tailor")}>
-            <Edit className="w-4 h-4 mr-1" />
-            Improve Now
+            <Bot className="w-4 h-4 mr-1" />
+            Optimize Resume
           </Button>
         ),
       });
     } catch (error) {
-      console.error("Error checking ATS compatibility:", error);
-
-      // Enhanced error handling with specific messages
-      let errorTitle = "Analysis Failed";
-      let errorDescription =
-        "Failed to check ATS compatibility. Please try again.";
-
-      if (error.message.includes("Usage limit exceeded")) {
-        errorTitle = "Usage Limit Reached";
-        errorDescription =
-          "You've reached your ATS check limit for your current plan.";
-      } else if (
-        error.message.includes("403") ||
-        error.message.includes("Forbidden")
-      ) {
-        errorTitle = "Access Denied";
-        errorDescription =
-          "You don't have permission to use ATS checker with your current plan.";
-      } else if (
-        error.message.includes("Network") ||
-        error.message.includes("fetch")
-      ) {
-        errorTitle = "Connection Error";
-        errorDescription =
-          "Please check your internet connection and try again.";
-      }
+      console.error("Agent analysis error:", error);
 
       toast({
-        title: errorTitle,
-        description: errorDescription,
+        title: "Agent Error 🤖",
+        description:
+          "Your ATS Screening Agent encountered an issue. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -687,547 +969,393 @@ Preferred Qualifications:
     }
   };
 
-  const getScoreColor = (score: string) => {
-    const numScore = parseInt(score.replace("%", ""));
-    if (numScore >= 80) return "text-green-500";
-    if (numScore >= 60) return "text-yellow-500";
-    return "text-red-500";
-  };
-
-  const getScoreBgColor = (score: string) => {
-    const numScore = parseInt(score.replace("%", ""));
-    if (numScore >= 80) return "bg-green-500/20";
-    if (numScore >= 60) return "bg-yellow-500/20";
-    return "bg-red-500/20";
-  };
-
-  const getScoreGradient = (score: string) => {
-    const numScore = parseInt(score.replace("%", ""));
-    if (numScore >= 80) return "from-green-500 to-emerald-500";
-    if (numScore >= 60) return "from-yellow-500 to-orange-500";
-    return "from-red-500 to-pink-500";
-  };
-
   const getJobDescriptionWordCount = () =>
     jobDescription
       .trim()
       .split(/\s+/)
       .filter((word) => word.length > 0).length;
+
   const wordCount = getJobDescriptionWordCount();
 
   return (
     <TooltipProvider>
       <div className="min-h-screen bg-background">
-        <ATSLoadingOverlay show={isLoading} stage={loadingStage} />
+        <ATSAgentLoadingOverlay show={isLoading} stage={loadingStage} />
 
-        <div className="container mx-auto px-4 py-8 md:py-20">
-          <div className="max-w-4xl mx-auto">
-            <Link to="/">
-              <Button
-                variant="ghost"
-                className="mb-6 hover:bg-appforge-blue/10"
-              >
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to Home
-              </Button>
-            </Link>
+        {/* Header */}
+        <DashboardHeader />
 
-            <div className="text-center mb-8">
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="mb-6 p-4 rounded-xl w-fit mx-auto bg-appforge-blue/20 text-appforge-blue"
-              >
-                <Target className="w-8 h-8 md:w-12 md:h-12" />
-              </motion.div>
-
-              <motion.h1
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 }}
-                className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4"
-              >
-                ATS Resume{" "}
-                <span className="bg-gradient-to-r from-blue-500 to-purple-600 bg-clip-text text-transparent">
-                  Checker
-                </span>
-              </motion.h1>
-
-              <motion.p
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
-                className="text-lg md:text-xl text-muted-foreground px-4"
-              >
-                Check your resume's compatibility with Applicant Tracking
-                Systems
-              </motion.p>
-
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 }}
-                className="flex flex-col md:flex-row items-center justify-center gap-4 md:gap-6 mt-4 text-sm text-muted-foreground"
-              >
-                <div className="flex items-center gap-2">
-                  <Target className="w-4 h-4 text-green-500 flex-shrink-0" />
-                  <span>ATS Optimized</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <BarChart3 className="w-4 h-4 text-blue-500 flex-shrink-0" />
-                  <span>Detailed Analysis</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Award className="w-4 h-4 text-purple-500 flex-shrink-0" />
-                  <span>Score & Insights</span>
-                </div>
-              </motion.div>
-            </div>
-
+        {/* Main Content */}
+        <div className="container mx-auto px-4 py-6 sm:py-8 max-w-6xl">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.6 }}
+            className="space-y-6 sm:space-y-8"
+          >
+            {/* Back to Home Button */}
             <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4 }}
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
             >
-              <Card className="glass mb-8">
-                <CardHeader>
-                  <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-                    <div>
-                      <CardTitle className="text-lg md:text-xl lg:text-2xl flex items-center gap-2">
-                        <Target className="w-5 h-5 md:w-6 md:h-6 flex-shrink-0" />
-                        <span className="leading-tight">
-                          Analyze Your Resume
-                        </span>
-                      </CardTitle>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={loadSampleData}
-                            className="text-xs"
-                          >
-                            <Sparkles className="w-3 h-3 md:w-4 md:h-4 mr-1 md:mr-2" />
-                            Try Example
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          Load sample job data to test ATS checker
-                        </TooltipContent>
-                      </Tooltip>
-
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={handleClearForm}
-                        className="text-xs"
-                      >
-                        <RefreshCw className="w-3 h-3 md:w-4 md:h-4 mr-1 md:mr-2" />
-                        Clear All
-                      </Button>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <Form {...form}>
-                    <form
-                      onSubmit={form.handleSubmit(onSubmit)}
-                      className="space-y-6"
-                    >
-                      {/* Resume Upload */}
-                      <div className="space-y-2">
-                        <Label className="flex items-center gap-2">
-                          Upload Your Resume *
-                          <Tooltip>
-                            <TooltipTrigger>
-                              <Info className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>
-                                Upload your resume to analyze its ATS
-                                compatibility against the job description.
-                              </p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </Label>
-
-                        <FileUploadArea
-                          onFileSelect={setSelectedFile}
-                          selectedFile={selectedFile}
-                          error={!selectedFile}
-                        />
-                      </div>
-
-                      {/* Industry Selection */}
-                      <div className="space-y-2">
-                        <Label htmlFor="industry">Industry (Optional)</Label>
-                        <Select value={industry} onValueChange={setIndustry}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select industry for better analysis" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {industries.map((ind) => (
-                              <SelectItem key={ind} value={ind.toLowerCase()}>
-                                {ind}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      {/* Job Description */}
-                      <FormField
-                        control={form.control}
-                        name="jobDescription"
-                        render={({ field }) => (
-                          <FormItem>
-                            <div className="flex items-center justify-between">
-                              <FormLabel className="flex items-center gap-2">
-                                Job Description *
-                                <Tooltip>
-                                  <TooltipTrigger>
-                                    <Info className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                                  </TooltipTrigger>
-                                  <TooltipContent className="max-w-xs">
-                                    <p>
-                                      Paste the complete job posting to get
-                                      accurate ATS compatibility analysis and
-                                      keyword matching.
-                                    </p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </FormLabel>
-
-                              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                <span
-                                  className={
-                                    wordCount < 100
-                                      ? "text-destructive"
-                                      : wordCount > 200
-                                      ? "text-green-600"
-                                      : "text-yellow-600"
-                                  }
-                                >
-                                  {wordCount} words
-                                </span>
-                                {wordCount < 100 && (
-                                  <span className="text-destructive">
-                                    (min 100)
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                            <FormControl>
-                              <Textarea
-                                placeholder="Paste the complete job description here including requirements, responsibilities, and skills..."
-                                className="min-h-[200px]"
-                                {...field}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      {/* Submit Button */}
-                      <motion.div
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                      >
-                        <Button
-                          type="submit"
-                          className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white h-12 text-lg font-semibold shadow-lg"
-                          disabled={isLoading}
-                          size="lg"
-                        >
-                          {isLoading ? (
-                            <>
-                              <motion.div
-                                animate={{ rotate: 360 }}
-                                transition={{
-                                  duration: 1,
-                                  repeat: Infinity,
-                                  ease: "linear",
-                                }}
-                                className="mr-2"
-                              >
-                                <Target className="w-5 h-5" />
-                              </motion.div>
-                              Analyzing Resume...
-                            </>
-                          ) : (
-                            <>
-                              <Target className="w-5 h-5 mr-2" />
-                              Check ATS Compatibility
-                            </>
-                          )}
-                        </Button>
-                      </motion.div>
-
-                      {/* Trust Indicators */}
-                      <div className="bg-muted/30 rounded-lg p-4">
-                        <div className="flex flex-col md:flex-row items-center justify-center gap-4 md:gap-6 text-sm text-muted-foreground">
-                          <div className="flex items-center gap-2">
-                            <Shield className="w-5 h-5 md:w-4 md:h-4 text-green-500 flex-shrink-0" />
-                            <span>Secure Analysis</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Clock className="w-5 h-5 md:w-4 md:h-4 text-blue-500 flex-shrink-0" />
-                            <span>~30 sec analysis</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Zap className="w-5 h-5 md:w-4 md:h-4 text-purple-500 flex-shrink-0" />
-                            <span>AI Powered</span>
-                          </div>
-                        </div>
-                      </div>
-                    </form>
-                  </Form>
-                </CardContent>
-              </Card>
+              <Button
+                variant="outline"
+                onClick={() => navigate("/")}
+                className="border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white backdrop-blur-sm text-sm sm:text-base"
+              >
+                <Home className="w-4 h-4 mr-2" />
+                Back to Dashboard
+              </Button>
             </motion.div>
 
-            {/* Enhanced Results Section */}
-            <AnimatePresence>
-              {results && (
-                <motion.div
-                  className="space-y-6"
-                  ref={resultsRef}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5 }}
-                >
-                  {/* Success Header */}
-                  <div className="text-center mb-6">
-                    <motion.div
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      transition={{ delay: 0.2, type: "spring" }}
-                      className="mx-auto w-12 h-12 md:w-16 md:h-16 bg-gradient-to-br from-green-500 to-blue-500 rounded-full flex items-center justify-center mb-4"
-                    >
-                      <BarChart3 className="w-6 h-6 md:w-8 md:h-8 text-white" />
-                    </motion.div>
-                    <h2 className="text-xl md:text-2xl font-bold mb-2">
-                      ATS Analysis Complete! 📊
-                    </h2>
-                    <p className="text-muted-foreground px-4">
-                      Here's how your resume performs against ATS systems
-                    </p>
-                  </div>
-
-                  {/* Enhanced Match Score Card */}
+            {/* Hero Section - AI Agent Focused */}
+            <div className="text-center space-y-4 sm:space-y-6">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.6 }}
+                className="flex flex-col items-center gap-4 sm:gap-6"
+              >
+                <div className="space-y-3 sm:space-y-4">
                   <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.2 }}
+                    className="mx-auto w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-emerald-500/20 via-green-500/15 to-teal-500/20 rounded-full flex items-center justify-center border border-emerald-500/20 backdrop-blur-xl"
                   >
-                    <Card className="glass">
-                      <CardHeader>
-                        <CardTitle className="text-xl md:text-2xl text-appforge-blue flex items-center gap-3">
-                          <TrendingUp className="w-5 h-5 md:w-6 md:h-6 flex-shrink-0" />
-                          ATS Compatibility Score
+                    <Shield className="w-8 h-8 sm:w-10 sm:h-10 text-emerald-400" />
+                  </motion.div>
+
+                  <div className="flex items-center justify-center gap-2">
+                    <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30 text-xs sm:text-sm">
+                      <Sparkles className="w-3 h-3 mr-1" />
+                      AI Screening
+                    </Badge>
+                  </div>
+
+                  <motion.h1
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.3 }}
+                    className="text-2xl sm:text-3xl md:text-4xl lg:text-6xl font-bold text-white leading-tight"
+                  >
+                    ATS Screening{" "}
+                    <span className="bg-gradient-to-r from-emerald-400 via-teal-400 to-green-400 bg-clip-text text-transparent">
+                      Agent
+                    </span>
+                  </motion.h1>
+
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.4 }}
+                    className="space-y-2 sm:space-y-3"
+                  >
+                    <p className="text-lg sm:text-xl md:text-2xl text-slate-300 max-w-3xl mx-auto leading-relaxed">
+                      Hey{" "}
+                      <span className="text-emerald-400 font-semibold">
+                        {userName}
+                      </span>
+                      ! 👋
+                      <br />
+                      Your intelligent ATS agent is ready to analyze and
+                      optimize your resume
+                    </p>
+                    <p className="text-sm sm:text-base text-slate-400 max-w-2xl mx-auto">
+                      Get AI-powered insights on ATS compatibility, keyword
+                      optimization, and personalized improvement strategies
+                    </p>
+                  </motion.div>
+                </div>
+              </motion.div>
+
+              {/* Agent Capabilities */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.5 }}
+                className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-6 max-w-4xl mx-auto"
+              >
+                {[
+                  {
+                    icon: Scan,
+                    title: "Deep Resume Scan",
+                    desc: "Comprehensive ATS analysis",
+                  },
+                  {
+                    icon: Brain,
+                    title: "AI Intelligence",
+                    desc: "Smart keyword matching",
+                  },
+                  {
+                    icon: Target,
+                    title: "Precision Scoring",
+                    desc: "Accurate compatibility rating",
+                  },
+                ].map((capability, index) => (
+                  <motion.div
+                    key={capability.title}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.6 + index * 0.1 }}
+                    className="p-3 sm:p-4 rounded-xl bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl border border-slate-700/50"
+                  >
+                    <capability.icon className="w-6 h-6 sm:w-8 sm:h-8 text-emerald-400 mx-auto mb-2 sm:mb-3" />
+                    <h3 className="font-semibold text-white mb-1 sm:mb-2 text-xs sm:text-sm">
+                      {capability.title}
+                    </h3>
+                    <p className="text-xs text-slate-400">{capability.desc}</p>
+                  </motion.div>
+                ))}
+              </motion.div>
+            </div>
+
+            {/* Agent Interface */}
+            {!results && (
+              <motion.div
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.7 }}
+              >
+                <Card className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl border border-slate-700/50 hover:border-emerald-500/30 transition-all duration-300">
+                  <CardHeader className="pb-4 sm:pb-6">
+                    <div className="flex flex-col gap-3 sm:gap-4">
+                      <div>
+                        <CardTitle className="text-lg sm:text-xl md:text-2xl flex items-center gap-2 sm:gap-3 text-white">
+                          <Bot className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-400 flex-shrink-0" />
+                          <span className="truncate">Configure Your Agent</span>
                         </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div
-                          className={`text-center p-6 md:p-8 rounded-xl ${getScoreBgColor(
-                            results.matchScore
-                          )} border-2 border-opacity-20`}
+                        <CardDescription className="text-slate-400 mt-2 text-sm sm:text-base">
+                          Provide the job details and your resume for
+                          intelligent ATS analysis
+                        </CardDescription>
+                      </div>
+                      <div className="flex flex-col sm:flex-row gap-2">
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={loadAgentExample}
+                              className="border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white text-xs sm:text-sm"
+                            >
+                              <Sparkles className="w-4 h-4 mr-2 flex-shrink-0" />
+                              <span className="truncate">Try Example</span>
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            Load sample data to test your ATS Screening Agent
+                          </TooltipContent>
+                        </Tooltip>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={handleResetAgent}
+                          className="border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white text-xs sm:text-sm"
                         >
-                          <motion.div
-                            initial={{ scale: 0 }}
-                            animate={{ scale: 1 }}
-                            transition={{ delay: 0.3, type: "spring" }}
-                            className={`text-5xl md:text-7xl font-bold mb-3 bg-gradient-to-r ${getScoreGradient(
-                              results.matchScore
-                            )} bg-clip-text text-transparent`}
+                          <RefreshCw className="w-4 h-4 mr-2 flex-shrink-0" />
+                          <span className="truncate">Reset Agent</span>
+                        </Button>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <Form {...form}>
+                      <form
+                        onSubmit={form.handleSubmit(onSubmit)}
+                        className="space-y-6 sm:space-y-8"
+                      >
+                        {/* Resume Upload */}
+                        <div className="space-y-2 sm:space-y-3">
+                          <Label className="flex items-center gap-2 text-sm sm:text-base font-semibold text-white">
+                            <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-400 flex-shrink-0" />
+                            <span className="truncate">
+                              Upload Your Resume *
+                            </span>
+                            <Tooltip>
+                              <TooltipTrigger>
+                                <Info className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                              </TooltipTrigger>
+                              <TooltipContent className="max-w-xs">
+                                <p>
+                                  Your agent will analyze this resume against
+                                  the job requirements for ATS compatibility
+                                </p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </Label>
+                          <AgentFileUploadArea
+                            onFileSelect={setSelectedFile}
+                            selectedFile={selectedFile}
+                            error={!selectedFile}
+                          />
+                        </div>
+
+                        {/* Industry Selection */}
+                        <div className="space-y-2 sm:space-y-3">
+                          <Label
+                            htmlFor="industry"
+                            className="flex items-center gap-2 text-sm sm:text-base font-semibold text-white"
                           >
-                            {results.matchScore}
-                          </motion.div>
-                          <p className="text-base md:text-lg font-medium text-muted-foreground">
-                            Match Score
-                          </p>
-                          <div className="mt-4 flex items-center justify-center gap-4 text-sm">
-                            <div className="flex items-center gap-2">
-                              {parseInt(results.matchScore.replace("%", "")) >=
-                              80 ? (
-                                <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
-                              ) : (
-                                <AlertTriangle className="w-4 h-4 text-yellow-500 flex-shrink-0" />
-                              )}
-                              <span className="text-muted-foreground">
-                                {parseInt(
-                                  results.matchScore.replace("%", "")
-                                ) >= 80
-                                  ? "Excellent"
-                                  : parseInt(
-                                      results.matchScore.replace("%", "")
-                                    ) >= 60
-                                  ? "Good"
-                                  : "Needs Improvement"}
+                            <Users className="w-4 h-4 sm:w-5 sm:h-5 text-blue-400 flex-shrink-0" />
+                            <span className="truncate">
+                              Industry Context (Optional)
+                            </span>
+                          </Label>
+                          <Select value={industry} onValueChange={setIndustry}>
+                            <SelectTrigger className="bg-slate-800/50 border-slate-600 text-white h-10 sm:h-11 text-sm sm:text-base">
+                              <SelectValue placeholder="Select industry for enhanced analysis" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {industries.map((ind) => (
+                                <SelectItem key={ind} value={ind.toLowerCase()}>
+                                  {ind}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        {/* Job Description */}
+                        <FormField
+                          control={form.control}
+                          name="jobDescription"
+                          render={({ field }) => (
+                            <FormItem>
+                              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                                <FormLabel className="flex items-center gap-2 text-sm sm:text-base font-semibold text-white">
+                                  <FileSearch className="w-4 h-4 sm:w-5 sm:h-5 text-purple-400 flex-shrink-0" />
+                                  <span className="truncate">
+                                    Job Description *
+                                  </span>
+                                  <Tooltip>
+                                    <TooltipTrigger>
+                                      <Info className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                                    </TooltipTrigger>
+                                    <TooltipContent className="max-w-xs">
+                                      <p>
+                                        Paste the complete job posting for
+                                        accurate ATS compatibility analysis and
+                                        keyword matching
+                                      </p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </FormLabel>
+                                <div className="flex items-center gap-2 text-xs sm:text-sm">
+                                  <Activity className="w-3 h-3 sm:w-4 sm:h-4 text-slate-400 flex-shrink-0" />
+                                  <span
+                                    className={
+                                      wordCount < 100
+                                        ? "text-red-400"
+                                        : wordCount > 200
+                                        ? "text-emerald-400"
+                                        : "text-amber-400"
+                                    }
+                                  >
+                                    {wordCount} words
+                                  </span>
+                                  {wordCount < 100 && (
+                                    <span className="text-red-400 text-xs whitespace-nowrap">
+                                      (min 100)
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                              <FormControl>
+                                <Textarea
+                                  placeholder="Paste the complete job description here including requirements, responsibilities, and preferred qualifications..."
+                                  className="min-h-[150px] sm:min-h-[200px] bg-slate-800/50 border-slate-600 text-white placeholder-slate-400 focus:border-emerald-500 text-sm sm:text-base resize-none"
+                                  {...field}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        {/* Activate Agent Button */}
+                        <motion.div
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                          className="pt-2 sm:pt-4"
+                        >
+                          <Button
+                            type="submit"
+                            className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white h-12 sm:h-14 text-sm sm:text-base md:text-lg font-semibold shadow-lg"
+                            disabled={isLoading}
+                          >
+                            {isLoading ? (
+                              <>
+                                <motion.div
+                                  animate={{ rotate: 360 }}
+                                  transition={{
+                                    duration: 1,
+                                    repeat: Infinity,
+                                    ease: "linear",
+                                  }}
+                                  className="mr-2 sm:mr-3 flex-shrink-0"
+                                >
+                                  <Bot className="w-5 h-5 sm:w-6 sm:h-6" />
+                                </motion.div>
+                                <span className="truncate">
+                                  Agent Analyzing Resume...
+                                </span>
+                              </>
+                            ) : (
+                              <>
+                                <Shield className="w-5 h-5 sm:w-6 sm:h-6 mr-2 sm:mr-3 flex-shrink-0" />
+                                <span className="truncate">
+                                  Activate ATS Screening Agent
+                                </span>
+                                <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 ml-2 flex-shrink-0" />
+                              </>
+                            )}
+                          </Button>
+                        </motion.div>
+
+                        {/* Agent Features */}
+                        <div className="bg-gradient-to-r from-slate-800/30 to-slate-900/30 rounded-xl p-4 sm:p-6 border border-slate-700/30">
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 text-center">
+                            <div className="flex items-center justify-center gap-2 text-xs sm:text-sm text-slate-300">
+                              <Shield className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-400 flex-shrink-0" />
+                              <span className="truncate">Secure Analysis</span>
+                            </div>
+                            <div className="flex items-center justify-center gap-2 text-xs sm:text-sm text-slate-300">
+                              <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-blue-400 flex-shrink-0" />
+                              <span className="truncate">
+                                ~30 sec processing
+                              </span>
+                            </div>
+                            <div className="flex items-center justify-center gap-2 text-xs sm:text-sm text-slate-300">
+                              <Brain className="w-4 h-4 sm:w-5 sm:h-5 text-purple-400 flex-shrink-0" />
+                              <span className="truncate">
+                                AI-Powered Insights
                               </span>
                             </div>
                           </div>
                         </div>
+                      </form>
+                    </Form>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            )}
 
-                        <div className="flex flex-col md:flex-row gap-4 mt-6">
-                          <Button
-                            onClick={() => navigate("/ai-resume-tailor")}
-                            className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white"
-                          >
-                            <Edit className="w-4 h-4 mr-2" />
-                            Improve Resume
-                          </Button>
-                          <Button
-                            variant="outline"
-                            onClick={() => {
-                              // Reset all form fields
-                              form.reset();
-                              // Clear selected file
-                              setSelectedFile(null);
-                              // Clear industry selection
-                              setIndustry("");
-                              // Clear results
-                              setResults(null);
-                              // Clear any draft data
-                              localStorage.removeItem("atsCheckerDraft");
-                              // Show success message
-                              toast({
-                                title: "Form Reset",
-                                description:
-                                  "Ready for your next resume analysis!",
-                              });
-                            }}
-                            className="flex-1"
-                          >
-                            <RefreshCw className="w-4 h-4 mr-2" />
-                            Analyze Another
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </motion.div>
-
-                  {/* Enhanced Missing Skills Card */}
-                  {results.missingSkills &&
-                    results.missingSkills.length > 0 && (
-                      <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.4 }}
-                      >
-                        <Card className="glass border-yellow-200 dark:border-yellow-800">
-                          <CardHeader>
-                            <CardTitle className="text-lg md:text-xl flex items-center gap-3 text-yellow-600">
-                              <AlertTriangle className="w-5 h-5 flex-shrink-0" />
-                              Missing Keywords & Skills
-                            </CardTitle>
-                            <CardDescription>
-                              These keywords from the job description weren't
-                              found in your resume
-                            </CardDescription>
-                          </CardHeader>
-                          <CardContent>
-                            <div className="flex flex-wrap gap-2">
-                              {results.missingSkills.map((skill, index) => (
-                                <motion.div
-                                  key={index}
-                                  initial={{ opacity: 0, scale: 0.8 }}
-                                  animate={{ opacity: 1, scale: 1 }}
-                                  transition={{ delay: 0.1 * index }}
-                                >
-                                  <Badge
-                                    variant="outline"
-                                    className="border-yellow-500 text-yellow-700 bg-yellow-50 dark:bg-yellow-900/20 dark:text-yellow-400 hover:bg-yellow-100 dark:hover:bg-yellow-900/30 transition-colors"
-                                  >
-                                    {skill}
-                                  </Badge>
-                                </motion.div>
-                              ))}
-                            </div>
-                          </CardContent>
-                        </Card>
-                      </motion.div>
-                    )}
-
-                  {/* Enhanced Detailed Feedback Card */}
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.6 }}
-                  >
-                    <Card className="glass border-green-200 dark:border-green-800">
-                      <CardHeader>
-                        <CardTitle className="text-lg md:text-xl flex items-center gap-3 text-green-600">
-                          <CheckCircle className="w-5 h-5 flex-shrink-0" />
-                          Detailed Recommendations
-                        </CardTitle>
-                        <CardDescription>
-                          AI-powered suggestions to improve your ATS
-                          compatibility
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="prose prose-sm max-w-none dark:prose-invert">
-                          {results.feedback
-                            .split(". ")
-                            .map((sentence, index) => {
-                              if (sentence.trim() === "") return null;
-
-                              // Check if it's a section header (contains a colon)
-                              if (sentence.includes(":")) {
-                                const [header, content] = sentence.split(
-                                  ":",
-                                  2
-                                );
-                                return (
-                                  <motion.div
-                                    key={index}
-                                    initial={{ opacity: 0, x: -20 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    transition={{ delay: 0.1 * index }}
-                                    className="mb-4"
-                                  >
-                                    <h4 className="font-semibold text-green-600 mb-2 flex items-center gap-2">
-                                      <Award className="w-4 h-4 flex-shrink-0" />
-                                      {header.trim()}:
-                                    </h4>
-                                    {content && (
-                                      <p className="text-muted-foreground ml-6">
-                                        {content.trim()}
-                                      </p>
-                                    )}
-                                  </motion.div>
-                                );
-                              } else {
-                                return (
-                                  <motion.p
-                                    key={index}
-                                    initial={{ opacity: 0, x: -20 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    transition={{ delay: 0.1 * index }}
-                                    className="text-muted-foreground mb-2 ml-6 flex items-start gap-2"
-                                  >
-                                    <span className="w-2 h-2 bg-green-500 rounded-full mt-2 flex-shrink-0"></span>
-                                    {sentence.trim()}.
-                                  </motion.p>
-                                );
-                              }
-                            })}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </motion.div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
+            {/* Agent Results */}
+            {results && (
+              <div ref={resultsRef}>
+                <AgentAnalysisResults
+                  results={results}
+                  onNewAnalysis={handleResetAgent}
+                  onImproveResume={() => navigate("/ai-resume-tailor")}
+                />
+              </div>
+            )}
+          </motion.div>
         </div>
       </div>
     </TooltipProvider>
   );
 };
 
-export default ATSChecker;
+export default ATSScreeningAgent;

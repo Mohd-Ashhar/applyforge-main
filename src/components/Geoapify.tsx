@@ -1,144 +1,128 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, memo } from "react";
 import { MapPin, X } from "lucide-react";
 
 const GeoapifyLocationInput = ({
   onLocationsChange,
-  placeholder = "Search locations...",
+  placeholder = "Search locations…",
   maxSelections = 10,
 }) => {
-  const [selectedLocations, setSelectedLocations] = useState([]);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [selected, setSelected] = useState([]);
+  const [query, setQuery] = useState("");
   const [suggestions, setSuggestions] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [open, setOpen] = useState(false);
+  const abortRef = useRef(null);
 
   const API_KEY = import.meta.env.VITE_GEOAPIFY_API_KEY;
 
-  // Debounced search function
+  /* ───────────────────────────── Debounced search ─────────────────────────── */
   useEffect(() => {
-    const timer = setTimeout(() => {
-      if (searchQuery.length > 2) {
-        searchPlaces(searchQuery);
-      } else {
+    const handler = setTimeout(() => {
+      if (query.length > 2) fetchSuggestions(query);
+      else {
         setSuggestions([]);
-        setIsDropdownOpen(false);
+        setOpen(false);
       }
-    }, 300); // 300ms debounce to reduce API calls
+    }, 600); // 600 ms better for rate limits
+    return () => clearTimeout(handler);
+  }, [query]);
 
-    return () => clearTimeout(timer);
-  }, [searchQuery]);
+  async function fetchSuggestions(q) {
+    if (!API_KEY) return;
+    abortRef.current?.abort(); // cancel previous request
+    const controller = new AbortController();
+    abortRef.current = controller;
 
-  const searchPlaces = async (query) => {
-    if (!API_KEY) {
-      console.error("Geoapify API key not found");
-      return;
-    }
-
-    setIsLoading(true);
-    setIsDropdownOpen(true);
-
+    setLoading(true);
+    setOpen(true);
     try {
-      // Geoapify Autocomplete API endpoint
-      const url = `https://api.geoapify.com/v1/geocode/autocomplete?text=${encodeURIComponent(
-        query
-      )}&limit=5&apiKey=${API_KEY}`;
-
-      const response = await fetch(url);
-
-      if (response.ok) {
-        const data = await response.json();
-        setSuggestions(data.features || []);
-      } else {
-        console.error("Geoapify API error:", response.statusText);
-        setSuggestions([]);
-      }
-    } catch (error) {
-      console.error("Error searching places:", error);
+      const url =
+        `https://api.geoapify.com/v1/geocode/autocomplete` +
+        `?text=${encodeURIComponent(q)}&limit=5&apiKey=${API_KEY}`;
+      const res = await fetch(url, { signal: controller.signal });
+      if (!res.ok) throw new Error(res.statusText);
+      const data = await res.json();
+      setSuggestions(data.features ?? []);
+    } catch (e) {
+      if (e.name !== "AbortError") console.error("Geoapify:", e);
       setSuggestions([]);
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
-  };
+  }
 
-  const handleLocationSelect = (feature) => {
-    const locationData = {
-      id: feature.properties.place_id || Math.random().toString(36),
+  function add(feature) {
+    const loc = {
+      id: feature.properties.place_id ?? crypto.randomUUID(),
       name: feature.properties.formatted,
       address: feature.properties.formatted,
-      coordinates: feature.geometry.coordinates,
+      coords: feature.geometry.coordinates,
       city: feature.properties.city,
       state: feature.properties.state,
       country: feature.properties.country,
     };
-
-    // Check for duplicates
-    if (!selectedLocations.some((loc) => loc.name === locationData.name)) {
-      const newLocations = [...selectedLocations, locationData];
-      setSelectedLocations(newLocations);
-      onLocationsChange(newLocations);
+    if (!selected.some((s) => s.id === loc.id)) {
+      const next = [...selected, loc];
+      setSelected(next);
+      onLocationsChange(next);
     }
-
-    setSearchQuery("");
-    setIsDropdownOpen(false);
+    setQuery("");
+    setOpen(false);
     setSuggestions([]);
-  };
+  }
 
-  const removeLocation = (locationId) => {
-    const newLocations = selectedLocations.filter(
-      (loc) => loc.id !== locationId
-    );
-    setSelectedLocations(newLocations);
-    onLocationsChange(newLocations);
-  };
+  function remove(id) {
+    const next = selected.filter((l) => l.id !== id);
+    setSelected(next);
+    onLocationsChange(next);
+  }
 
   return (
-    <div className="w-full relative">
-      {/* Search Input */}
+    <div className="relative w-full">
+      {/* input */}
       <div className="relative">
-        <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+        <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <input
-          type="text"
-          value={searchQuery}
-          onChange={(e) => {
-            setSearchQuery(e.target.value);
-          }}
-          onFocus={() => {
-            if (suggestions.length > 0) setIsDropdownOpen(true);
-          }}
-          onBlur={() => {
-            // Delay closing to allow selection
-            setTimeout(() => setIsDropdownOpen(false), 200);
-          }}
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          onFocus={() => suggestions.length && setOpen(true)}
+          onBlur={() => setTimeout(() => setOpen(false), 200)}
           placeholder={placeholder}
-          className="w-full pl-10 pr-4 py-2 border border-input rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent mt-1"
-          disabled={selectedLocations.length >= maxSelections}
+          disabled={selected.length >= maxSelections}
+          className="mt-1 w-full
+              pl-10 pr-4 py-2 h-10 sm:h-11 text-sm sm:text-base
+              bg-slate-800/50 border border-slate-600 text-white
+              placeholder-slate-400
+              focus:border-orange-400 focus:ring-0
+              rounded-lg"
         />
-
-        {/* Loading indicator */}
-        {isLoading && (
-          <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-            <div className="animate-spin h-4 w-4 border-2 border-blue-500 border-t-transparent rounded-full"></div>
+        {loading && (
+          <div className="absolute right-3 top-1/2 -translate-y-1/2">
+            <span className="h-4 w-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
           </div>
         )}
       </div>
 
-      {/* Suggestions Dropdown */}
-      {isDropdownOpen && suggestions.length > 0 && (
-        <div className="absolute z-50 w-full mt-1 bg-background border border-border rounded-lg shadow-lg max-h-60 overflow-y-auto">
-          {suggestions.map((suggestion, index) => (
+      {/* dropdown */}
+      {open && suggestions.length > 0 && (
+        <div
+          className="absolute z-50 mt-1 w-full max-h-60 overflow-y-auto
+                        bg-background border border-border rounded-lg shadow-lg"
+        >
+          {suggestions.map((feat) => (
             <div
-              key={suggestion.properties.place_id || index}
-              onMouseDown={() => handleLocationSelect(suggestion)}
-              className="px-4 py-2 hover:bg-accent cursor-pointer flex items-start gap-2"
+              key={feat.properties.place_id}
+              onMouseDown={() => add(feat)}
+              role="option"
+              className="flex cursor-pointer items-start gap-2 px-4 py-2 hover:bg-accent"
             >
-              <MapPin className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
-              <div className="flex-1 min-w-0">
-                <div className="font-medium text-foreground truncate">
-                  {suggestion.properties.name ||
-                    suggestion.properties.formatted}
+              <MapPin className="mt-0.5 h-4 w-4 flex-shrink-0 text-muted-foreground" />
+              <div className="min-w-0 flex-1">
+                <div className="truncate font-medium text-foreground">
+                  {feat.properties.name ?? feat.properties.formatted}
                 </div>
-                <div className="text-sm text-muted-foreground truncate">
-                  {suggestion.properties.formatted}
+                <div className="truncate text-sm text-muted-foreground">
+                  {feat.properties.formatted}
                 </div>
               </div>
             </div>
@@ -146,19 +130,18 @@ const GeoapifyLocationInput = ({
         </div>
       )}
 
-      {/* Selected Locations */}
-      {selectedLocations.length > 0 && (
+      {/* chips */}
+      {selected.length > 0 && (
         <div className="mt-2 flex flex-wrap gap-2">
-          {selectedLocations.map((location) => (
+          {selected.map((l) => (
             <span
-              key={location.id}
-              className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-blue-100 text-blue-800"
+              key={l.id}
+              className="inline-flex items-center rounded-full bg-primary/10 px-3 py-1 text-sm text-primary"
             >
-              {location.name}
+              {l.name}
               <button
-                type="button"
-                onClick={() => removeLocation(location.id)}
-                className="ml-2 hover:text-blue-600"
+                onClick={() => remove(l.id)}
+                className="ml-2 hover:text-primary/70"
               >
                 <X className="h-3 w-3" />
               </button>
@@ -167,15 +150,15 @@ const GeoapifyLocationInput = ({
         </div>
       )}
 
-      {/* Status Text */}
+      {/* status */}
       <p className="mt-1 text-xs text-muted-foreground">
-        {selectedLocations.length} of {maxSelections} locations selected
+        {selected.length} / {maxSelections} selected
         {!API_KEY && (
-          <span className="text-red-500 ml-2">⚠️ API key not configured</span>
+          <span className="ml-2 text-red-500">⚠️ API key missing</span>
         )}
       </p>
     </div>
   );
 };
 
-export default GeoapifyLocationInput;
+export default memo(GeoapifyLocationInput);

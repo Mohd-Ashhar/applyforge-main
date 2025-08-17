@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo, useCallback, memo } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -45,19 +45,40 @@ import {
   MessageCircle,
   ThumbsUp,
   Zap,
+  Bot,
+  Brain,
+  TrendingUp,
+  Activity,
+  Target,
+  Home,
+  ChevronRight,
+  Crown,
+  Settings,
+  Compass,
+  Database,
+  type LucideIcon,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import DashboardHeader from "@/components/DashboardHeader";
+import UserAvatar from "@/components/header/UserAvatar";
 
-// Enhanced Loading Overlay for Feedback Submission
-const FeedbackLoadingOverlay = ({ show, stage = 0 }) => {
-  const stages = [
-    "Processing your feedback...",
-    "Analyzing your suggestions...",
-    "Saving your valuable insights...",
-    "Updating our improvement queue...",
-    "Finalizing submission...",
+// **ENHANCED AI INSIGHTS COLLECTOR LOADING OVERLAY - AMBER/ORANGE THEME**
+const InsightsCollectorLoadingOverlay = ({
+  show,
+  stage = 0,
+}: {
+  show: boolean;
+  stage?: number;
+}) => {
+  const agentMessages = [
+    "🤖 Activating AI Insights Collector Agent...",
+    "🧠 Processing your valuable feedback...",
+    "📊 Analyzing insights for improvements...",
+    "💾 Storing feedback in AI learning database...",
+    "🔄 Updating agent improvement algorithms...",
+    "✨ Finalizing insights collection process...",
   ];
 
   return (
@@ -68,140 +89,265 @@ const FeedbackLoadingOverlay = ({ show, stage = 0 }) => {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.3 }}
-          className="fixed inset-0 z-[999] flex flex-col items-center justify-center backdrop-blur-lg bg-background/80"
+          className="fixed inset-0 z-[999] flex flex-col items-center justify-center backdrop-blur-lg bg-background/90"
         >
+          {/* Agent Avatar with Learning Animation */}
           <motion.div
-            className="w-24 h-24 md:w-32 md:h-32 rounded-full bg-gradient-to-br from-purple-500 via-pink-500 to-blue-600 shadow-2xl"
-            animate={{
-              scale: [1, 1.2, 1],
-              rotate: [0, 180, 360],
-            }}
-            transition={{
-              duration: 2,
-              repeat: Infinity,
-              ease: "easeInOut",
-            }}
-          />
+            className="relative mb-8"
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ duration: 0.6 }}
+          >
+            <motion.div
+              className="w-24 h-24 sm:w-32 sm:h-32 rounded-full bg-gradient-to-br from-amber-500/20 via-orange-500/15 to-yellow-500/20 border border-amber-500/20 flex items-center justify-center backdrop-blur-xl"
+              animate={{
+                scale: [1, 1.2, 1],
+                rotate: [0, 180, 360],
+              }}
+              transition={{
+                duration: 2,
+                repeat: Infinity,
+                ease: "easeInOut",
+              }}
+            >
+              <Brain className="w-12 h-12 sm:w-16 sm:h-16 text-amber-400" />
 
+              {/* Learning particles */}
+              <motion.div
+                className="absolute inset-0 rounded-full border-2 border-amber-400/30"
+                animate={{
+                  scale: [1, 1.5, 2],
+                  opacity: [0.8, 0.3, 0],
+                }}
+                transition={{
+                  duration: 2,
+                  repeat: Infinity,
+                  ease: "easeOut",
+                }}
+              />
+            </motion.div>
+          </motion.div>
+
+          {/* Agent Status */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="mt-6 text-center"
+            transition={{ delay: 0.3 }}
+            className="text-center space-y-4 max-w-md"
           >
-            <p className="text-sm text-muted-foreground tracking-wide mb-4">
-              {stages[stage] || stages[0]}
+            <h3 className="text-xl sm:text-2xl font-bold text-white">
+              AI Insights Collector Agent
+            </h3>
+            <p className="text-base sm:text-lg text-amber-400 font-medium">
+              {agentMessages[stage] || agentMessages[0]}
             </p>
-            <Progress value={(stage + 1) * 20} className="w-64 h-2" />
-            <p className="text-xs text-muted-foreground mt-2">
-              {Math.round((stage + 1) * 20)}% Complete
-            </p>
+
+            <div className="space-y-3">
+              <Progress
+                value={(stage + 1) * 16.67}
+                className="w-80 max-w-full h-3 bg-slate-700/50"
+              />
+              <p className="text-sm text-slate-400">
+                {Math.round((stage + 1) * 16.67)}% Complete • Learning from your
+                insights
+              </p>
+            </div>
           </motion.div>
 
+          {/* Security Badge */}
           <motion.div
-            className="flex gap-1 mt-4"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ delay: 0.4 }}
+            transition={{ delay: 0.8 }}
+            className="mt-8 flex items-center gap-2 text-xs text-slate-400 bg-slate-800/30 px-4 py-2 rounded-full backdrop-blur-sm border border-slate-700/50"
           >
-            {[0, 1, 2].map((i) => (
+            <Shield className="w-4 h-4 text-amber-400" />
+            <span>Your insights are being processed securely</span>
+          </motion.div>
+
+          {/* Floating learning particles */}
+          <div className="absolute inset-0 overflow-hidden pointer-events-none">
+            {[...Array(6)].map((_, i) => (
               <motion.div
                 key={i}
-                className="w-2 h-2 bg-purple-500 rounded-full"
-                animate={{ y: [0, -10, 0] }}
+                className="absolute w-2 h-2 bg-amber-400/30 rounded-full"
+                animate={{
+                  x: [0, 100, -100, 0],
+                  y: [0, -100, 100, 0],
+                  opacity: [0, 1, 0],
+                }}
                 transition={{
-                  duration: 0.8,
+                  duration: 8,
                   repeat: Infinity,
-                  delay: i * 0.2,
+                  delay: i * 1.3,
                   ease: "easeInOut",
+                }}
+                style={{
+                  left: `${20 + i * 10}%`,
+                  top: `${30 + i * 8}%`,
                 }}
               />
             ))}
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.6 }}
-            className="mt-6 flex items-center gap-2 text-xs text-muted-foreground"
-          >
-            <Heart className="w-4 h-4" />
-            <span>Your feedback helps us improve</span>
-          </motion.div>
+          </div>
         </motion.div>
       )}
     </AnimatePresence>
   );
 };
 
-// Enhanced Star Rating Component
-const StarRating = ({ rating, onRatingChange, size = "default" }) => {
-  const [hoverRating, setHoverRating] = useState(0);
+// **ENHANCED AI STAR RATING COMPONENT**
+const AIStarRating = memo(
+  ({
+    rating,
+    onRatingChange,
+    size = "default",
+  }: {
+    rating: number;
+    onRatingChange: (rating: number) => void;
+    size?: string;
+  }) => {
+    const [hoverRating, setHoverRating] = useState(0);
 
-  const starSize = size === "large" ? "w-8 h-8" : "w-6 h-6";
-  const containerPadding = size === "large" ? "p-2" : "p-1";
+    const starSize = size === "large" ? "w-8 h-8" : "w-6 h-6";
+    const containerPadding = size === "large" ? "p-2" : "p-1";
 
-  const getRatingColor = (star) => {
-    const activeRating = hoverRating || rating;
-    if (star <= activeRating) {
-      if (activeRating <= 2) return "text-red-500";
-      if (activeRating <= 3) return "text-orange-500";
-      if (activeRating <= 4) return "text-yellow-500";
-      return "text-green-500";
-    }
-    return "text-gray-300";
-  };
+    const getRatingColor = (star: number) => {
+      const activeRating = hoverRating || rating;
+      if (star <= activeRating) {
+        if (activeRating <= 2) return "text-red-400";
+        if (activeRating <= 3) return "text-orange-400";
+        if (activeRating <= 4) return "text-yellow-400";
+        return "text-amber-400";
+      }
+      return "text-slate-600";
+    };
 
-  const getRatingText = () => {
-    const activeRating = hoverRating || rating;
-    const texts = ["", "Poor", "Fair", "Good", "Very Good", "Excellent"];
-    return texts[activeRating] || "";
-  };
+    const getRatingText = () => {
+      const activeRating = hoverRating || rating;
+      const texts = [
+        "",
+        "Needs Improvement",
+        "Fair Experience",
+        "Good Service",
+        "Very Good",
+        "Excellent AI!",
+      ];
+      return texts[activeRating] || "";
+    };
+
+    return (
+      <div className="space-y-2">
+        <div className="flex items-center gap-1 justify-center">
+          {[1, 2, 3, 4, 5].map((star) => (
+            <motion.button
+              key={star}
+              type="button"
+              onClick={() => onRatingChange(star)}
+              onMouseEnter={() => setHoverRating(star)}
+              onMouseLeave={() => setHoverRating(0)}
+              className={`${containerPadding} hover:scale-110 transition-all duration-200 touch-manipulation min-h-[44px] min-w-[44px] flex items-center justify-center ${getRatingColor(
+                star
+              )}`}
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <Star className={`${starSize} fill-current`} />
+            </motion.button>
+          ))}
+        </div>
+
+        <AnimatePresence mode="wait">
+          {(hoverRating || rating) > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="flex items-center justify-center gap-2"
+            >
+              <span className="text-sm font-medium text-white">
+                {hoverRating || rating} star
+                {(hoverRating || rating) !== 1 ? "s" : ""}
+              </span>
+              <Badge className="bg-amber-500/20 text-amber-400 border-amber-500/30 text-xs">
+                {getRatingText()}
+              </Badge>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    );
+  }
+);
+
+// **AGENT INSIGHTS STATS COMPONENT**
+const InsightsCollectorStats = () => {
+  const stats = useMemo(
+    () => ({
+      totalInsights: 12847, // Mock total insights collected
+      thisMonth: 1205, // Mock this month insights
+      improvementsMade: 89, // Mock improvements implemented
+      agentLearning: 96, // Mock agent learning progress
+    }),
+    []
+  );
 
   return (
-    <div className="space-y-2">
-      <div className="flex items-center gap-1">
-        {[1, 2, 3, 4, 5].map((star) => (
-          <motion.button
-            key={star}
-            type="button"
-            onClick={() => onRatingChange(star)}
-            onMouseEnter={() => setHoverRating(star)}
-            onMouseLeave={() => setHoverRating(0)}
-            className={`${containerPadding} hover:scale-110 transition-all duration-200 touch-manipulation min-h-[44px] min-w-[44px] flex items-center justify-center ${getRatingColor(
-              star
-            )}`}
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            <Star className={`${starSize} fill-current`} />
-          </motion.button>
-        ))}
-      </div>
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.2 }}
+      className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8"
+    >
+      <Card className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl border border-slate-700/50">
+        <CardContent className="p-4 text-center">
+          <div className="flex items-center justify-center mb-2">
+            <Database className="w-5 h-5 text-amber-400" />
+          </div>
+          <div className="text-2xl font-bold text-white">
+            {stats.totalInsights.toLocaleString()}
+          </div>
+          <div className="text-xs text-slate-400">Total Insights</div>
+        </CardContent>
+      </Card>
 
-      <AnimatePresence mode="wait">
-        {(hoverRating || rating) > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className="flex items-center gap-2"
-          >
-            <span className="text-sm font-medium">
-              {hoverRating || rating} star
-              {(hoverRating || rating) !== 1 ? "s" : ""}
-            </span>
-            <Badge variant="outline" className="text-xs">
-              {getRatingText()}
-            </Badge>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
+      <Card className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl border border-slate-700/50">
+        <CardContent className="p-4 text-center">
+          <div className="flex items-center justify-center mb-2">
+            <TrendingUp className="w-5 h-5 text-orange-400" />
+          </div>
+          <div className="text-2xl font-bold text-white">{stats.thisMonth}</div>
+          <div className="text-xs text-slate-400">This Month</div>
+        </CardContent>
+      </Card>
+
+      <Card className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl border border-slate-700/50">
+        <CardContent className="p-4 text-center">
+          <div className="flex items-center justify-center mb-2">
+            <Target className="w-5 h-5 text-green-400" />
+          </div>
+          <div className="text-2xl font-bold text-white">
+            {stats.improvementsMade}
+          </div>
+          <div className="text-xs text-slate-400">Improvements Made</div>
+        </CardContent>
+      </Card>
+
+      <Card className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl border border-slate-700/50">
+        <CardContent className="p-4 text-center">
+          <div className="flex items-center justify-center mb-2">
+            <Activity className="w-5 h-5 text-blue-400" />
+          </div>
+          <div className="text-2xl font-bold text-white">
+            {stats.agentLearning}%
+          </div>
+          <div className="text-xs text-slate-400">Agent Learning</div>
+        </CardContent>
+      </Card>
+    </motion.div>
   );
 };
 
-const Feedback = () => {
+const AIInsightsCollectorAgent: React.FC = () => {
   const [rating, setRating] = useState(0);
   const [suggestion, setSuggestion] = useState("");
   const [comment, setComment] = useState("");
@@ -218,23 +364,35 @@ const Feedback = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
 
+  // Calculate user name for personalized greeting
+  const userName = useMemo(() => {
+    if (!user) return "there";
+    return (
+      user.user_metadata?.full_name?.split(" ")?.[0] ||
+      user.email?.split("@")?.[0] ||
+      "there"
+    );
+  }, [user?.user_metadata?.full_name, user?.email]);
+
   // Auto-save draft functionality
   useEffect(() => {
-    if (saveAsDraft) {
+    if (saveAsDraft && user) {
       const draftData = { rating, suggestion, comment };
       localStorage.setItem("feedbackDraft", JSON.stringify(draftData));
     }
-  }, [rating, suggestion, comment, saveAsDraft]);
+  }, [rating, suggestion, comment, saveAsDraft, user]);
 
   // Load draft on mount
   useEffect(() => {
+    if (!user) return;
+
     const draft = localStorage.getItem("feedbackDraft");
     if (draft) {
       try {
         const draftData = JSON.parse(draft);
         if (draftData.rating || draftData.suggestion || draftData.comment) {
           toast({
-            title: "Draft Found",
+            title: "Agent Draft Found 🤖",
             description:
               "We found a saved draft. Click 'Load Draft' to restore it.",
             action: (
@@ -255,34 +413,31 @@ const Feedback = () => {
         console.error("Error loading draft:", error);
       }
     }
-  }, [toast]);
+  }, [toast, user]);
 
-  // Simulate loading stages
-  const simulateLoadingStages = () => {
-    const stages = [0, 1, 2, 3, 4];
+  const simulateLoadingStages = useCallback(() => {
+    const stages = [0, 1, 2, 3, 4, 5];
     stages.forEach((stage, index) => {
       setTimeout(() => setLoadingStage(stage), index * 1000);
     });
-  };
+  }, []);
 
-  // Load sample feedback
-  const loadSampleFeedback = () => {
+  const loadSampleFeedback = useCallback(() => {
     setRating(5);
     setSuggestion(
-      "I'd love to see more AI-powered features for resume optimization and perhaps integration with LinkedIn for automatic profile updates."
+      "I'd love to see more AI-powered features for resume optimization and perhaps integration with LinkedIn for automatic profile updates. The agents are amazing!"
     );
     setComment(
-      "ApplyForge has been incredibly helpful in my job search! The AI resume tailor feature saved me hours of work. The interface is intuitive and the results are professional. Keep up the great work!"
+      "Your AI agents have been incredibly helpful in my job search! The AI Resume Arsenal and Application Automation Agent saved me hours of work. The interface is intuitive and the results are professional. Keep up the great work with the AI agents!"
     );
 
     toast({
-      title: "Sample Feedback Loaded",
-      description: "Form filled with example feedback data.",
+      title: "Agent Example Loaded! 🤖",
+      description: "Form filled with example insights for your agent.",
     });
-  };
+  }, [toast]);
 
-  // Clear form
-  const handleClearForm = () => {
+  const handleClearForm = useCallback(() => {
     setRating(0);
     setSuggestion("");
     setComment("");
@@ -290,12 +445,11 @@ const Feedback = () => {
     localStorage.removeItem("feedbackDraft");
 
     toast({
-      title: "Form Cleared",
-      description: "All fields have been reset.",
+      title: "Agent Reset ✨",
+      description: "All fields have been reset for new insights collection.",
     });
-  };
+  }, [toast]);
 
-  // Enhanced validation
   const validateForm = () => {
     const newValidation = {
       rating: rating > 0,
@@ -305,34 +459,34 @@ const Feedback = () => {
     return Object.values(newValidation).every(Boolean);
   };
 
-  // Calculate completion progress
   const calculateProgress = () => {
     const fields = [rating > 0, suggestion.trim(), comment.trim()];
     const completed = fields.filter(Boolean).length;
     return Math.round((completed / 3) * 100);
   };
 
-  const handleRatingClick = (selectedRating) => {
+  const handleRatingClick = (selectedRating: number) => {
     setRating(selectedRating);
     setFormValidation((prev) => ({ ...prev, rating: true }));
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!user) {
       toast({
-        title: "Authentication Required",
-        description: "Please log in to submit feedback.",
+        title: "Authentication Required 🔐",
+        description: "Please log in to provide insights to your AI agents.",
         variant: "destructive",
       });
+      navigate("/auth");
       return;
     }
 
     if (!validateForm()) {
       toast({
-        title: "Rating Required",
-        description: "Please select a rating before submitting.",
+        title: "Agent Validation Error",
+        description: "Please select a rating before submitting your insights.",
         variant: "destructive",
       });
       return;
@@ -359,17 +513,20 @@ const Feedback = () => {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            userName: profile?.full_name || "Anonymous",
+            user_id: user.id,
+            feature: "ai_insights_collector_agent",
+            userName: profile?.full_name || userName,
             userEmail: profile?.email || user.email,
             rating: rating,
             suggestion: suggestion,
             comment: comment,
+            timestamp: new Date().toISOString(),
           }),
         }
       );
 
       if (!response.ok) {
-        throw new Error("Failed to submit feedback");
+        throw new Error("Failed to submit insights");
       }
 
       const result = await response.text();
@@ -378,7 +535,9 @@ const Feedback = () => {
       localStorage.removeItem("feedbackDraft");
 
       // Show result in modal
-      setResultMessage(result || "Thank you for your feedback!");
+      setResultMessage(
+        result || "Thank you for helping our AI agents learn and improve!"
+      );
       setShowResultModal(true);
 
       // Reset form
@@ -387,20 +546,21 @@ const Feedback = () => {
       setComment("");
 
       toast({
-        title: "Feedback Submitted! 🎉",
-        description: "Thank you for helping us improve ApplyForge.",
+        title: "🎉 Agent Learning Success!",
+        description:
+          "Your insights have been collected and will improve our AI agents.",
       });
 
       // Auto-close modal and redirect after 10 seconds
       setTimeout(() => {
         setShowResultModal(false);
-        navigate("/");
+        navigate("/dashboard");
       }, 10000);
     } catch (error) {
-      console.error("Error submitting feedback:", error);
+      console.error("Error submitting insights:", error);
       toast({
-        title: "Submission Failed",
-        description: "Failed to submit feedback. Please try again.",
+        title: "Agent Error",
+        description: "Failed to submit insights. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -412,36 +572,37 @@ const Feedback = () => {
   if (!user) {
     return (
       <TooltipProvider>
-        <div className="min-h-screen bg-background mobile-container">
-          <div className="py-8 sm:py-12 md:py-16 lg:py-20">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="w-full max-w-md mx-auto"
-            >
-              <Card className="mobile-card">
-                <CardContent className="pt-6 text-center">
-                  <motion.div
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    transition={{ delay: 0.2 }}
-                    className="mx-auto w-16 h-16 bg-purple-500/20 rounded-full flex items-center justify-center mb-4"
-                  >
-                    <MessageSquare className="w-8 h-8 text-purple-500" />
-                  </motion.div>
-                  <p className="text-muted-foreground mb-4 mobile-text">
-                    Please log in to submit feedback.
-                  </p>
-                  <Button
-                    onClick={() => navigate("/auth")}
-                    className="min-h-[44px] bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
-                  >
-                    Login to Continue
-                  </Button>
-                </CardContent>
-              </Card>
-            </motion.div>
-          </div>
+        <div className="min-h-screen bg-background flex items-center justify-center p-4">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            <Card className="w-full max-w-md bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl border border-slate-700/50 shadow-xl">
+              <CardContent className="pt-6 text-center">
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ delay: 0.2 }}
+                  className="mx-auto w-16 h-16 bg-gradient-to-br from-amber-500/20 to-orange-500/20 rounded-full flex items-center justify-center mb-4 border border-amber-500/20"
+                >
+                  <Brain className="w-8 h-8 text-amber-400" />
+                </motion.div>
+                <h3 className="text-lg font-semibold mb-2 text-white">
+                  Authentication Required
+                </h3>
+                <p className="text-slate-400 mb-6">
+                  Please log in to share insights with your AI Insights
+                  Collector Agent.
+                </p>
+                <Button
+                  onClick={() => navigate("/auth")}
+                  className="w-full bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white"
+                >
+                  Login to Continue
+                </Button>
+              </CardContent>
+            </Card>
+          </motion.div>
         </div>
       </TooltipProvider>
     );
@@ -449,82 +610,153 @@ const Feedback = () => {
 
   return (
     <TooltipProvider>
-      <div className="min-h-screen bg-background scroll-container">
-        <FeedbackLoadingOverlay show={isSubmitting} stage={loadingStage} />
+      <div className="min-h-screen bg-background">
+        <InsightsCollectorLoadingOverlay
+          show={isSubmitting}
+          stage={loadingStage}
+        />
 
-        <div className="mobile-container py-8 sm:py-12 md:py-16 lg:py-20">
-          <div className="max-w-2xl mx-auto space-y-6 sm:space-y-8">
-            {/* Enhanced Back Button */}
+        {/* Header */}
+        <DashboardHeader />
+
+        <div className="container mx-auto px-4 py-8 max-w-4xl">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.5 }}
+            className="space-y-8"
+          >
+            {/* Back to Home Button */}
             <motion.div
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
             >
               <Button
-                variant="ghost"
+                variant="outline"
                 onClick={() => navigate("/")}
-                className="mb-4 hover:bg-primary/10 min-h-[44px] touch-manipulation mobile-transition"
+                className="border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white backdrop-blur-sm"
               >
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to Home
+                <Home className="w-4 h-4 mr-2" />
+                Back to Dashboard
               </Button>
             </motion.div>
 
-            {/* Enhanced Header */}
-            <div className="text-center mb-6 sm:mb-8">
+            {/* Hero Section - AI Agent Focused */}
+            <div className="text-center space-y-6">
               <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="mb-4 sm:mb-6 p-3 sm:p-4 rounded-xl w-fit mx-auto bg-gradient-to-br from-purple-500/20 to-pink-500/20 text-purple-500"
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.6 }}
+                className="flex flex-col items-center gap-6"
               >
-                <MessageSquare className="w-8 h-8 sm:w-12 sm:h-12" />
+                <div className="space-y-4">
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2 }}
+                    className="mx-auto w-20 h-20 bg-gradient-to-br from-amber-500/20 via-orange-500/15 to-yellow-500/20 rounded-full flex items-center justify-center border border-amber-500/20 backdrop-blur-xl"
+                  >
+                    <Brain className="w-10 h-10 text-amber-400" />
+                  </motion.div>
+
+                  <div className="flex items-center justify-center gap-2">
+                    <Badge className="bg-amber-500/20 text-amber-400 border-amber-500/30">
+                      <Sparkles className="w-3 h-3 mr-1" />
+                      AI Learning
+                    </Badge>
+                  </div>
+
+                  <motion.h1
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.3 }}
+                    className="text-3xl sm:text-4xl lg:text-6xl font-bold text-white leading-tight"
+                  >
+                    AI Insights Collector{" "}
+                    <span className="bg-gradient-to-r from-amber-400 via-orange-400 to-yellow-400 bg-clip-text text-transparent">
+                      Agent
+                    </span>
+                  </motion.h1>
+
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.4 }}
+                    className="space-y-3"
+                  >
+                    <p className="text-xl sm:text-2xl text-slate-300 max-w-3xl mx-auto leading-relaxed">
+                      Hey{" "}
+                      <span className="text-amber-400 font-semibold">
+                        {userName}
+                      </span>
+                      ! 👋
+                      <br />
+                      Your intelligent agent is ready to collect insights and
+                      improve our AI system
+                    </p>
+                    <p className="text-base text-slate-400 max-w-2xl mx-auto">
+                      Share your experience to help our AI agents learn, adapt,
+                      and serve you better
+                    </p>
+                  </motion.div>
+                </div>
               </motion.div>
 
-              <motion.h1
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 }}
-                className="mobile-title font-bold mb-2 sm:mb-4"
-              >
-                Your <span className="gradient-text">Feedback</span>
-              </motion.h1>
-
-              <motion.p
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
-                className="text-lg sm:text-xl text-muted-foreground mobile-text"
-              >
-                Help us improve ApplyForge with your valuable insights
-              </motion.p>
-
-              {/* Trust Indicators */}
+              {/* Agent Capabilities */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 }}
-                className="flex items-center justify-center gap-6 mt-4 text-sm text-muted-foreground"
+                transition={{ delay: 0.5 }}
+                className="grid grid-cols-1 sm:grid-cols-4 gap-6 max-w-5xl mx-auto"
               >
-                <div className="flex items-center gap-2">
-                  <Users className="w-4 h-4 text-blue-500" />
-                  <span>10k+ Users</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Award className="w-4 h-4 text-green-500" />
-                  <span>4.8/5 Rating</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Heart className="w-4 h-4 text-red-500" />
-                  <span>Community Driven</span>
-                </div>
+                {[
+                  {
+                    icon: Brain,
+                    title: "Smart Learning",
+                    desc: "AI learns from your feedback",
+                  },
+                  {
+                    icon: Database,
+                    title: "Insights Storage",
+                    desc: "Secure data collection",
+                  },
+                  {
+                    icon: Target,
+                    title: "Targeted Improvements",
+                    desc: "Precise system enhancements",
+                  },
+                  {
+                    icon: Activity,
+                    title: "Real-time Learning",
+                    desc: "Continuous agent evolution",
+                  },
+                ].map((capability, index) => (
+                  <motion.div
+                    key={capability.title}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.6 + index * 0.1 }}
+                    className="p-4 rounded-xl bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl border border-slate-700/50"
+                  >
+                    <capability.icon className="w-8 h-8 text-amber-400 mx-auto mb-3" />
+                    <h3 className="font-semibold text-white mb-2">
+                      {capability.title}
+                    </h3>
+                    <p className="text-sm text-slate-400">{capability.desc}</p>
+                  </motion.div>
+                ))}
               </motion.div>
             </div>
+
+            {/* Insights Collector Stats */}
+            <InsightsCollectorStats />
 
             {/* Quick Actions */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4 }}
-              className="flex justify-center gap-3 mb-6"
+              transition={{ delay: 0.7 }}
+              className="flex justify-center gap-3 mb-8"
             >
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -532,19 +764,25 @@ const Feedback = () => {
                     variant="outline"
                     size="sm"
                     onClick={loadSampleFeedback}
+                    className="border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white"
                   >
                     <Sparkles className="w-4 h-4 mr-2" />
                     Try Example
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>
-                  Load sample feedback to see how it works
+                  Load sample insights to see how your agent works
                 </TooltipContent>
               </Tooltip>
 
-              <Button variant="outline" size="sm" onClick={handleClearForm}>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleClearForm}
+                className="border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white"
+              >
                 <RefreshCw className="w-4 h-4 mr-2" />
-                Clear Form
+                Reset Agent
               </Button>
             </motion.div>
 
@@ -552,31 +790,35 @@ const Feedback = () => {
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5 }}
+              transition={{ delay: 0.8 }}
               className="mb-6"
             >
               <div className="text-center mb-2">
-                <span className="text-sm text-muted-foreground">
-                  Form Completion: {calculateProgress()}%
+                <span className="text-sm text-slate-400">
+                  Agent Collection Progress: {calculateProgress()}%
                 </span>
               </div>
-              <Progress value={calculateProgress()} className="w-full h-2" />
+              <Progress
+                value={calculateProgress()}
+                className="w-full h-3 bg-slate-700/50"
+              />
             </motion.div>
 
             {/* Enhanced Feedback Form */}
             <motion.div
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.6 }}
+              transition={{ delay: 0.9 }}
             >
-              <Card className="glass mobile-card">
+              <Card className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl border border-slate-700/50 hover:border-amber-500/30 transition-all duration-300">
                 <CardHeader className="pb-4 sm:pb-6">
                   <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-                    <MessageCircle className="h-4 w-4 sm:h-5 sm:w-5 text-purple-500" />
-                    Share Your Experience
+                    <MessageCircle className="h-4 w-4 sm:h-5 sm:w-5 text-amber-400" />
+                    Share Your AI Experience
                   </CardTitle>
-                  <CardDescription className="mobile-text">
-                    Your feedback helps us make ApplyForge better for everyone
+                  <CardDescription className="text-slate-400">
+                    Your insights help our AI agents learn and provide better
+                    assistance
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -591,19 +833,21 @@ const Feedback = () => {
                       transition={{ delay: 0.2 }}
                     >
                       <Label className="text-sm sm:text-base flex items-center gap-2">
-                        Rating *
+                        AI Agent Rating *
                         <Tooltip>
                           <TooltipTrigger>
-                            <Info className="w-4 h-4 text-muted-foreground" />
+                            <Info className="w-4 h-4 text-slate-400" />
                           </TooltipTrigger>
                           <TooltipContent>
-                            <p>Rate your overall experience with ApplyForge</p>
+                            <p>
+                              Rate your overall experience with our AI agents
+                            </p>
                           </TooltipContent>
                         </Tooltip>
                       </Label>
 
                       <div className="mt-3">
-                        <StarRating
+                        <AIStarRating
                           rating={rating}
                           onRatingChange={handleRatingClick}
                           size="large"
@@ -617,7 +861,7 @@ const Feedback = () => {
                           className="text-sm text-destructive mt-2 flex items-center gap-1"
                         >
                           <Star className="w-4 h-4" />
-                          Please select a rating
+                          Please select a rating for our AI agents
                         </motion.p>
                       )}
                     </motion.div>
@@ -633,9 +877,12 @@ const Feedback = () => {
                         htmlFor="suggestion"
                         className="text-sm sm:text-base flex items-center gap-2"
                       >
-                        <Lightbulb className="w-4 h-4 text-yellow-500" />
-                        Suggestions
-                        <Badge variant="outline" className="text-xs">
+                        <Lightbulb className="w-4 h-4 text-yellow-400" />
+                        AI Improvement Suggestions
+                        <Badge
+                          variant="outline"
+                          className="text-xs border-slate-600 text-slate-400"
+                        >
                           Optional
                         </Badge>
                       </Label>
@@ -644,13 +891,13 @@ const Feedback = () => {
                           id="suggestion"
                           value={suggestion}
                           onChange={(e) => setSuggestion(e.target.value)}
-                          placeholder="What features or improvements would you like to see? Any specific tools or integrations that would help your job search?"
-                          className="mt-1 min-h-[80px] sm:min-h-[100px] text-sm sm:text-base mobile-text resize-none"
+                          placeholder="What AI features or improvements would you like to see? Any specific agent capabilities that would help your job search?"
+                          className="mt-1 min-h-[80px] sm:min-h-[100px] text-sm sm:text-base bg-slate-800/50 border-slate-600 text-white placeholder-slate-400 resize-none focus:border-amber-400"
                           maxLength={500}
                         />
                       </motion.div>
-                      <div className="flex justify-between text-xs text-muted-foreground">
-                        <span>Share your ideas for improvement</span>
+                      <div className="flex justify-between text-xs text-slate-400">
+                        <span>Share your ideas for AI agent improvements</span>
                         <span>{suggestion.length}/500</span>
                       </div>
                     </motion.div>
@@ -666,9 +913,12 @@ const Feedback = () => {
                         htmlFor="comment"
                         className="text-sm sm:text-base flex items-center gap-2"
                       >
-                        <MessageSquare className="w-4 h-4 text-blue-500" />
-                        Comments
-                        <Badge variant="outline" className="text-xs">
+                        <MessageSquare className="w-4 h-4 text-amber-400" />
+                        AI Agent Experience
+                        <Badge
+                          variant="outline"
+                          className="text-xs border-slate-600 text-slate-400"
+                        >
                           Optional
                         </Badge>
                       </Label>
@@ -677,13 +927,13 @@ const Feedback = () => {
                           id="comment"
                           value={comment}
                           onChange={(e) => setComment(e.target.value)}
-                          placeholder="Tell us about your experience with ApplyForge. What did you like most? What challenges did you face? How did our tools help your job search?"
-                          className="mt-1 min-h-[100px] sm:min-h-[120px] text-sm sm:text-base mobile-text resize-none"
+                          placeholder="Tell us about your experience with our AI agents. Which agents did you find most helpful? What challenges did you face? How did our AI tools help your job search?"
+                          className="mt-1 min-h-[100px] sm:min-h-[120px] text-sm sm:text-base bg-slate-800/50 border-slate-600 text-white placeholder-slate-400 resize-none focus:border-amber-400"
                           maxLength={1000}
                         />
                       </motion.div>
-                      <div className="flex justify-between text-xs text-muted-foreground">
-                        <span>Share your detailed experience</span>
+                      <div className="flex justify-between text-xs text-slate-400">
+                        <span>Share your detailed AI agent experience</span>
                         <span>{comment.length}/1000</span>
                       </div>
                     </motion.div>
@@ -693,7 +943,7 @@ const Feedback = () => {
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: 0.5 }}
-                      className="flex items-center space-x-3 p-3 bg-muted/20 rounded-lg"
+                      className="flex items-center space-x-3 p-3 bg-amber-500/5 rounded-lg border border-amber-500/20"
                     >
                       <input
                         type="checkbox"
@@ -704,10 +954,10 @@ const Feedback = () => {
                       />
                       <label
                         htmlFor="save-draft"
-                        className="text-sm flex items-center gap-2"
+                        className="text-sm flex items-center gap-2 text-slate-300"
                       >
                         <Save className="w-4 h-4" />
-                        Auto-save as draft while typing
+                        Auto-save insights as draft while typing
                       </label>
                     </motion.div>
 
@@ -722,7 +972,7 @@ const Feedback = () => {
                       <Button
                         type="submit"
                         disabled={isSubmitting || rating === 0}
-                        className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 min-h-[44px] touch-manipulation text-sm sm:text-base shadow-lg"
+                        className="w-full bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 min-h-[44px] text-sm sm:text-base shadow-lg text-white"
                       >
                         {isSubmitting ? (
                           <>
@@ -735,15 +985,15 @@ const Feedback = () => {
                               }}
                               className="mr-2"
                             >
-                              <Heart className="w-4 h-4" />
+                              <Brain className="w-4 h-4" />
                             </motion.div>
-                            Submitting Feedback...
+                            Agent Learning from Insights...
                           </>
                         ) : (
                           <>
                             <Send className="w-4 h-4 mr-2" />
-                            Submit Feedback
-                            <ThumbsUp className="w-4 h-4 ml-2" />
+                            Share Insights with AI Agent
+                            <ChevronRight className="w-4 h-4 ml-2" />
                           </>
                         )}
                       </Button>
@@ -754,19 +1004,19 @@ const Feedback = () => {
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       transition={{ delay: 0.7 }}
-                      className="bg-muted/30 rounded-lg p-4 mt-4"
+                      className="bg-slate-800/30 rounded-lg p-4 mt-4"
                     >
-                      <div className="flex items-center justify-center gap-6 text-sm text-muted-foreground">
+                      <div className="flex items-center justify-center gap-6 text-sm text-slate-400">
                         <div className="flex items-center gap-2">
-                          <Shield className="w-4 h-4 text-green-500" />
-                          <span>Anonymous Option</span>
+                          <Shield className="w-4 h-4 text-amber-400" />
+                          <span>AI Learning</span>
                         </div>
                         <div className="flex items-center gap-2">
-                          <Clock className="w-4 h-4 text-blue-500" />
-                          <span>Quick Submit</span>
+                          <Clock className="w-4 h-4 text-green-400" />
+                          <span>Quick Process</span>
                         </div>
                         <div className="flex items-center gap-2">
-                          <Zap className="w-4 h-4 text-purple-500" />
+                          <Zap className="w-4 h-4 text-blue-400" />
                           <span>Real Impact</span>
                         </div>
                       </div>
@@ -775,25 +1025,25 @@ const Feedback = () => {
                 </CardContent>
               </Card>
             </motion.div>
-          </div>
+          </motion.div>
         </div>
 
         {/* Enhanced Result Modal */}
         <Dialog open={showResultModal} onOpenChange={setShowResultModal}>
-          <DialogContent className="sm:max-w-md mobile-card">
+          <DialogContent className="sm:max-w-md bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl border border-slate-700/50">
             <DialogHeader>
               <motion.div
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
                 transition={{ type: "spring", delay: 0.2 }}
-                className="mx-auto w-16 h-16 bg-gradient-to-br from-green-500 to-blue-500 rounded-full flex items-center justify-center mb-4"
+                className="mx-auto w-16 h-16 bg-gradient-to-br from-amber-500/20 to-orange-500/20 rounded-full flex items-center justify-center mb-4 border border-amber-500/20"
               >
-                <CheckCircle className="w-8 h-8 text-white" />
+                <CheckCircle className="w-8 h-8 text-amber-400" />
               </motion.div>
-              <DialogTitle className="text-center text-green-600 text-base sm:text-lg">
-                Feedback Submitted Successfully! 🎉
+              <DialogTitle className="text-center text-amber-400 text-base sm:text-lg">
+                AI Agent Learning Complete! 🤖
               </DialogTitle>
-              <DialogDescription className="text-center pt-4 mobile-text">
+              <DialogDescription className="text-center pt-4 text-slate-300">
                 {resultMessage}
               </DialogDescription>
             </DialogHeader>
@@ -804,16 +1054,16 @@ const Feedback = () => {
               transition={{ delay: 0.4 }}
               className="text-center space-y-4 mt-4"
             >
-              <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
-                <p className="text-sm text-blue-700 dark:text-blue-300">
-                  Your feedback helps us prioritize improvements and build
-                  features that matter most to job seekers like you.
+              <div className="bg-amber-500/10 border border-amber-500/20 p-4 rounded-lg">
+                <p className="text-sm text-amber-300">
+                  Your insights help our AI agents learn, adapt, and provide
+                  better assistance to job seekers like you.
                 </p>
               </div>
 
-              <div className="text-xs sm:text-sm text-muted-foreground">
+              <div className="text-xs sm:text-sm text-slate-400">
                 <Clock className="w-4 h-4 inline mr-1" />
-                Redirecting to home page in 10 seconds...
+                Returning to dashboard in 10 seconds...
               </div>
             </motion.div>
           </DialogContent>
@@ -823,4 +1073,4 @@ const Feedback = () => {
   );
 };
 
-export default Feedback;
+export default AIInsightsCollectorAgent;
