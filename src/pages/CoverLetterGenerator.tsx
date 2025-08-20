@@ -115,7 +115,21 @@ interface GeneratedCoverLetter {
   created_at: string;
 }
 
-// **MOBILE-ENHANCED AI AGENT LOADING EXPERIENCE**
+// **COVER LETTER CRAFTING AGENT COLOR SYSTEM**
+const AGENT_COLORS = {
+  primary: "purple-400",
+  secondary: "pink-500", 
+  accent: "rose-500",
+  background: "from-purple-500/5 via-pink-500/5 to-rose-500/10",
+  cardBackground: "from-purple-500/20 via-pink-500/15 to-rose-500/20",
+  border: "border-purple-500/20",
+  borderHover: "hover:border-purple-400/40",
+  button: "bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700",
+  icon: "text-purple-400",
+  badge: "bg-purple-500/20 text-purple-400 border-purple-500/30"
+};
+
+// **ENHANCED: Mobile Loading Experience with Consistent Colors**
 const CraftingAgentLoadingOverlay = memo(
   ({ show, stage = 0 }: { show: boolean; stage?: number }) => {
     const agentMessages = [
@@ -137,7 +151,7 @@ const CraftingAgentLoadingOverlay = memo(
             transition={{ duration: 0.3 }}
             className="fixed inset-0 z-[999] flex flex-col items-center justify-center backdrop-blur-lg bg-background/90 p-4"
           >
-            {/* Agent Avatar with Crafting Animation */}
+            {/* Agent Avatar with Crafting Animation - CONSISTENT COLORS */}
             <motion.div
               className="relative mb-6 sm:mb-8"
               initial={{ scale: 0.8, opacity: 0 }}
@@ -145,7 +159,7 @@ const CraftingAgentLoadingOverlay = memo(
               transition={{ duration: 0.6 }}
             >
               <motion.div
-                className="w-20 h-20 sm:w-24 sm:h-24 md:w-32 md:h-32 rounded-full bg-gradient-to-br from-purple-500/10 to-pink-600/10 border border-purple-500/20 flex items-center justify-center backdrop-blur-xl"
+                className={`w-20 h-20 sm:w-24 sm:h-24 md:w-32 md:h-32 rounded-full bg-gradient-to-br ${AGENT_COLORS.cardBackground} border ${AGENT_COLORS.border} flex items-center justify-center backdrop-blur-xl`}
                 animate={{
                   scale: [1, 1.1, 1],
                   rotate: [0, 15, -15, 0],
@@ -156,9 +170,9 @@ const CraftingAgentLoadingOverlay = memo(
                   ease: "easeInOut",
                 }}
               >
-                <PenTool className="w-8 h-8 sm:w-10 sm:h-10 md:w-16 md:h-16 text-purple-400" />
+                <PenTool className={`w-8 h-8 sm:w-10 sm:h-10 md:w-16 md:h-16 ${AGENT_COLORS.icon}`} />
 
-                {/* Crafting rings */}
+                {/* Crafting rings - CONSISTENT COLORS */}
                 <motion.div
                   className="absolute inset-0 rounded-full border-2 border-purple-500/30"
                   animate={{
@@ -174,7 +188,7 @@ const CraftingAgentLoadingOverlay = memo(
               </motion.div>
             </motion.div>
 
-            {/* Agent Status */}
+            {/* Agent Status - CONSISTENT COLORS */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -184,7 +198,7 @@ const CraftingAgentLoadingOverlay = memo(
               <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-white">
                 Cover Letter Crafting Agent
               </h3>
-              <p className="text-sm sm:text-base md:text-lg text-purple-400 font-medium leading-relaxed">
+              <p className={`text-sm sm:text-base md:text-lg ${AGENT_COLORS.icon} font-medium leading-relaxed`}>
                 {agentMessages[stage] || agentMessages[0]}
               </p>
 
@@ -200,20 +214,20 @@ const CraftingAgentLoadingOverlay = memo(
               </div>
             </motion.div>
 
-            {/* Security Badge */}
+            {/* Security Badge - CONSISTENT COLORS */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.8 }}
               className="mt-6 sm:mt-8 flex items-center gap-2 text-xs text-slate-400 bg-slate-800/30 px-3 sm:px-4 py-2 rounded-full backdrop-blur-sm border border-slate-700/50"
             >
-              <Shield className="w-3 h-3 sm:w-4 sm:h-4 text-purple-400 flex-shrink-0" />
+              <Shield className={`w-3 h-3 sm:w-4 sm:h-4 ${AGENT_COLORS.icon} flex-shrink-0`} />
               <span className="text-xs sm:text-sm">
                 Your letter is being crafted securely
               </span>
             </motion.div>
 
-            {/* Floating particles */}
+            {/* Floating particles - CONSISTENT COLORS */}
             <div className="absolute inset-0 overflow-hidden pointer-events-none">
               {[...Array(6)].map((_, i) => (
                 <motion.div
@@ -246,7 +260,7 @@ const CraftingAgentLoadingOverlay = memo(
 
 CraftingAgentLoadingOverlay.displayName = "CraftingAgentLoadingOverlay";
 
-// **MOBILE-ENHANCED AI AGENT FILE UPLOAD**
+// **ENHANCED: File Upload with Consistent Colors**
 const AgentFileUploadArea = memo(
   ({
     onFileSelect,
@@ -312,7 +326,7 @@ const AgentFileUploadArea = memo(
           dragOver
             ? "border-purple-400 bg-purple-500/10 scale-105"
             : selectedFile
-            ? "border-purple-500/20 bg-purple-500/10"
+            ? `${AGENT_COLORS.border} bg-gradient-to-br ${AGENT_COLORS.cardBackground}`
             : "border-slate-600 hover:border-purple-400/40 hover:bg-purple-500/5"
         }
         ${error ? "border-red-400 bg-red-500/5" : ""}
@@ -339,11 +353,11 @@ const AgentFileUploadArea = memo(
             animate={{ opacity: 1, scale: 1 }}
             className="space-y-3 sm:space-y-4"
           >
-            <div className="mx-auto w-12 h-12 sm:w-16 sm:h-16 bg-purple-500/20 rounded-xl flex items-center justify-center border border-purple-500/30">
-              <FileCheck className="w-6 h-6 sm:w-8 sm:h-8 text-purple-400" />
+            <div className={`mx-auto w-12 h-12 sm:w-16 sm:h-16 bg-purple-500/20 rounded-xl flex items-center justify-center border ${AGENT_COLORS.border}`}>
+              <FileCheck className={`w-6 h-6 sm:w-8 sm:h-8 ${AGENT_COLORS.icon}`} />
             </div>
             <div className="space-y-1 sm:space-y-2">
-              <p className="font-semibold text-purple-400 text-sm sm:text-base md:text-lg">
+              <p className={`font-semibold ${AGENT_COLORS.icon} text-sm sm:text-base md:text-lg`}>
                 Resume Ready for Crafting! ✨
               </p>
               <p className="text-xs sm:text-sm text-slate-400 truncate max-w-[250px] sm:max-w-xs mx-auto">
@@ -360,8 +374,8 @@ const AgentFileUploadArea = memo(
             animate={{ opacity: 1, y: 0 }}
             className="space-y-3 sm:space-y-4"
           >
-            <div className="mx-auto w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-br from-purple-500/10 to-pink-600/10 rounded-xl flex items-center justify-center border border-purple-500/20">
-              <Upload className="w-6 h-6 sm:w-8 sm:h-8 text-purple-400" />
+            <div className={`mx-auto w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-br ${AGENT_COLORS.cardBackground} rounded-xl flex items-center justify-center border ${AGENT_COLORS.border}`}>
+              <Upload className={`w-6 h-6 sm:w-8 sm:h-8 ${AGENT_COLORS.icon}`} />
             </div>
             <div className="space-y-2 sm:space-y-4">
               <p className="font-semibold text-white text-sm sm:text-base md:text-lg">
@@ -401,8 +415,8 @@ const AgentFileUploadArea = memo(
             className="absolute inset-0 bg-purple-500/10 border-2 border-purple-400 rounded-xl flex items-center justify-center backdrop-blur-sm"
           >
             <div className="text-center">
-              <PenTool className="w-6 h-6 sm:w-8 sm:h-8 text-purple-400 mx-auto mb-2" />
-              <p className="text-purple-400 font-semibold text-sm sm:text-base">
+              <PenTool className={`w-6 h-6 sm:w-8 sm:h-8 ${AGENT_COLORS.icon} mx-auto mb-2`} />
+              <p className={`${AGENT_COLORS.icon} font-semibold text-sm sm:text-base`}>
                 Drop your resume here! ⚡
               </p>
             </div>
@@ -415,7 +429,7 @@ const AgentFileUploadArea = memo(
 
 AgentFileUploadArea.displayName = "AgentFileUploadArea";
 
-// **MOBILE-ENHANCED AI AGENT RESULTS COMPONENT**
+// **ENHANCED: Results Component with Consistent Colors**
 const AgentCraftingResults = memo(
   ({
     results,
@@ -458,15 +472,15 @@ const AgentCraftingResults = memo(
         transition={{ duration: 0.6 }}
         className="space-y-6 sm:space-y-8"
       >
-        {/* Agent Completion Header */}
+        {/* Agent Completion Header - CONSISTENT COLORS */}
         <div className="text-center space-y-3 sm:space-y-4">
           <motion.div
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             transition={{ delay: 0.2, type: "spring" }}
-            className="mx-auto w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-purple-500/10 to-pink-600/10 rounded-full flex items-center justify-center border border-purple-500/20 backdrop-blur-xl"
+            className={`mx-auto w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br ${AGENT_COLORS.cardBackground} rounded-full flex items-center justify-center border ${AGENT_COLORS.border} backdrop-blur-xl`}
           >
-            <PenTool className="w-8 h-8 sm:w-10 sm:h-10 text-purple-400" />
+            <PenTool className={`w-8 h-8 sm:w-10 sm:h-10 ${AGENT_COLORS.icon}`} />
           </motion.div>
           <div className="space-y-2">
             <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-white">
@@ -479,8 +493,8 @@ const AgentCraftingResults = memo(
           </div>
         </div>
 
-        {/* Results Card */}
-        <Card className="bg-gradient-to-br from-purple-500/10 to-pink-600/10 backdrop-blur-xl border border-purple-500/20 hover:border-purple-400/40 transition-all duration-300">
+        {/* Results Card - CONSISTENT COLORS */}
+        <Card className={`bg-gradient-to-br ${AGENT_COLORS.cardBackground} backdrop-blur-xl border ${AGENT_COLORS.border} ${AGENT_COLORS.borderHover} transition-all duration-300`}>
           <CardContent className="p-4 sm:p-6 md:p-8">
             <div className="flex flex-col gap-4 sm:gap-6">
               <div className="flex-1 min-w-0">
@@ -489,9 +503,9 @@ const AgentCraftingResults = memo(
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
                     transition={{ delay: 0.3, type: "spring" }}
-                    className="p-2 sm:p-3 rounded-xl bg-purple-500/20 border border-purple-500/30 flex-shrink-0"
+                    className={`p-2 sm:p-3 rounded-xl bg-purple-500/20 border ${AGENT_COLORS.border} flex-shrink-0`}
                   >
-                    <Mail className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-purple-400" />
+                    <Mail className={`w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 ${AGENT_COLORS.icon}`} />
                   </motion.div>
                   <div className="min-w-0 flex-1">
                     <h3
@@ -510,15 +524,15 @@ const AgentCraftingResults = memo(
                 </div>
 
                 <div className="flex flex-wrap gap-1 sm:gap-2 mb-3 sm:mb-4">
-                  <Badge className="bg-purple-500/20 text-purple-400 border-purple-500/30 text-xs whitespace-nowrap flex-shrink-0">
+                  <Badge className={`${AGENT_COLORS.badge} text-xs whitespace-nowrap flex-shrink-0`}>
                     <Bot className="w-3 h-3 mr-1 flex-shrink-0" />
                     AI Crafted
                   </Badge>
-                  <Badge className="bg-purple-500/20 text-purple-400 border-purple-500/30 text-xs whitespace-nowrap flex-shrink-0">
+                  <Badge className={`${AGENT_COLORS.badge} text-xs whitespace-nowrap flex-shrink-0`}>
                     <Mail className="w-3 h-3 mr-1 flex-shrink-0" />
                     Personalized
                   </Badge>
-                  <Badge className="bg-purple-500/20 text-purple-400 border-purple-500/30 text-xs whitespace-nowrap flex-shrink-0">
+                  <Badge className={`${AGENT_COLORS.badge} text-xs whitespace-nowrap flex-shrink-0`}>
                     <FileText className="w-3 h-3 mr-1 flex-shrink-0" />
                     Professional
                   </Badge>
@@ -537,7 +551,7 @@ const AgentCraftingResults = memo(
                       `${results.company_name}-cover-letter.pdf`
                     )
                   }
-                  className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold px-4 sm:px-6 h-10 sm:h-11 text-sm sm:text-base"
+                  className={`${AGENT_COLORS.button} text-white font-semibold px-4 sm:px-6 h-10 sm:h-11 text-sm sm:text-base`}
                 >
                   <Download className="w-4 h-4 mr-2 flex-shrink-0" />
                   <span className="truncate">Download Letter</span>
@@ -555,10 +569,10 @@ const AgentCraftingResults = memo(
           </CardContent>
         </Card>
 
-        {/* Agent Crafting Insights */}
-        <Card className="bg-gradient-to-br from-purple-500/10 to-pink-600/10 backdrop-blur-xl border border-purple-500/20 hover:border-purple-400/40 transition-all duration-300">
+        {/* Agent Crafting Insights - CONSISTENT COLORS */}
+        <Card className={`bg-gradient-to-br ${AGENT_COLORS.cardBackground} backdrop-blur-xl border ${AGENT_COLORS.border} ${AGENT_COLORS.borderHover} transition-all duration-300`}>
           <CardHeader className="pb-4 sm:pb-6">
-            <CardTitle className="flex items-center gap-2 sm:gap-3 text-purple-400 text-sm sm:text-base md:text-lg">
+            <CardTitle className={`flex items-center gap-2 sm:gap-3 ${AGENT_COLORS.icon} text-sm sm:text-base md:text-lg`}>
               <Brain className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 flex-shrink-0" />
               <span className="truncate">Agent Crafting Insights</span>
             </CardTitle>
@@ -597,11 +611,11 @@ const AgentCraftingResults = memo(
                   transition={{ delay: 0.1 * index }}
                   className="flex items-start gap-2 sm:gap-3"
                 >
-                  <div className="p-1.5 sm:p-2 rounded-lg bg-purple-500/20 border border-purple-500/30 flex-shrink-0">
-                    <insight.icon className="w-3 h-3 sm:w-4 sm:h-4 text-purple-400" />
+                  <div className={`p-1.5 sm:p-2 rounded-lg bg-purple-500/20 border ${AGENT_COLORS.border} flex-shrink-0`}>
+                    <insight.icon className={`w-3 h-3 sm:w-4 sm:h-4 ${AGENT_COLORS.icon}`} />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <h4 className="font-semibold text-purple-400 mb-1 text-sm sm:text-base">
+                    <h4 className={`font-semibold ${AGENT_COLORS.icon} mb-1 text-sm sm:text-base`}>
                       {insight.title}
                     </h4>
                     <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
@@ -614,12 +628,12 @@ const AgentCraftingResults = memo(
           </CardContent>
         </Card>
 
-        {/* Next Steps */}
+        {/* Next Steps - CONSISTENT COLORS */}
         <div className="text-center">
           <Button
             onClick={onViewAllLetters}
             variant="outline"
-            className="bg-purple-500/10 hover:bg-purple-500/20 border-purple-500/20 text-purple-400 hover:text-purple-300 hover:border-purple-400/40 px-4 sm:px-6 h-10 sm:h-11 text-sm sm:text-base"
+            className={`bg-purple-500/10 hover:bg-purple-500/20 border-purple-500/20 ${AGENT_COLORS.icon} hover:text-purple-300 hover:border-purple-400/40 px-4 sm:px-6 h-10 sm:h-11 text-sm sm:text-base`}
           >
             <Eye className="w-4 h-4 mr-2 flex-shrink-0" />
             <span className="truncate">View All Cover Letters</span>
@@ -632,7 +646,7 @@ const AgentCraftingResults = memo(
 
 AgentCraftingResults.displayName = "AgentCraftingResults";
 
-// **MAIN MOBILE-ENHANCED COVER LETTER CRAFTING AGENT COMPONENT**
+// **MAIN COVER LETTER CRAFTING AGENT COMPONENT WITH CONSISTENT COLORS**
 const CoverLetterCraftingAgent: React.FC = () => {
   const [isCrafting, setIsCrafting] = useState(false);
   const [loadingStage, setLoadingStage] = useState(0);
@@ -662,8 +676,7 @@ const CoverLetterCraftingAgent: React.FC = () => {
     if (!user) return "there";
     return (
       user.user_metadata?.full_name?.split(" ")?.[0] ||
-      user.email?.split("@")?.[0] ||
-      "there"
+      user.email?.split("@")?.[0]
     );
   }, [user?.user_metadata?.full_name, user?.email]);
 
@@ -847,7 +860,7 @@ Requirements:
               <Button
                 size="sm"
                 onClick={() => navigate("/pricing")}
-                className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+                className={`${AGENT_COLORS.button}`}
               >
                 <Crown className="w-4 h-4 mr-1" />
                 Upgrade Plan
@@ -1028,7 +1041,7 @@ Requirements:
               </Button>
             </motion.div>
 
-            {/* Hero Section - AI Agent Focused */}
+            {/* Hero Section - AI Agent Focused with CONSISTENT COLORS */}
             <div className="text-center space-y-4 sm:space-y-6">
               <motion.div
                 initial={{ opacity: 0, scale: 0.9 }}
@@ -1041,13 +1054,13 @@ Requirements:
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.2 }}
-                    className="mx-auto w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-purple-500/10 to-pink-600/10 rounded-full flex items-center justify-center border border-purple-500/20 backdrop-blur-xl"
+                    className={`mx-auto w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br ${AGENT_COLORS.cardBackground} rounded-full flex items-center justify-center border ${AGENT_COLORS.border} backdrop-blur-xl`}
                   >
-                    <PenTool className="w-8 h-8 sm:w-10 sm:h-10 text-purple-400" />
+                    <PenTool className={`w-8 h-8 sm:w-10 sm:h-10 ${AGENT_COLORS.icon}`} />
                   </motion.div>
 
                   <div className="flex items-center justify-center gap-2">
-                    <Badge className="bg-purple-500/20 text-purple-400 border-purple-500/30 text-xs sm:text-sm">
+                    <Badge className={`${AGENT_COLORS.badge} text-xs sm:text-sm`}>
                       <Sparkles className="w-3 h-3 mr-1" />
                       AI Crafting
                     </Badge>
@@ -1073,7 +1086,7 @@ Requirements:
                   >
                     <p className="text-lg sm:text-xl md:text-2xl text-slate-300 max-w-3xl mx-auto leading-relaxed">
                       Hey{" "}
-                      <span className="text-purple-400 font-semibold">
+                      <span className={`${AGENT_COLORS.icon} font-semibold`}>
                         {userName}
                       </span>
                       ! 👋
@@ -1089,7 +1102,7 @@ Requirements:
                 </div>
               </motion.div>
 
-              {/* Agent Capabilities */}
+              {/* Agent Capabilities - CONSISTENT COLORS */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -1125,7 +1138,7 @@ Requirements:
                     transition={{ delay: 0.6 + index * 0.1 }}
                     className="p-3 sm:p-4 rounded-xl bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl border border-slate-700/50"
                   >
-                    <capability.icon className="w-6 h-6 sm:w-8 sm:h-8 text-purple-400 mx-auto mb-2 sm:mb-3" />
+                    <capability.icon className={`w-6 h-6 sm:w-8 sm:h-8 ${AGENT_COLORS.icon} mx-auto mb-2 sm:mb-3`} />
                     <h3 className="font-semibold text-white mb-1 sm:mb-2 text-xs sm:text-sm">
                       {capability.title}
                     </h3>
@@ -1135,19 +1148,19 @@ Requirements:
               </motion.div>
             </div>
 
-            {/* Agent Interface */}
+            {/* Agent Interface - CONSISTENT COLORS */}
             {!results && (
               <motion.div
                 initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.7 }}
               >
-                <Card className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl border border-slate-700/50 hover:border-purple-500/30 transition-all duration-300">
+                <Card className={`bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl border border-slate-700/50 hover:border-purple-500/30 transition-all duration-300`}>
                   <CardHeader className="pb-4 sm:pb-6">
                     <div className="flex flex-col gap-3 sm:gap-4">
                       <div>
                         <CardTitle className="text-lg sm:text-xl md:text-2xl flex items-center gap-2 sm:gap-3 text-white">
-                          <Bot className="w-5 h-5 sm:w-6 sm:h-6 text-purple-400 flex-shrink-0" />
+                          <Bot className={`w-5 h-5 sm:w-6 sm:h-6 ${AGENT_COLORS.icon} flex-shrink-0`} />
                           <span className="truncate">Configure Your Agent</span>
                         </CardTitle>
                         <CardDescription className="text-slate-400 mt-2 text-sm sm:text-base">
@@ -1194,7 +1207,7 @@ Requirements:
                         {/* Resume Upload */}
                         <div className="space-y-2 sm:space-y-3">
                           <Label className="flex items-center gap-2 text-sm sm:text-base font-semibold text-white">
-                            <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-purple-400 flex-shrink-0" />
+                            <FileText className={`w-4 h-4 sm:w-5 sm:h-5 ${AGENT_COLORS.icon} flex-shrink-0`} />
                             <span className="truncate">
                               Upload Your Resume *
                             </span>
@@ -1233,7 +1246,7 @@ Requirements:
                                 <FormControl>
                                   <Input
                                     placeholder="e.g., Microsoft, Google, Apple"
-                                    className="bg-slate-800/50 border-slate-600 text-white placeholder-slate-400 focus:border-purple-400 text-sm sm:text-base h-10 sm:h-11"
+                                    className={`bg-slate-800/50 border-slate-600 text-white placeholder-slate-400 focus:border-purple-400 text-sm sm:text-base h-10 sm:h-11`}
                                     {...field}
                                   />
                                 </FormControl>
@@ -1248,7 +1261,7 @@ Requirements:
                             render={({ field }) => (
                               <FormItem>
                                 <FormLabel className="flex items-center gap-2 text-sm sm:text-base font-semibold text-white">
-                                  <Briefcase className="w-4 h-4 sm:w-5 sm:h-5 text-purple-400 flex-shrink-0" />
+                                  <Briefcase className={`w-4 h-4 sm:w-5 sm:h-5 ${AGENT_COLORS.icon} flex-shrink-0`} />
                                   <span className="truncate">
                                     Position Title *
                                   </span>
@@ -1256,7 +1269,7 @@ Requirements:
                                 <FormControl>
                                   <Input
                                     placeholder="e.g., Software Engineer, Product Manager"
-                                    className="bg-slate-800/50 border-slate-600 text-white placeholder-slate-400 focus:border-purple-400 text-sm sm:text-base h-10 sm:h-11"
+                                    className={`bg-slate-800/50 border-slate-600 text-white placeholder-slate-400 focus:border-purple-400 text-sm sm:text-base h-10 sm:h-11`}
                                     {...field}
                                   />
                                 </FormControl>
@@ -1401,7 +1414,7 @@ Requirements:
                           )}
                         />
 
-                        {/* Activate Agent Button */}
+                        {/* Activate Agent Button - CONSISTENT COLORS */}
                         <motion.div
                           whileHover={{ scale: 1.02 }}
                           whileTap={{ scale: 0.98 }}
@@ -1409,7 +1422,7 @@ Requirements:
                         >
                           <Button
                             type="submit"
-                            className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white h-12 sm:h-14 text-sm sm:text-base md:text-lg font-semibold shadow-lg"
+                            className={`w-full ${AGENT_COLORS.button} text-white h-12 sm:h-14 text-sm sm:text-base md:text-lg font-semibold shadow-lg`}
                             disabled={isCrafting}
                           >
                             {isCrafting ? (
@@ -1441,21 +1454,21 @@ Requirements:
                           </Button>
                         </motion.div>
 
-                        {/* Agent Features */}
+                        {/* Agent Features - CONSISTENT COLORS */}
                         <div className="bg-gradient-to-r from-slate-800/30 to-slate-900/30 rounded-xl p-4 sm:p-6 border border-slate-700/30">
                           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 text-center">
                             <div className="flex items-center justify-center gap-2 text-xs sm:text-sm text-slate-300">
-                              <Shield className="w-4 h-4 sm:w-5 sm:h-5 text-purple-400 flex-shrink-0" />
+                              <Shield className={`w-4 h-4 sm:w-5 sm:h-5 ${AGENT_COLORS.icon} flex-shrink-0`} />
                               <span className="truncate">Secure Crafting</span>
                             </div>
                             <div className="flex items-center justify-center gap-2 text-xs sm:text-sm text-slate-300">
-                              <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-purple-400 flex-shrink-0" />
+                              <Clock className={`w-4 h-4 sm:w-5 sm:h-5 ${AGENT_COLORS.icon} flex-shrink-0`} />
                               <span className="truncate">
                                 ~30 sec generation
                               </span>
                             </div>
                             <div className="flex items-center justify-center gap-2 text-xs sm:text-sm text-slate-300">
-                              <Brain className="w-4 h-4 sm:w-5 sm:h-5 text-purple-400 flex-shrink-0" />
+                              <Brain className={`w-4 h-4 sm:w-5 sm:h-5 ${AGENT_COLORS.icon} flex-shrink-0`} />
                               <span className="truncate">AI-Personalized</span>
                             </div>
                           </div>

@@ -30,6 +30,8 @@ import {
   Shield,
   ExternalLink,
   ChartNoAxesGantt,
+  Crown,
+  Zap,
 } from "lucide-react";
 import { User } from "@supabase/supabase-js";
 import { motion, AnimatePresence } from "framer-motion";
@@ -139,19 +141,18 @@ const SUPPORT_ITEMS = [
   },
 ] as const;
 
-// Memoized Dropdown Item Component - CORRECTED
+// Memoized Dropdown Item Component
 const DropdownNavItem = memo(
   ({
     item,
     isActive,
     onClick,
   }: {
-    item: (typeof DROPDOWN_NAV_ITEMS)[number]; // <-- FIX APPLIED
+    item: (typeof DROPDOWN_NAV_ITEMS)[number];
     isActive: boolean;
     onClick?: () => void;
   }) => {
     const Icon = item.icon;
-
     return (
       <DropdownMenuItem asChild className="cursor-pointer p-0 m-0">
         <Link
@@ -204,19 +205,19 @@ const DropdownNavItem = memo(
     );
   }
 );
+
 DropdownNavItem.displayName = "DropdownNavItem";
 
-// Memoized Settings Item Component - CORRECTED
+// Memoized Settings Item Component
 const SettingsItem = memo(
   ({
     item,
     onClick,
   }: {
-    item: (typeof SETTINGS_ITEMS)[number]; // <-- FIX 1 APPLIED
+    item: (typeof SETTINGS_ITEMS)[number];
     onClick?: () => void;
   }) => {
     const Icon = item.icon;
-
     const content = (
       <div className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-muted/50 transition-all duration-200 hover:scale-[1.02] group cursor-pointer">
         <div className="p-2 rounded-lg bg-muted/30 group-hover:bg-primary/10 transition-all duration-200">
@@ -230,7 +231,6 @@ const SettingsItem = memo(
             {item.description}
           </div>
         </div>
-        {/* FIX 2 APPLIED */}
         {"external" in item && item.external && (
           <ExternalLink className="w-3 h-3 text-muted-foreground group-hover:text-primary" />
         )}
@@ -254,21 +254,146 @@ const SettingsItem = memo(
     );
   }
 );
+
 SettingsItem.displayName = "SettingsItem";
+
+// **NEW: Enhanced Plan Upgrade CTA Component**
+const PlanUpgradeCTA = memo(
+  ({ currentPlan, onClose }: { currentPlan: string; onClose: () => void }) => {
+    // **PLAN MAPPING: Same logic as RedesignedCallToAction**
+    const mapPlanName = (dbPlanName: string) => {
+      const planMapping: Record<string, string> = {
+        Free: "Starter",
+        Basic: "Pro",
+
+        Pro: "Advanced",
+        // Enterprise: "Advanced",
+      };
+      return planMapping[dbPlanName] || "Starter";
+    };
+
+    const mappedPlan = mapPlanName(currentPlan);
+
+    // **DYNAMIC UPGRADE BUTTON LOGIC**
+    const getUpgradeConfig = () => {
+      switch (mappedPlan) {
+        case "Starter":
+          return {
+            text: "🚀 Upgrade to Pro",
+            description: "Unlock GPT-4 Class AI",
+            className:
+              "bg-gradient-to-r from-blue-500/20 to-blue-600/20 hover:from-blue-500/30 hover:to-blue-600/30 text-blue-400 border border-blue-500/30",
+            icon: Zap,
+            enabled: true,
+          };
+        case "Pro":
+          return {
+            text: "⚡ Go Advanced",
+            description: "Access GPT-5 Class AI",
+            className:
+              "bg-gradient-to-r from-purple-500/20 to-purple-600/20 hover:from-purple-500/30 hover:to-purple-600/30 text-purple-400 border border-purple-500/30",
+            icon: Crown,
+            enabled: true,
+          };
+        case "Advanced":
+          return {
+            text: "✅ Best Plan Active",
+            description: "You have maximum AI power",
+            className:
+              "bg-gradient-to-r from-emerald-500/20 to-emerald-600/20 text-emerald-400 border border-emerald-500/30 opacity-75 cursor-not-allowed",
+            icon: Crown,
+            enabled: false,
+          };
+        default:
+          return {
+            text: "🚀 Upgrade to Pro",
+            description: "Unlock GPT-4 Class AI",
+            className:
+              "bg-gradient-to-r from-blue-500/20 to-blue-600/20 hover:from-blue-500/30 hover:to-blue-600/30 text-blue-400 border border-blue-500/30",
+            icon: Zap,
+            enabled: true,
+          };
+      }
+    };
+
+    const upgradeConfig = getUpgradeConfig();
+    const Icon = upgradeConfig.icon;
+
+    if (!upgradeConfig.enabled) {
+      return (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className={`p-4 rounded-xl ${upgradeConfig.className} transition-all duration-200`}
+        >
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-emerald-500/20">
+              <Icon className="w-4 h-4 text-emerald-400" />
+            </div>
+            <div className="flex-1">
+              <div className="text-sm font-semibold text-emerald-400">
+                {upgradeConfig.text}
+              </div>
+              <div className="text-xs text-emerald-400/70">
+                {upgradeConfig.description}
+              </div>
+            </div>
+          </div>
+        </motion.div>
+      );
+    }
+
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        whileHover={{ scale: 1.02 }}
+        whileTap={{ scale: 0.98 }}
+      >
+        <Link to="/pricing" onClick={onClose}>
+          <Button
+            variant="ghost"
+            className={`w-full h-auto p-4 ${upgradeConfig.className} rounded-xl transition-all duration-200 hover:scale-[1.02]`}
+          >
+            <div className="flex items-center gap-3 w-full">
+              <div className="p-2 rounded-lg bg-current/20">
+                <Icon className="w-4 h-4" />
+              </div>
+              <div className="flex-1 text-left">
+                <div className="text-sm font-semibold">
+                  {upgradeConfig.text}
+                </div>
+                <div className="text-xs opacity-70">
+                  {upgradeConfig.description}
+                </div>
+              </div>
+              <motion.div
+                animate={{ x: [0, 4, 0] }}
+                transition={{ duration: 1.5, repeat: Infinity }}
+              >
+                <Sparkles className="w-4 h-4" />
+              </motion.div>
+            </div>
+          </Button>
+        </Link>
+      </motion.div>
+    );
+  }
+);
+
+PlanUpgradeCTA.displayName = "PlanUpgradeCTA";
 
 const UserDropdown = memo<UserDropdownProps>(
   ({ user, onSignOut, className = "" }) => {
     const navigate = useNavigate();
     const location = useLocation();
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-
     const { usage, isLoading } = useUsageTracking();
 
     const userData = useMemo(() => {
       const fullName = user?.user_metadata?.full_name || "";
       const email = user?.email || "";
       const displayName = fullName || email.split("@")[0] || "User";
-
       return {
         displayName,
         email,
@@ -359,7 +484,6 @@ const UserDropdown = memo<UserDropdownProps>(
               size="sm"
               variant="premium"
             />
-
             <div className="hidden sm:flex items-center gap-2">
               <div className="text-left min-w-0">
                 <p className="text-sm font-medium text-foreground max-w-20 md:max-w-28 truncate leading-tight">
@@ -374,7 +498,6 @@ const UserDropdown = memo<UserDropdownProps>(
                 <ChevronDown className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
               </motion.div>
             </div>
-
             <motion.div
               animate={{ rotate: isDropdownOpen ? 180 : 0 }}
               transition={{ duration: 0.2 }}
@@ -402,6 +525,7 @@ const UserDropdown = memo<UserDropdownProps>(
                 transition={{ duration: 0.2, ease: "easeOut" }}
               >
                 <ScrollArea className="max-h-[85vh] overflow-y-auto">
+                  {/* **ENHANCED: Header section with better plan display** */}
                   <div className="p-4 md:p-6 bg-gradient-to-br from-primary/5 via-blue-600/5 to-purple-600/5 border-b border-white/10">
                     <div className="flex items-center gap-3 md:gap-4">
                       <UserAvatar
@@ -420,23 +544,10 @@ const UserDropdown = memo<UserDropdownProps>(
                         </p>
                         <div className="flex items-center gap-2">
                           <PlanBadge plan={planType} animated usage={usage} />
-                          {planType === "Free" && (
-                            <Link to="/pricing" onClick={handleDropdownClose}>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="text-xs h-7 px-3 bg-gradient-to-r from-primary/20 to-blue-500/20 hover:from-primary/30 hover:to-blue-500/30 text-primary border border-primary/20 rounded-xl transition-all duration-200 hover:scale-105"
-                              >
-                                <Sparkles className="w-3 h-3 mr-1" />
-                                Upgrade
-                              </Button>
-                            </Link>
-                          )}
                         </div>
-
                         {usage && (
                           <div className="text-xs text-muted-foreground">
-                            {planType === "Pro" ? (
+                            {planType === "Pro" || planType === "Advanced" ? (
                               <span className="text-green-400">
                                 Unlimited usage
                               </span>
@@ -456,8 +567,17 @@ const UserDropdown = memo<UserDropdownProps>(
                         )}
                       </div>
                     </div>
+
+                    {/* **NEW: Enhanced Plan Upgrade CTA** */}
+                    <div className="mt-4">
+                      <PlanUpgradeCTA
+                        currentPlan={planType}
+                        onClose={handleDropdownClose}
+                      />
+                    </div>
                   </div>
 
+                  {/* Navigation Items */}
                   <DropdownMenuGroup className="p-2">
                     <DropdownMenuLabel className="text-xs font-semibold text-muted-foreground px-3 py-2 bg-muted/20 rounded-lg mb-2 flex items-center gap-2">
                       <Home className="w-3 h-3" />
@@ -477,6 +597,7 @@ const UserDropdown = memo<UserDropdownProps>(
 
                   <DropdownMenuSeparator className="mx-4 bg-white/10" />
 
+                  {/* Sign Out */}
                   <div className="p-2">
                     <DropdownMenuItem
                       onClick={onSignOut}

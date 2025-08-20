@@ -19,7 +19,6 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import Logo from "@/components/ui/Logo";
 
-// Simple Form Field
 const FormField = memo(
   ({
     id,
@@ -109,26 +108,52 @@ const Auth = memo(() => {
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
+  const [hasProcessedUser, setHasProcessedUser] = useState(false);
 
-  const {
-    signIn,
-    signUp,
-    signInWithGoogle,
-    signInWithLinkedIn,
-    user,
-    isSigningIn,
-    isSigningUp,
-  } = useAuth();
-
+  const { signIn, signUp, signInWithGoogle, user, isSigningIn, isSigningUp } =
+    useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // **UPDATED: Redirect to dashboard after successful authentication**
+  // Handle user authentication and navigation
   useEffect(() => {
-    if (user) {
-      navigate("/"); // This now goes to Dashboard
+    if (user && !hasProcessedUser) {
+      setHasProcessedUser(true);
+
+      // Determine user type and show appropriate message
+      const createdAt = new Date(user.created_at);
+      const now = new Date();
+      const diffSeconds = (now.getTime() - createdAt.getTime()) / 1000;
+      const isNewUser = diffSeconds < 120; // 2 minutes window
+
+      const isGoogleUser =
+        user.app_metadata?.providers?.includes("google") ||
+        user.identities?.some(
+          (identity: any) => identity.provider === "google"
+        );
+
+      if (isNewUser && isGoogleUser) {
+        toast({
+          title: "Welcome to ApplyForge! 🎉",
+          description:
+            "Check your email for a welcome message from hey@applyforge.ai",
+        });
+      } else if (isGoogleUser) {
+        toast({
+          title: "Welcome back!",
+          description: "You have been signed in successfully.",
+        });
+      } else {
+        toast({
+          title: "Welcome!",
+          description: "You have been signed in successfully.",
+        });
+      }
+
+      // Navigate to dashboard
+      setTimeout(() => navigate("/"), 1000);
     }
-  }, [user, navigate]);
+  }, [user, hasProcessedUser, navigate, toast]);
 
   const validateForm = useCallback(() => {
     const newErrors: Record<string, string> = {};
@@ -167,13 +192,7 @@ const Auth = memo(() => {
             formData.email,
             formData.password
           );
-          if (success) {
-            toast({
-              title: "Welcome back!",
-              description: "You have been signed in successfully.",
-            });
-            // **Navigation handled by useEffect above**
-          } else {
+          if (!success) {
             toast({
               title: "Sign in failed",
               description: error?.message || "Please check your credentials.",
@@ -188,8 +207,9 @@ const Auth = memo(() => {
           );
           if (success) {
             toast({
-              title: "Account created!",
-              description: "Please check your email to verify your account.",
+              title: "Account created! 🎉",
+              description:
+                "Please check your email from verification@applyforge.ai to verify your account.",
             });
           } else {
             toast({
@@ -212,34 +232,27 @@ const Auth = memo(() => {
     [formData, isLogin, validateForm, signIn, signUp, toast]
   );
 
-  const handleOAuthSignIn = useCallback(
-    async (provider: "google" | "linkedin") => {
-      try {
-        const { success, error } =
-          provider === "google"
-            ? await signInWithGoogle()
-            : await signInWithLinkedIn();
+  const handleGoogleSignIn = useCallback(async () => {
+    setHasProcessedUser(false);
 
-        if (!success && error) {
-          toast({
-            title: `${
-              provider === "google" ? "Google" : "LinkedIn"
-            } sign in failed`,
-            description: error.message || "Please try again.",
-            variant: "destructive",
-          });
-        }
-        // **Navigation handled by useEffect above**
-      } catch (error) {
+    try {
+      const { error } = await signInWithGoogle();
+
+      if (error) {
         toast({
-          title: "OAuth error",
-          description: "Failed to sign in. Please try again.",
+          title: "Google sign in failed",
+          description: error?.message || "Please try again.",
           variant: "destructive",
         });
       }
-    },
-    [signInWithGoogle, signInWithLinkedIn, toast]
-  );
+    } catch (error) {
+      toast({
+        title: "OAuth error",
+        description: "Failed to sign in with Google. Please try again.",
+        variant: "destructive",
+      });
+    }
+  }, [signInWithGoogle, toast]);
 
   const toggleMode = useCallback(() => {
     setIsLogin(!isLogin);
@@ -252,7 +265,6 @@ const Auth = memo(() => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* **UPDATED: Back button goes to landing page** */}
       <div className="fixed top-6 left-6 z-10">
         <Button
           variant="ghost"
@@ -266,7 +278,6 @@ const Auth = memo(() => {
 
       <div className="min-h-screen flex items-center justify-center p-4 pt-20">
         <div className="w-full max-w-md">
-          {/* Logo */}
           <div className="flex items-center justify-center mb-8">
             <Logo
               linkTo={null}
@@ -275,9 +286,7 @@ const Auth = memo(() => {
             />
           </div>
 
-          {/* Auth Card */}
           <Card className="bg-card/80 backdrop-blur-sm border border-border rounded-2xl p-8 shadow-xl">
-            {/* Header */}
             <div className="text-center mb-8">
               <h1 className="text-2xl font-bold text-foreground mb-2">
                 {isLogin ? "Welcome Back" : "Create Account"}
@@ -289,12 +298,11 @@ const Auth = memo(() => {
               </p>
             </div>
 
-            {/* Social Buttons */}
             <div className="space-y-3 mb-6">
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => handleOAuthSignIn("google")}
+                onClick={handleGoogleSignIn}
                 disabled={isProcessing}
                 className="w-full h-12 transition-all hover:scale-[1.02] hover:shadow-md"
               >
@@ -318,26 +326,8 @@ const Auth = memo(() => {
                 </svg>
                 Continue with Google
               </Button>
-
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => handleOAuthSignIn("linkedin")}
-                disabled={isProcessing}
-                className="w-full h-12 transition-all hover:scale-[1.02] hover:shadow-md"
-              >
-                <svg
-                  className="w-5 h-5 mr-3"
-                  fill="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
-                </svg>
-                Continue with LinkedIn
-              </Button>
             </div>
 
-            {/* Divider */}
             <div className="relative mb-6">
               <div className="absolute inset-0 flex items-center">
                 <div className="w-full border-t border-border" />
@@ -349,7 +339,6 @@ const Auth = memo(() => {
               </div>
             </div>
 
-            {/* Form */}
             <form onSubmit={handleSubmit} className="space-y-4">
               {!isLogin && (
                 <FormField
@@ -416,7 +405,6 @@ const Auth = memo(() => {
               </Button>
             </form>
 
-            {/* Toggle Mode */}
             <div className="text-center mt-6">
               <p className="text-muted-foreground text-sm">
                 {isLogin
@@ -431,7 +419,6 @@ const Auth = memo(() => {
               </p>
             </div>
 
-            {/* Trust Indicators */}
             <div className="flex items-center justify-center gap-4 mt-6 pt-6 border-t border-border">
               <div className="flex items-center gap-1 text-xs text-muted-foreground">
                 <CheckCircle className="w-4 h-4 text-green-500" />
@@ -450,5 +437,4 @@ const Auth = memo(() => {
 });
 
 Auth.displayName = "Auth";
-
 export default Auth;

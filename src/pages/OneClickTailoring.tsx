@@ -80,7 +80,7 @@ interface JobProcessingState {
   applying: Set<string>;
 }
 
-// **MOBILE-ENHANCED AI AGENT LOADING EXPERIENCE - ORANGE/YELLOW THEME**
+// **MOBILE-ENHANCED AI AGENT LOADING EXPERIENCE - ROSE/RED THEME**
 const TailoringAgentLoadingOverlay = memo(
   ({
     show,
@@ -133,7 +133,7 @@ const TailoringAgentLoadingOverlay = memo(
               transition={{ duration: 0.6 }}
             >
               <motion.div
-                className="w-20 h-20 sm:w-24 sm:h-24 md:w-32 md:h-32 rounded-full bg-gradient-to-br from-orange-500/20 via-yellow-500/15 to-amber-500/20 border border-orange-500/20 flex items-center justify-center backdrop-blur-xl"
+                className="w-20 h-20 sm:w-24 sm:h-24 md:w-32 md:h-32 rounded-full bg-gradient-to-br from-rose-500/20 via-red-500/15 to-orange-500/20 border border-rose-500/20 flex items-center justify-center backdrop-blur-xl"
                 animate={{
                   scale: [1, 1.1, 1],
                   rotate: [0, 15, -15, 0],
@@ -144,11 +144,11 @@ const TailoringAgentLoadingOverlay = memo(
                   ease: "easeInOut",
                 }}
               >
-                <Wand2 className="w-8 h-8 sm:w-10 sm:h-10 md:w-16 md:h-16 text-orange-400" />
+                <Wand2 className="w-8 h-8 sm:w-10 sm:h-10 md:w-16 md:h-16 text-rose-400" />
 
                 {/* Tailoring rings */}
                 <motion.div
-                  className="absolute inset-0 rounded-full border-2 border-orange-400/30"
+                  className="absolute inset-0 rounded-full border-2 border-rose-400/30"
                   animate={{
                     scale: [1, 1.5, 2],
                     opacity: [0.8, 0.3, 0],
@@ -172,7 +172,7 @@ const TailoringAgentLoadingOverlay = memo(
               <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-white">
                 Instant Tailoring Agent
               </h3>
-              <p className="text-sm sm:text-base md:text-lg text-orange-400 font-medium leading-relaxed">
+              <p className="text-sm sm:text-base md:text-lg text-rose-400 font-medium leading-relaxed">
                 {currentMessages[Math.min(stage, currentMessages.length - 1)]}
               </p>
 
@@ -195,7 +195,7 @@ const TailoringAgentLoadingOverlay = memo(
               transition={{ delay: 0.8 }}
               className="mt-6 sm:mt-8 flex items-center gap-2 text-xs text-slate-400 bg-slate-800/30 px-3 sm:px-4 py-2 rounded-full backdrop-blur-sm border border-slate-700/50"
             >
-              <Shield className="w-3 h-3 sm:w-4 sm:h-4 text-orange-400 flex-shrink-0" />
+              <Shield className="w-3 h-3 sm:w-4 sm:h-4 text-rose-400 flex-shrink-0" />
               <span className="text-xs sm:text-sm">
                 Your documents are processed securely
               </span>
@@ -206,7 +206,7 @@ const TailoringAgentLoadingOverlay = memo(
               {[...Array(6)].map((_, i) => (
                 <motion.div
                   key={i}
-                  className="absolute w-1 h-1 sm:w-2 sm:h-2 bg-orange-400/30 rounded-full"
+                  className="absolute w-1 h-1 sm:w-2 sm:h-2 bg-rose-400/30 rounded-full"
                   animate={{
                     x: [0, 100, -100, 0],
                     y: [0, -100, 100, 0],
@@ -243,12 +243,12 @@ const LoadingSkeleton = memo(() => (
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: index * 0.1 }}
-        className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl border border-slate-700/50 rounded-xl shadow-lg"
+        className="bg-gradient-to-br from-rose-500/5 via-red-500/5 to-orange-500/10 backdrop-blur-xl border border-slate-700/50 rounded-xl shadow-lg"
       >
         <div className="p-4 sm:p-6 space-y-3 sm:space-y-4">
           <div className="flex items-center gap-3">
             <motion.div
-              className="w-10 h-10 sm:w-12 sm:h-12 bg-orange-500/20 rounded-xl"
+              className="w-10 h-10 sm:w-12 sm:h-12 bg-rose-500/20 rounded-xl"
               animate={{ opacity: [0.5, 1, 0.5] }}
               transition={{ duration: 1.5, repeat: Infinity }}
             />
@@ -309,10 +309,10 @@ const AgentStats = memo(
       transition={{ delay: 0.2 }}
       className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-8"
     >
-      <Card className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl border border-slate-700/50">
+      <Card className="bg-gradient-to-br from-rose-500/5 via-red-500/5 to-orange-500/10 backdrop-blur-xl border border-slate-700/50">
         <CardContent className="p-3 sm:p-4 text-center">
           <div className="flex items-center justify-center mb-2">
-            <Briefcase className="w-4 h-4 sm:w-5 sm:h-5 text-orange-400" />
+            <Briefcase className="w-4 h-4 sm:w-5 sm:h-5 text-rose-400" />
           </div>
           <div className="text-lg sm:text-2xl font-bold text-white">
             {totalJobs}
@@ -321,7 +321,7 @@ const AgentStats = memo(
         </CardContent>
       </Card>
 
-      <Card className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl border border-slate-700/50">
+      <Card className="bg-gradient-to-br from-rose-500/5 via-red-500/5 to-orange-500/10 backdrop-blur-xl border border-slate-700/50">
         <CardContent className="p-3 sm:p-4 text-center">
           <div className="flex items-center justify-center mb-2">
             <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-green-400" />
@@ -333,7 +333,7 @@ const AgentStats = memo(
         </CardContent>
       </Card>
 
-      <Card className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl border border-slate-700/50">
+      <Card className="bg-gradient-to-br from-rose-500/5 via-red-500/5 to-orange-500/10 backdrop-blur-xl border border-slate-700/50">
         <CardContent className="p-3 sm:p-4 text-center">
           <div className="flex items-center justify-center mb-2">
             <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-blue-400" />
@@ -345,7 +345,7 @@ const AgentStats = memo(
         </CardContent>
       </Card>
 
-      <Card className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl border border-slate-700/50">
+      <Card className="bg-gradient-to-br from-rose-500/5 via-red-500/5 to-orange-500/10 backdrop-blur-xl border border-slate-700/50">
         <CardContent className="p-3 sm:p-4 text-center">
           <div className="flex items-center justify-center mb-2">
             <Building className="w-4 h-4 sm:w-5 sm:h-5 text-purple-400" />
@@ -417,7 +417,7 @@ const TailoringJobCard = memo(
         onHoverEnd={() => setIsHovered(false)}
         className="group"
       >
-        <Card className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl border border-slate-700/50 hover:border-orange-500/30 transition-all duration-300 hover:shadow-xl overflow-hidden h-full flex flex-col">
+        <Card className="bg-gradient-to-br from-rose-500/5 via-red-500/5 to-orange-500/10 backdrop-blur-xl border border-slate-700/50 hover:border-rose-400/40 transition-all duration-300 hover:shadow-xl overflow-hidden h-full flex flex-col">
           <CardHeader className="pb-3 sm:pb-4">
             {/* Mark as Applied Checkbox */}
             <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
@@ -448,14 +448,14 @@ const TailoringJobCard = memo(
             <div className="flex items-start justify-between">
               <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
                 <motion.div
-                  className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br from-orange-500/20 to-yellow-500/20 flex items-center justify-center font-semibold text-orange-400 border border-orange-500/20 flex-shrink-0 text-xs sm:text-sm"
+                  className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br from-rose-500/20 via-red-500/15 to-orange-500/20 flex items-center justify-center font-semibold text-rose-400 border border-rose-500/20 flex-shrink-0 text-xs sm:text-sm"
                   animate={{ rotate: isHovered ? 5 : 0 }}
                   transition={{ duration: 0.2 }}
                 >
                   {getCompanyInitials(job.company_name)}
                 </motion.div>
                 <div className="flex-1 min-w-0">
-                  <CardTitle className="text-base sm:text-lg font-semibold truncate text-white group-hover:text-orange-400 transition-colors">
+                  <CardTitle className="text-base sm:text-lg font-semibold truncate text-white group-hover:text-rose-400 transition-colors">
                     {job.job_title}
                   </CardTitle>
                   <div className="flex items-center gap-2 mt-1">
@@ -483,7 +483,7 @@ const TailoringJobCard = memo(
               job.job_function) && (
               <div className="flex flex-wrap gap-1 sm:gap-2">
                 {job.employment_type && (
-                  <Badge className="bg-orange-500/20 text-orange-400 border-orange-500/30 text-xs whitespace-nowrap">
+                  <Badge className="bg-rose-500/20 text-rose-400 border-rose-500/30 text-xs whitespace-nowrap">
                     <Briefcase className="w-2 h-2 sm:w-3 sm:h-3 mr-1 flex-shrink-0" />
                     <span className="truncate">{job.employment_type}</span>
                   </Badge>
@@ -506,7 +506,7 @@ const TailoringJobCard = memo(
             {job.job_description && (
               <div className="space-y-2">
                 <h4 className="font-medium text-xs sm:text-sm flex items-center gap-2">
-                  <Target className="w-3 h-3 sm:w-4 sm:h-4 text-orange-400 flex-shrink-0" />
+                  <Target className="w-3 h-3 sm:w-4 sm:h-4 text-rose-400 flex-shrink-0" />
                   Job Description
                 </h4>
                 <div className="p-2 sm:p-3 bg-slate-800/30 rounded-lg border border-slate-700/50">
@@ -537,7 +537,7 @@ const TailoringJobCard = memo(
                     disabled={processing.resume.has(job.id)}
                     variant="outline"
                     size="sm"
-                    className="w-full bg-orange-500/10 border-orange-500/30 text-orange-400 hover:bg-orange-500 hover:text-white hover:border-orange-500 transition-all duration-200 h-8 sm:h-9 text-xs sm:text-sm"
+                    className="w-full bg-rose-500/10 border-rose-500/30 text-rose-400 hover:bg-rose-500 hover:text-white hover:border-rose-500 transition-all duration-200 h-8 sm:h-9 text-xs sm:text-sm"
                   >
                     {processing.resume.has(job.id) ? (
                       <Loader2 className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2 animate-spin flex-shrink-0" />
@@ -561,7 +561,7 @@ const TailoringJobCard = memo(
                     disabled={processing.coverLetter.has(job.id)}
                     variant="outline"
                     size="sm"
-                    className="w-full bg-yellow-500/10 border-yellow-500/30 text-yellow-400 hover:bg-yellow-500 hover:text-white hover:border-yellow-500 transition-all duration-200 h-8 sm:h-9 text-xs sm:text-sm"
+                    className="w-full bg-red-500/10 border-red-500/30 text-red-400 hover:bg-red-500 hover:text-white hover:border-red-500 transition-all duration-200 h-8 sm:h-9 text-xs sm:text-sm"
                   >
                     {processing.coverLetter.has(job.id) ? (
                       <Loader2 className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2 animate-spin flex-shrink-0" />
@@ -583,7 +583,7 @@ const TailoringJobCard = memo(
               >
                 <Button
                   asChild
-                  className="w-full bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-700 hover:to-amber-700 text-white h-9 sm:h-10 text-xs sm:text-sm"
+                  className="w-full bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-700 hover:to-red-700 text-white h-9 sm:h-10 text-xs sm:text-sm"
                   size="sm"
                 >
                   <a
@@ -884,7 +884,7 @@ const InstantTailoringAgent = () => {
                 <Button
                   size="sm"
                   onClick={() => navigate("/pricing")}
-                  className="bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-700 hover:to-amber-700"
+                  className="bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-700 hover:to-red-700"
                 >
                   <Crown className="w-4 h-4 mr-1" />
                   Upgrade Plan
@@ -1018,7 +1018,7 @@ const InstantTailoringAgent = () => {
                 <Button
                   size="sm"
                   onClick={() => navigate("/pricing")}
-                  className="bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-700 hover:to-amber-700"
+                  className="bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-700 hover:to-red-700"
                 >
                   <Crown className="w-4 h-4 mr-1" />
                   Upgrade Plan
@@ -1100,15 +1100,15 @@ const InstantTailoringAgent = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
           >
-            <Card className="w-full max-w-md bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl border border-slate-700/50 shadow-xl">
+            <Card className="w-full max-w-md bg-gradient-to-br from-rose-500/5 via-red-500/5 to-orange-500/10 backdrop-blur-xl border border-slate-700/50 shadow-xl">
               <CardContent className="pt-6 text-center">
                 <motion.div
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
                   transition={{ delay: 0.2 }}
-                  className="mx-auto w-16 h-16 bg-gradient-to-br from-orange-500/20 to-amber-500/20 rounded-full flex items-center justify-center mb-4 border border-orange-500/20"
+                  className="mx-auto w-16 h-16 bg-gradient-to-br from-rose-500/20 via-red-500/15 to-orange-500/20 rounded-full flex items-center justify-center mb-4 border border-rose-500/20"
                 >
-                  <Wand2 className="w-8 h-8 text-orange-400" />
+                  <Wand2 className="w-8 h-8 text-rose-400" />
                 </motion.div>
                 <h3 className="text-lg font-semibold mb-2 text-white">
                   Authentication Required
@@ -1118,7 +1118,7 @@ const InstantTailoringAgent = () => {
                 </p>
                 <Button
                   onClick={() => navigate("/auth")}
-                  className="w-full bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-700 hover:to-amber-700 text-white"
+                  className="w-full bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-700 hover:to-red-700 text-white"
                 >
                   Login to Continue
                 </Button>
@@ -1177,13 +1177,13 @@ const InstantTailoringAgent = () => {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.2 }}
-                    className="mx-auto w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-orange-500/20 via-yellow-500/15 to-amber-500/20 rounded-full flex items-center justify-center border border-orange-500/20 backdrop-blur-xl"
+                    className="mx-auto w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-rose-500/20 via-red-500/15 to-orange-500/20 rounded-full flex items-center justify-center border border-rose-500/20 backdrop-blur-xl"
                   >
-                    <Wand2 className="w-8 h-8 sm:w-10 sm:h-10 text-orange-400" />
+                    <Wand2 className="w-8 h-8 sm:w-10 sm:h-10 text-rose-400" />
                   </motion.div>
 
                   <div className="flex items-center justify-center gap-2">
-                    <Badge className="bg-orange-500/20 text-orange-400 border-orange-500/30 text-xs sm:text-sm">
+                    <Badge className="bg-rose-500/20 text-rose-400 border-rose-500/30 text-xs sm:text-sm">
                       <Sparkles className="w-3 h-3 mr-1" />
                       AI Tailoring
                     </Badge>
@@ -1196,7 +1196,7 @@ const InstantTailoringAgent = () => {
                     className="text-2xl sm:text-3xl md:text-4xl lg:text-6xl font-bold text-white leading-tight"
                   >
                     Instant Tailoring{" "}
-                    <span className="bg-gradient-to-r from-orange-400 via-yellow-400 to-amber-400 bg-clip-text text-transparent">
+                    <span className="bg-gradient-to-r from-rose-400 via-red-400 to-orange-400 bg-clip-text text-transparent">
                       Agent
                     </span>
                   </motion.h1>
@@ -1209,7 +1209,7 @@ const InstantTailoringAgent = () => {
                   >
                     <p className="text-lg sm:text-xl md:text-2xl text-slate-300 max-w-3xl mx-auto leading-relaxed">
                       Hey{" "}
-                      <span className="text-orange-400 font-semibold">
+                      <span className="text-rose-400 font-semibold">
                         {userName}
                       </span>
                       ! 👋
@@ -1259,9 +1259,9 @@ const InstantTailoringAgent = () => {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.6 + index * 0.1 }}
-                    className="p-3 sm:p-4 rounded-xl bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl border border-slate-700/50"
+                    className="p-3 sm:p-4 rounded-xl bg-gradient-to-br from-rose-500/5 via-red-500/5 to-orange-500/10 backdrop-blur-xl border border-slate-700/50"
                   >
-                    <capability.icon className="w-6 h-6 sm:w-8 sm:h-8 text-orange-400 mx-auto mb-2 sm:mb-3" />
+                    <capability.icon className="w-6 h-6 sm:w-8 sm:h-8 text-rose-400 mx-auto mb-2 sm:mb-3" />
                     <h3 className="font-semibold text-white mb-1 sm:mb-2 text-xs sm:text-sm">
                       {capability.title}
                     </h3>
@@ -1295,7 +1295,7 @@ const InstantTailoringAgent = () => {
                     placeholder="Search jobs to tailor with your agent..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 sm:py-3 border border-slate-600 rounded-lg bg-slate-800/50 backdrop-blur-sm text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm sm:text-base"
+                    className="w-full pl-10 pr-4 py-2 sm:py-3 border border-slate-600 rounded-lg bg-slate-800/50 backdrop-blur-sm text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent text-sm sm:text-base"
                   />
                 </div>
 
@@ -1352,15 +1352,15 @@ const InstantTailoringAgent = () => {
                   exit={{ opacity: 0, y: -20 }}
                   className="text-center py-12 sm:py-16"
                 >
-                  <Card className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl border border-slate-700/50 shadow-xl max-w-lg mx-auto">
+                  <Card className="bg-gradient-to-br from-rose-500/5 via-red-500/5 to-orange-500/10 backdrop-blur-xl border border-slate-700/50 shadow-xl max-w-lg mx-auto">
                     <CardContent className="pt-6 sm:pt-8 pb-6 sm:pb-8 text-center">
                       <motion.div
                         initial={{ scale: 0 }}
                         animate={{ scale: 1 }}
                         transition={{ delay: 0.2, type: "spring" }}
-                        className="mx-auto w-16 h-16 sm:w-20 sm:h-20 bg-orange-500/20 rounded-full flex items-center justify-center mb-4 sm:mb-6 border border-orange-500/20"
+                        className="mx-auto w-16 h-16 sm:w-20 sm:h-20 bg-rose-500/20 rounded-full flex items-center justify-center mb-4 sm:mb-6 border border-rose-500/20"
                       >
-                        <Heart className="w-8 h-8 sm:w-10 sm:h-10 text-orange-400" />
+                        <Heart className="w-8 h-8 sm:w-10 sm:h-10 text-rose-400" />
                       </motion.div>
 
                       <h3 className="text-xl sm:text-2xl font-semibold mb-2 sm:mb-3 text-white">
@@ -1387,7 +1387,7 @@ const InstantTailoringAgent = () => {
                         ) : (
                           <Button
                             onClick={() => navigate("/job-finder")}
-                            className="bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-700 hover:to-amber-700 text-white"
+                            className="bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-700 hover:to-red-700 text-white"
                           >
                             <Search className="w-4 h-4 mr-2" />
                             Discover Jobs to Save
@@ -1428,9 +1428,9 @@ const InstantTailoringAgent = () => {
                 transition={{ delay: 0.8 }}
                 className="mt-8 sm:mt-12 text-center"
               >
-                <Card className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl border border-slate-700/50 shadow-lg">
+                <Card className="bg-gradient-to-br from-rose-500/5 via-red-500/5 to-orange-500/10 backdrop-blur-xl border border-slate-700/50 shadow-lg">
                   <CardContent className="p-6 sm:p-8">
-                    <Sparkles className="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-3 sm:mb-4 text-orange-400" />
+                    <Sparkles className="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-3 sm:mb-4 text-rose-400" />
                     <h3 className="text-lg sm:text-xl font-semibold mb-2 text-white">
                       Ready to tailor more applications?
                     </h3>
@@ -1440,7 +1440,7 @@ const InstantTailoringAgent = () => {
                     </p>
                     <Button
                       onClick={() => navigate("/job-finder")}
-                      className="bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-700 hover:to-amber-700 text-white"
+                      className="bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-700 hover:to-red-700 text-white"
                     >
                       <Plus className="w-4 h-4 mr-2" />
                       Discover More Jobs

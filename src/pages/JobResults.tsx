@@ -1,4 +1,11 @@
-import React, { useState, useEffect, useMemo, useCallback, memo } from "react";
+import React, {
+  useState,
+  useEffect,
+  useMemo,
+  useCallback,
+  memo,
+  useRef, // Import useRef
+} from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -72,7 +79,7 @@ interface JobResult {
   employmentType: string;
   jobFunction: string;
   industries: string;
-  uniqueId?: string;
+  uniqueId: string; // Ensure uniqueId is always a string
 }
 
 // **ENHANCED LOADING SKELETON - ROSE/RED THEME**
@@ -146,17 +153,17 @@ DiscoveryAgentLoadingSkeleton.displayName = "DiscoveryAgentLoadingSkeleton";
 const DiscoveredJobCard = memo<{
   job: JobResult;
   index: number;
-  onSaveJob: (job: JobResult, index: number) => void;
-  onTailorResume: (job: JobResult, index: number) => void;
-  onGenerateCoverLetter: (job: JobResult, index: number) => void;
-  onAppliedChange: (job: JobResult, index: number, checked: boolean) => void;
+  onSaveJob: (job: JobResult) => void;
+  onTailorResume: (job: JobResult) => void;
+  onGenerateCoverLetter: (job: JobResult) => void;
+  onAppliedChange: (job: JobResult, checked: boolean) => void;
   onShare: (job: JobResult) => void;
-  savedJobs: Set<number>;
-  savingJobs: Set<number>;
-  processingResume: Set<number>;
-  processingCoverLetter: Set<number>;
-  appliedJobs: Set<number>;
-  applyingJobs: Set<number>;
+  savedJobs: Set<string>;
+  savingJobs: Set<string>;
+  processingResume: Set<string>;
+  processingCoverLetter: Set<string>;
+  appliedJobs: Set<string>;
+  applyingJobs: Set<string>;
   user: any;
 }>(
   ({
@@ -205,6 +212,13 @@ const DiscoveredJobCard = memo<{
       },
       []
     );
+
+    const isSaved = savedJobs.has(job.uniqueId);
+    const isSaving = savingJobs.has(job.uniqueId);
+    const isProcessingResume = processingResume.has(job.uniqueId);
+    const isProcessingCoverLetter = processingCoverLetter.has(job.uniqueId);
+    const isApplied = appliedJobs.has(job.uniqueId);
+    const isApplying = applyingJobs.has(job.uniqueId);
 
     return (
       <motion.div
@@ -304,19 +318,19 @@ const DiscoveredJobCard = memo<{
                 {user && (
                   <div className="flex items-center space-x-2 flex-shrink-0 self-start sm:self-center">
                     <Checkbox
-                      id={`applied-${index}`}
-                      checked={appliedJobs.has(index)}
+                      id={`applied-${job.uniqueId}`}
+                      checked={isApplied}
                       onCheckedChange={(checked) =>
-                        onAppliedChange(job, index, checked as boolean)
+                        onAppliedChange(job, checked as boolean)
                       }
-                      disabled={applyingJobs.has(index)}
+                      disabled={isApplying}
                       className="flex-shrink-0"
                     />
                     <label
-                      htmlFor={`applied-${index}`}
+                      htmlFor={`applied-${job.uniqueId}`}
                       className="text-xs font-medium leading-none cursor-pointer text-slate-400 whitespace-nowrap"
                     >
-                      {applyingJobs.has(index) ? "Processing..." : "Applied"}
+                      {isApplying ? "Processing..." : "Applied"}
                     </label>
                   </div>
                 )}
@@ -415,16 +429,16 @@ const DiscoveredJobCard = memo<{
                   whileTap={{ scale: 0.98 }}
                 >
                   <Button
-                    onClick={() => onSaveJob(job, index)}
-                    disabled={savingJobs.has(index)}
+                    onClick={() => onSaveJob(job)}
+                    disabled={isSaving}
                     size="sm"
                     className={
-                      savedJobs.has(index)
+                      isSaved
                         ? "bg-gradient-to-r from-rose-500 to-pink-500 text-white hover:from-rose-600 hover:to-pink-600 shadow-lg border-0"
                         : "bg-gradient-to-r from-slate-700 to-slate-800 text-slate-300 hover:from-rose-500 hover:to-pink-500 hover:text-white border border-slate-600 shadow-md hover:border-rose-400"
                     }
                   >
-                    {savedJobs.has(index) ? (
+                    {isSaved ? (
                       <>
                         <Heart className="w-4 h-4 mr-2 fill-current" />
                         Tracked
@@ -432,7 +446,7 @@ const DiscoveredJobCard = memo<{
                     ) : (
                       <>
                         <Heart className="w-4 h-4 mr-2" />
-                        {savingJobs.has(index) ? "Tracking..." : "Track"}
+                        {isSaving ? "Tracking..." : "Track"}
                       </>
                     )}
                   </Button>
@@ -441,13 +455,13 @@ const DiscoveredJobCard = memo<{
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button
-                      onClick={() => onTailorResume(job, index)}
-                      disabled={processingResume.has(index)}
+                      onClick={() => onTailorResume(job)}
+                      disabled={isProcessingResume}
                       size="sm"
                       variant="outline"
                       className="border-blue-500/30 text-blue-400 hover:bg-blue-500 hover:text-white bg-blue-500/10"
                     >
-                      {processingResume.has(index) ? (
+                      {isProcessingResume ? (
                         <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                       ) : (
                         <FileText className="w-4 h-4 mr-2" />
@@ -463,13 +477,13 @@ const DiscoveredJobCard = memo<{
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button
-                      onClick={() => onGenerateCoverLetter(job, index)}
-                      disabled={processingCoverLetter.has(index)}
+                      onClick={() => onGenerateCoverLetter(job)}
+                      disabled={isProcessingCoverLetter}
                       size="sm"
                       variant="outline"
                       className="border-green-500/30 text-green-400 hover:bg-green-500 hover:text-white bg-green-500/10"
                     >
-                      {processingCoverLetter.has(index) ? (
+                      {isProcessingCoverLetter ? (
                         <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                       ) : (
                         <Upload className="w-4 h-4 mr-2" />
@@ -514,16 +528,16 @@ const DiscoveredJobCard = memo<{
                     whileTap={{ scale: 0.98 }}
                   >
                     <Button
-                      onClick={() => onSaveJob(job, index)}
-                      disabled={savingJobs.has(index)}
+                      onClick={() => onSaveJob(job)}
+                      disabled={isSaving}
                       size="sm"
                       className={
-                        savedJobs.has(index)
+                        isSaved
                           ? "w-full bg-gradient-to-r from-rose-500 to-pink-500 text-white hover:from-rose-600 hover:to-pink-600 shadow-lg border-0 text-xs h-9"
                           : "w-full bg-gradient-to-r from-slate-700 to-slate-800 text-slate-300 hover:from-rose-500 hover:to-pink-500 hover:text-white border border-slate-600 shadow-md text-xs h-9"
                       }
                     >
-                      {savedJobs.has(index) ? (
+                      {isSaved ? (
                         <>
                           <Heart className="w-3 h-3 mr-1 fill-current flex-shrink-0" />
                           <span className="truncate">Tracked</span>
@@ -532,7 +546,7 @@ const DiscoveredJobCard = memo<{
                         <>
                           <Heart className="w-3 h-3 mr-1 flex-shrink-0" />
                           <span className="truncate">
-                            {savingJobs.has(index) ? "Tracking..." : "Track"}
+                            {isSaving ? "Tracking..." : "Track"}
                           </span>
                         </>
                       )}
@@ -553,13 +567,13 @@ const DiscoveredJobCard = memo<{
                 {/* Second Row: AI Tools */}
                 <div className="grid grid-cols-2 gap-2">
                   <Button
-                    onClick={() => onTailorResume(job, index)}
-                    disabled={processingResume.has(index)}
+                    onClick={() => onTailorResume(job)}
+                    disabled={isProcessingResume}
                     size="sm"
                     variant="outline"
                     className="w-full border-blue-500/30 text-blue-400 hover:bg-blue-500 hover:text-white bg-blue-500/10 text-xs h-9"
                   >
-                    {processingResume.has(index) ? (
+                    {isProcessingResume ? (
                       <Loader2 className="w-3 h-3 mr-1 animate-spin flex-shrink-0" />
                     ) : (
                       <FileText className="w-3 h-3 mr-1 flex-shrink-0" />
@@ -568,13 +582,13 @@ const DiscoveredJobCard = memo<{
                   </Button>
 
                   <Button
-                    onClick={() => onGenerateCoverLetter(job, index)}
-                    disabled={processingCoverLetter.has(index)}
+                    onClick={() => onGenerateCoverLetter(job)}
+                    disabled={isProcessingCoverLetter}
                     size="sm"
                     variant="outline"
                     className="w-full border-green-500/30 text-green-400 hover:bg-green-500 hover:text-white bg-green-500/10 text-xs h-9"
                   >
-                    {processingCoverLetter.has(index) ? (
+                    {isProcessingCoverLetter ? (
                       <Loader2 className="w-3 h-3 mr-1 animate-spin flex-shrink-0" />
                     ) : (
                       <Upload className="w-3 h-3 mr-1 flex-shrink-0" />
@@ -690,21 +704,24 @@ DiscoveryAgentStats.displayName = "DiscoveryAgentStats";
 const AIJobDiscoveryAgentResults: React.FC = () => {
   const [jobResults, setJobResults] = useState<JobResult[]>([]);
   const [loading, setLoading] = useState(true);
-  const [savedJobs, setSavedJobs] = useState<Set<number>>(new Set());
-  const [savingJobs, setSavingJobs] = useState<Set<number>>(new Set());
-  const [processingResume, setProcessingResume] = useState<Set<number>>(
+  // --- BUG FIX: Use string for unique IDs instead of number for index ---
+  const [savedJobs, setSavedJobs] = useState<Set<string>>(new Set());
+  const [savingJobs, setSavingJobs] = useState<Set<string>>(new Set());
+  const [processingResume, setProcessingResume] = useState<Set<string>>(
     new Set()
   );
   const [processingCoverLetter, setProcessingCoverLetter] = useState<
-    Set<number>
+    Set<string>
   >(new Set());
-  const [appliedJobs, setAppliedJobs] = useState<Set<number>>(new Set());
-  const [applyingJobs, setApplyingJobs] = useState<Set<number>>(new Set());
+  const [appliedJobs, setAppliedJobs] = useState<Set<string>>(new Set());
+  const [applyingJobs, setApplyingJobs] = useState<Set<string>>(new Set());
+  // --- END BUG FIX ---
   const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState<"date" | "company" | "title">("date");
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
+  const hasSavedResults = useRef(false); // Ref to prevent duplicate saves
 
   const userName = useMemo(() => {
     if (!user) return "there";
@@ -715,6 +732,15 @@ const AIJobDiscoveryAgentResults: React.FC = () => {
     );
   }, [user?.user_metadata?.full_name, user?.email]);
 
+  // ========= START: BUG FIX (IMPROVED) =========
+  // The original code had one useEffect that depended on `user`, causing it to
+  // re-run on tab focus (auth refresh). This fix separates concerns:
+  // 1. Load data from sessionStorage ONCE.
+  // 2. Save data to the database ONCE when user and data are ready.
+
+  // Effect 1: Load job results from sessionStorage on component mount.
+  // This now runs only once, making the component's state the source of truth
+  // and preventing data loss when the user object changes.
   useEffect(() => {
     const results = sessionStorage.getItem("jobSearchResults");
     if (results) {
@@ -723,24 +749,24 @@ const AIJobDiscoveryAgentResults: React.FC = () => {
         const jobsArray = Array.isArray(parsedResults)
           ? parsedResults
           : [parsedResults];
+        // Ensure every job has a stable unique ID
         const jobsWithIds = jobsArray.map((job, index) => ({
           ...job,
-          uniqueId: `${job.title}-${job.companyName}-${index}-${Date.now()}`,
+          uniqueId:
+            job.uniqueId ||
+            `${job.title}-${job.companyName}-${index}-${Date.now()}`,
         }));
         setJobResults(jobsWithIds);
-
-        if (user && jobsWithIds.length > 0) {
-          saveJobSearchResults(jobsWithIds);
-        }
       } catch (error) {
         console.error("Error parsing job results:", error);
         setJobResults([]);
       }
     } else {
+      // If there's no data when the page first loads, redirect.
       navigate("/job-discovery");
     }
     setLoading(false);
-  }, [navigate, user]);
+  }, [navigate]); // Empty dependency array ensures this runs only once.
 
   const saveJobSearchResults = useCallback(
     async (jobs: JobResult[]) => {
@@ -774,7 +800,7 @@ const AIJobDiscoveryAgentResults: React.FC = () => {
           toast({
             title: "Agent Storage Error",
             description:
-              "Opportunities discovered but failed to save. You can still view the results.",
+              "Opportunities discovered but failed to save. You can still view them.",
             variant: "destructive",
           });
         }
@@ -783,7 +809,7 @@ const AIJobDiscoveryAgentResults: React.FC = () => {
         toast({
           title: "Agent Storage Error",
           description:
-            "Opportunities discovered but failed to save. You can still view the results.",
+            "Opportunities discovered but failed to save. You can still view them.",
           variant: "destructive",
         });
       }
@@ -791,8 +817,20 @@ const AIJobDiscoveryAgentResults: React.FC = () => {
     [user, toast]
   );
 
+  // Effect 2: Save results to the database when the user and jobs are available.
+  // The `hasSavedResults` ref ensures this logic runs only one time.
+  useEffect(() => {
+    if (user && jobResults.length > 0 && !hasSavedResults.current) {
+      saveJobSearchResults(jobResults);
+      hasSavedResults.current = true; // Mark as saved to prevent re-triggering.
+    }
+  }, [user, jobResults, saveJobSearchResults]);
+
+  // ========= END: BUG FIX (IMPROVED) =========
+
   const handleSaveJob = useCallback(
-    async (job: JobResult, index: number) => {
+    // --- BUG FIX: Remove index, use job.uniqueId ---
+    async (job: JobResult) => {
       if (!user) {
         toast({
           title: "Authentication Required 🔐",
@@ -802,33 +840,22 @@ const AIJobDiscoveryAgentResults: React.FC = () => {
         return;
       }
 
-      setSavingJobs((prev) => new Set(prev).add(index));
+      setSavingJobs((prev) => new Set(prev).add(job.uniqueId));
 
-      if (savedJobs.has(index)) {
+      if (savedJobs.has(job.uniqueId)) {
         try {
-          const { data: existingSavedJobs, error: fetchError } = await supabase
+          // This logic seems to be for un-saving, which is fine
+          const { error } = await supabase
             .from("saved_jobs")
-            .select("id")
+            .delete()
             .eq("user_id", user.id)
-            .eq("job_title", job.title)
-            .eq("company_name", job.companyName)
             .eq("apply_url", job.applyUrl);
 
-          if (fetchError) throw fetchError;
-
-          if (existingSavedJobs && existingSavedJobs.length > 0) {
-            const idsToDelete = existingSavedJobs.map((record) => record.id);
-            const { error: deleteError } = await supabase
-              .from("saved_jobs")
-              .delete()
-              .in("id", idsToDelete);
-
-            if (deleteError) throw deleteError;
-          }
+          if (error) throw error;
 
           setSavedJobs((prev) => {
             const newSet = new Set(prev);
-            newSet.delete(index);
+            newSet.delete(job.uniqueId);
             return newSet;
           });
 
@@ -846,7 +873,7 @@ const AIJobDiscoveryAgentResults: React.FC = () => {
         } finally {
           setSavingJobs((prev) => {
             const newSet = new Set(prev);
-            newSet.delete(index);
+            newSet.delete(job.uniqueId);
             return newSet;
           });
         }
@@ -874,7 +901,8 @@ const AIJobDiscoveryAgentResults: React.FC = () => {
 
         if (error) {
           if (error.code === "23505") {
-            setSavedJobs((prev) => new Set(prev).add(index));
+            // Handle unique constraint violation
+            setSavedJobs((prev) => new Set(prev).add(job.uniqueId));
             toast({
               title: "Already Tracking ✅",
               description: "This opportunity is already in your tracker.",
@@ -883,7 +911,7 @@ const AIJobDiscoveryAgentResults: React.FC = () => {
             throw error;
           }
         } else {
-          setSavedJobs((prev) => new Set(prev).add(index));
+          setSavedJobs((prev) => new Set(prev).add(job.uniqueId));
           toast({
             title: "Agent Now Tracking! 🎯",
             description: "Opportunity added to your AI tracker.",
@@ -899,16 +927,18 @@ const AIJobDiscoveryAgentResults: React.FC = () => {
       } finally {
         setSavingJobs((prev) => {
           const newSet = new Set(prev);
-          newSet.delete(index);
+          newSet.delete(job.uniqueId);
           return newSet;
         });
       }
     },
+    // --- END BUG FIX ---
     [user, savedJobs, toast]
   );
 
   const handleTailorResume = useCallback(
-    async (job: JobResult, index: number) => {
+    // --- BUG FIX: Remove index, use job.uniqueId ---
+    async (job: JobResult) => {
       if (!user) {
         toast({
           title: "Authentication Required 🔐",
@@ -925,9 +955,10 @@ const AIJobDiscoveryAgentResults: React.FC = () => {
         const file = (event.target as HTMLInputElement).files?.[0];
         if (!file) return;
 
-        setProcessingResume((prev) => new Set(prev).add(index));
+        setProcessingResume((prev) => new Set(prev).add(job.uniqueId));
 
         try {
+          // The rest of the logic remains the same as it doesn't depend on the index
           const base64Resume = await new Promise<string>((resolve, reject) => {
             const reader = new FileReader();
             reader.onload = () => {
@@ -937,6 +968,8 @@ const AIJobDiscoveryAgentResults: React.FC = () => {
             reader.onerror = reject;
             reader.readAsDataURL(file);
           });
+
+          // ... (fetch logic is correct)
 
           const response = await fetch(
             "https://n8n.applyforge.cloud/webhook-test/tailor-resume",
@@ -999,18 +1032,20 @@ const AIJobDiscoveryAgentResults: React.FC = () => {
         } finally {
           setProcessingResume((prev) => {
             const newSet = new Set(prev);
-            newSet.delete(index);
+            newSet.delete(job.uniqueId);
             return newSet;
           });
         }
       };
       input.click();
     },
+    // --- END BUG FIX ---
     [user, toast]
   );
 
   const handleGenerateCoverLetter = useCallback(
-    async (job: JobResult, index: number) => {
+    // --- BUG FIX: Remove index, use job.uniqueId ---
+    async (job: JobResult) => {
       if (!user) {
         toast({
           title: "Authentication Required 🔐",
@@ -1027,9 +1062,10 @@ const AIJobDiscoveryAgentResults: React.FC = () => {
         const file = (event.target as HTMLInputElement).files?.[0];
         if (!file) return;
 
-        setProcessingCoverLetter((prev) => new Set(prev).add(index));
+        setProcessingCoverLetter((prev) => new Set(prev).add(job.uniqueId));
 
         try {
+          // Rest of the logic is fine
           const base64Resume = await new Promise<string>((resolve, reject) => {
             const reader = new FileReader();
             reader.onload = () => {
@@ -1041,7 +1077,7 @@ const AIJobDiscoveryAgentResults: React.FC = () => {
           });
 
           const response = await fetch(
-            "https://primary-production-800d.up.railway.app/webhook-test/generate-cover-letter",
+            "https://n8n.applyforge.cloud/webhook-test/generate-cover-letter",
             {
               method: "POST",
               headers: {
@@ -1058,7 +1094,7 @@ const AIJobDiscoveryAgentResults: React.FC = () => {
               }),
             }
           );
-
+          // ... (response handling logic is correct)
           if (!response.ok) {
             throw new Error("Failed to generate cover letter");
           }
@@ -1103,18 +1139,20 @@ const AIJobDiscoveryAgentResults: React.FC = () => {
         } finally {
           setProcessingCoverLetter((prev) => {
             const newSet = new Set(prev);
-            newSet.delete(index);
+            newSet.delete(job.uniqueId);
             return newSet;
           });
         }
       };
       input.click();
     },
+    // --- END BUG FIX ---
     [user, toast]
   );
 
+  // --- BUG FIX: MAJOR REFACTOR OF THIS FUNCTION ---
   const handleAppliedChange = useCallback(
-    async (job: JobResult, index: number, checked: boolean) => {
+    async (job: JobResult, checked: boolean) => {
       if (!user) {
         toast({
           title: "Authentication Required 🔐",
@@ -1124,9 +1162,11 @@ const AIJobDiscoveryAgentResults: React.FC = () => {
         return;
       }
 
+      // We only care about when the box is checked
       if (checked) {
-        setAppliedJobs((prev) => new Set(prev).add(index));
-        setApplyingJobs((prev) => new Set(prev).add(index));
+        // Use the uniqueId to track the job being processed
+        setApplyingJobs((prev) => new Set(prev).add(job.uniqueId));
+        setAppliedJobs((prev) => new Set(prev).add(job.uniqueId));
 
         try {
           const appliedJobData = {
@@ -1153,13 +1193,16 @@ const AIJobDiscoveryAgentResults: React.FC = () => {
             throw error;
           }
 
-          setJobResults((prevResults) => {
-            return prevResults.filter((_, jobIndex) => jobIndex !== index);
-          });
+          // **THE FIX**: Filter the results list by the stable uniqueId, NOT the index.
+          // This prevents removing the wrong job.
+          setJobResults((prevResults) =>
+            prevResults.filter((j) => j.uniqueId !== job.uniqueId)
+          );
 
+          // Also remove it from saved jobs state if it exists there
           setSavedJobs((prev) => {
             const newSet = new Set(prev);
-            newSet.delete(index);
+            newSet.delete(job.uniqueId);
             return newSet;
           });
 
@@ -1175,22 +1218,26 @@ const AIJobDiscoveryAgentResults: React.FC = () => {
             variant: "destructive",
           });
 
+          // If the API call fails, un-check the box
           setAppliedJobs((prev) => {
             const newSet = new Set(prev);
-            newSet.delete(index);
+            newSet.delete(job.uniqueId);
             return newSet;
           });
         } finally {
+          // Always remove from the "processing" state
           setApplyingJobs((prev) => {
             const newSet = new Set(prev);
-            newSet.delete(index);
+            newSet.delete(job.uniqueId);
             return newSet;
           });
         }
       }
+      // Un-checking logic can be added here if needed, but current flow removes the item.
     },
     [user, toast]
   );
+  // --- END BUG FIX ---
 
   const handleShare = useCallback(
     (job: JobResult) => {
@@ -1511,12 +1558,9 @@ const AIJobDiscoveryAgentResults: React.FC = () => {
                     <AnimatePresence>
                       {sortedJobs.map((job, index) => (
                         <DiscoveredJobCard
-                          key={
-                            job.uniqueId ||
-                            `${job.title}-${job.companyName}-${index}`
-                          }
+                          key={job.uniqueId} // Use stable uniqueId for the key
                           job={job}
-                          index={index}
+                          index={index} // index is only used for animation delay
                           onSaveJob={handleSaveJob}
                           onTailorResume={handleTailorResume}
                           onGenerateCoverLetter={handleGenerateCoverLetter}

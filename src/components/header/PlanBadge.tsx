@@ -253,11 +253,7 @@ const PlanBadge = memo<PlanBadgeProps>(
 
         {/* **NEW: Popular badge for Pro plan** */}
         {normalizedPlan === "Pro" && size !== "xs" && (
-          <div className="absolute -top-1 -right-1">
-            <div className="bg-orange-500 text-white text-xs px-1.5 py-0.5 rounded-full font-bold shadow-lg">
-              ★
-            </div>
-          </div>
+          <div className="absolute -top-1 -right-1"></div>
         )}
 
         {/* Glow effect */}

@@ -264,7 +264,7 @@ const PricingCard = memo<PricingCardProps>(
             </div>
           )}
 
-          <div className="absolute top-3 left-3 flex items-center gap-1 bg-green-600/20 border border-green-400/30 rounded-full px-2 py-1">
+          {/* <div className="absolute top-3 left-3 flex items-center gap-1 bg-green-600/20 border border-green-400/30 rounded-full px-2 py-1">
             <Users className="w-3 h-3 text-green-400" />
             <span className="text-xs text-green-300 font-medium">
               {plan.name === "Free"
@@ -273,7 +273,7 @@ const PricingCard = memo<PricingCardProps>(
                 ? "6 Agents"
                 : "6+ Agents"}
             </span>
-          </div>
+          </div> */}
 
           <div
             className={`${iconBg} text-white mb-4 sm:mb-6 mx-auto p-3 sm:p-4 rounded-xl shadow-md flex justify-center items-center`}
@@ -450,7 +450,7 @@ const Pricing: React.FC = () => {
         period: billingPeriod === "yearly" ? "per year" : "per month",
         description: "Powered by foundational AI models",
         agentCount: "Basic AI Models",
-        icon: <Brain className="w-6 h-6 sm:w-7 sm:h-7" />,
+        icon: <Bot className="w-6 h-6 sm:w-7 sm:h-7" />,
         features: [
           "AI ATS Resume Scanner (5/month)",
           "AI Resume Optimizer (5/month)",
@@ -489,7 +489,7 @@ const Pricing: React.FC = () => {
             : null,
         period: billingPeriod === "yearly" ? "per year" : "per month",
         description: "Enhanced with mid-tier AI for professional results",
-        agentCount: "GPT-3.5 Class AI",
+        agentCount: "GPT-4 Class AI",
         icon: <Cpu className="w-6 h-6 sm:w-7 sm:h-7" />,
         features: [
           "Advanced ATS Analyzer (25/month)",
@@ -527,7 +527,7 @@ const Pricing: React.FC = () => {
             : null,
         period: billingPeriod === "yearly" ? "per year" : "per month",
         description: "Fueled by cutting-edge AI for maximum career impact",
-        agentCount: "GPT-4 Class AI",
+        agentCount: "GPT-5 Class AI",
         icon: <Sparkles className="w-6 h-6 sm:w-7 sm:h-7" />,
         features: [
           "Unlimited AI Tools (state-of-the-art models)",
