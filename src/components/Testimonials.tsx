@@ -56,9 +56,9 @@ const TESTIMONIALS = [
     avatar:
       "https://images.pexels.com/photos/1040880/pexels-photo-1040880.jpeg?auto=compress&cs=tinysrgb&w=64&h=64&fit=crop&crop=face",
     content:
-      "My instant tailoring agent saved me hours. Instead of manually editing my resume for each application, my agents do it in seconds while keeping my core achievements intact. It's like having a 24/7 career assistant!",
+      "My instant generation agent saved me hours. Instead of manually editing my resume for each application, my agents do it in seconds while keeping my core achievements intact. It's like having a 24/7 career assistant!",
     rating: 5,
-    agentUsed: "Instant Tailoring Agent",
+    agentUsed: "Instant Generation Agent",
   },
   {
     name: "Priya Shah",

@@ -904,7 +904,7 @@ const AIResumeArsenal: React.FC = () => {
                         className="border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white"
                       >
                         <Zap className="w-4 h-4 mr-2" />
-                        Instant Tailoring Agent
+                        Instant Generation Agent
                       </Button>
                     </div>
                   </CardContent>

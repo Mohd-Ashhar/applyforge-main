@@ -871,35 +871,26 @@ Preferred Qualifications:
         return;
       }
 
-      // Convert file to base64
-      const base64Resume = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => {
-          const result = reader.result as string;
-          resolve(result.split(",")[1]);
-        };
-        reader.onerror = reject;
-        reader.readAsDataURL(selectedFile);
-      });
+      // --- CHANGE: Use FormData to send binary file instead of base64 ---
+      const requestFormData = new FormData();
+      requestFormData.append("user_id", user.id);
+      requestFormData.append("feature", "resume_optimization_agent");
+      requestFormData.append("jobDescription", formData.jobDescription);
+      requestFormData.append("jobIndustry", formData.industry || "");
+      requestFormData.append("resumeStyle", formData.resumeStyle);
+      requestFormData.append("jobRole", formData.jobRole);
+      requestFormData.append(
+        "fileType",
+        selectedFile.type === "application/pdf" ? "pdf" : "docx"
+      );
+      requestFormData.append("resume", selectedFile);
 
       // Send request to webhook
       const response = await fetch(
         "https://n8n.applyforge.cloud/webhook-test/tailor-resume",
         {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            user_id: user.id,
-            feature: "resume_optimization_agent",
-            resume: base64Resume,
-            jobDescription: formData.jobDescription,
-            jobIndustry: formData.industry,
-            resumeStyle: formData.resumeStyle,
-            jobRole: formData.jobRole,
-            fileType: selectedFile.type === "application/pdf" ? "pdf" : "docx",
-          }),
+          body: requestFormData, // Send FormData directly
         }
       );
 
@@ -909,10 +900,12 @@ Preferred Qualifications:
         );
       }
 
-      // Get the iframe HTML as text
-      const iframeHtml = await response.text();
+      const optimizedResumeUrl = await response.text();
 
-      if (iframeHtml.includes("allowed") && iframeHtml.includes("false")) {
+      if (
+        optimizedResumeUrl.includes("allowed") &&
+        optimizedResumeUrl.includes("false")
+      ) {
         toast({
           title: "Agent Access Denied 🚫",
           description:
@@ -922,87 +915,85 @@ Preferred Qualifications:
         return;
       }
 
-      // Extract the PDF URL from the srcdoc attribute
-      const pdfUrlMatch = iframeHtml.match(/srcdoc="([^"]+)"/);
-      const optimizedResumeUrl = pdfUrlMatch ? pdfUrlMatch[1] : null;
+      if (!optimizedResumeUrl || !optimizedResumeUrl.startsWith("http")) {
+        throw new Error("Received an invalid URL from the agent.");
+      }
 
-      if (optimizedResumeUrl) {
-        // Get user's name from profile or use email
-        let userName = "User";
-        try {
-          const { data: profile } = await supabase
-            .from("profiles")
-            .select("full_name, email")
-            .eq("id", user.id)
-            .single();
-
-          if (profile?.full_name) {
-            userName = profile.full_name.split(" ")[0];
-          } else if (profile?.email) {
-            userName = profile.email.split("@")[0];
-          }
-        } catch (error) {
-          console.log("Could not fetch user profile:", error);
-        }
-
-        const resumeTitle = `${userName} ${formData.jobRole} Resume (Optimized)`;
-
-        // Store the optimized resume in Supabase
-        const { data, error } = await supabase
-          .from("tailored_resumes")
-          .insert({
-            user_id: user.id,
-            job_description: formData.jobDescription,
-            resume_data: optimizedResumeUrl,
-            title: resumeTitle,
-            file_type: "pdf",
-          })
-          .select("id, title, resume_data, file_type, created_at")
+      // Get user's name from profile or use email
+      let userName = "User";
+      try {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("full_name, email")
+          .eq("id", user.id)
           .single();
 
-        if (error) {
-          console.error("Error saving optimized resume:", error);
-          toast({
-            title: "Save Error",
-            description:
-              "Resume optimized but failed to save. Please contact support.",
-            variant: "destructive",
-          });
-          return;
+        if (profile?.full_name) {
+          userName = profile.full_name.split(" ")[0];
+        } else if (profile?.email) {
+          userName = profile.email.split("@")[0];
         }
-
-        if (data) {
-          const newResume: GeneratedResume = {
-            id: data.id,
-            title: data.title || resumeTitle,
-            resume_data: data.resume_data,
-            file_type: data.file_type,
-            created_at: data.created_at,
-          };
-          setResults(newResume);
-        }
-
-        refreshUsage();
-
-        setTimeout(() => {
-          resultsRef.current?.scrollIntoView({
-            behavior: "smooth",
-            block: "start",
-          });
-        }, 100);
-
-        toast({
-          title: "Agent Optimization Complete! 🚀",
-          description:
-            "Your Resume Optimization Agent has crafted your perfect resume.",
-          action: (
-            <Button size="sm" onClick={() => navigate("/tailored-resumes")}>
-              <Eye className="w-4 h-4 mr-1" />
-              View All
-            </Button>
-          ),
-        });
+      } catch (error) {
+        console.log("Could not fetch user profile:", error);
       }
+
+      const resumeTitle = `${userName} ${formData.jobRole} Resume (Optimized)`;
+
+      // Store the optimized resume in Supabase
+      const { data, error } = await supabase
+        .from("tailored_resumes")
+        .insert({
+          user_id: user.id,
+          job_description: formData.jobDescription,
+          resume_data: optimizedResumeUrl,
+          title: resumeTitle,
+          file_type: "pdf",
+        })
+        .select("id, title, resume_data, file_type, created_at")
+        .single();
+
+      if (error) {
+        console.error("Error saving optimized resume:", error);
+        toast({
+          title: "Save Error",
+          description:
+            "Resume optimized but failed to save. Please contact support.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (data) {
+        const newResume: GeneratedResume = {
+          id: data.id,
+          title: data.title || resumeTitle,
+          resume_data: data.resume_data,
+          file_type: data.file_type,
+          created_at: data.created_at,
+        };
+        setResults(newResume);
+      }
+
+      refreshUsage();
+
+      setTimeout(() => {
+        resultsRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      }, 100);
+
+      toast({
+        title: "Agent Optimization Complete! 🚀",
+        description:
+          "Your Resume Optimization Agent has crafted your perfect resume.",
+        action: (
+          <Button size="sm" onClick={() => navigate("/tailored-resumes")}>
+            <Eye className="w-4 h-4 mr-1" />
+            View All
+          </Button>
+        ),
+      });
     } catch (error) {
       console.error("Agent optimization error:", error);
 
@@ -1068,7 +1059,6 @@ Preferred Qualifications:
                 transition={{ duration: 0.6 }}
                 className="flex flex-col items-center gap-4 sm:gap-6"
               >
-
                 <div className="space-y-3 sm:space-y-4">
                   <motion.div
                     initial={{ opacity: 0, y: 20 }}

@@ -123,7 +123,7 @@ const TailoringAgentLoadingOverlay = memo(
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.3 }}
-            className="fixed inset-0 z- flex flex-col items-center justify-center backdrop-blur-lg bg-background/90 p-4"
+            className="fixed inset-0 z-50 flex flex-col items-center justify-center backdrop-blur-lg bg-background/90 p-4"
           >
             {/* Agent Avatar with Tailoring Animation */}
             <motion.div
@@ -170,7 +170,7 @@ const TailoringAgentLoadingOverlay = memo(
               className="text-center space-y-3 sm:space-y-4 max-w-sm sm:max-w-md"
             >
               <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-white">
-                Instant Tailoring Agent
+                Instant Generation Agent
               </h3>
               <p className="text-sm sm:text-base md:text-lg text-rose-400 font-medium leading-relaxed">
                 {currentMessages[Math.min(stage, currentMessages.length - 1)]}
@@ -628,13 +628,12 @@ const InstantTailoringAgent = () => {
   // Calculate user name for personalized greeting
   const userName = useMemo(() => {
     if (!user) return "there";
-    // lines 615-619
     return (
       user.user_metadata?.full_name?.split(" ")?.[0] ||
       user.email?.split("@")?.[0] ||
       "there"
     );
-  }, [user?.user_metadata?.full_name, user?.email]);
+  }, [user]);
 
   // Filtered and sorted jobs
   const filteredJobs = useMemo(
@@ -686,30 +685,6 @@ const InstantTailoringAgent = () => {
     processing.coverLetter.size > 0 ||
     processing.applying.size > 0;
 
-  useEffect(() => {
-    if (user) {
-      fetchSavedJobs();
-    }
-  }, [user]);
-
-  const simulateLoadingStages = useCallback(
-    (operation: "tailoring" | "cover-letter" | "applying") => {
-      const stageCounts = {
-        tailoring: 5,
-        "cover-letter": 5,
-        applying: 3,
-      };
-
-      const stageCount = stageCounts[operation];
-      const stages = Array.from({ length: stageCount }, (_, i) => i);
-
-      stages.forEach((stage, index) => {
-        setTimeout(() => setLoadingStage(stage), index * 1500);
-      });
-    },
-    []
-  );
-
   const fetchSavedJobs = useCallback(async () => {
     if (!user) return;
 
@@ -735,19 +710,72 @@ const InstantTailoringAgent = () => {
     }
   }, [user, toast]);
 
+  useEffect(() => {
+    if (user) {
+      fetchSavedJobs();
+    }
+  }, [user, fetchSavedJobs]);
+
+  const simulateLoadingStages = useCallback(
+    (operation: "tailoring" | "cover-letter" | "applying") => {
+      const stageCounts = {
+        tailoring: 5,
+        "cover-letter": 5,
+        applying: 3,
+      };
+
+      const stageCount = stageCounts[operation];
+      const stages = Array.from({ length: stageCount }, (_, i) => i);
+
+      stages.forEach((stage, index) => {
+        setTimeout(() => setLoadingStage(stage), index * 1200); // Slightly faster simulation
+      });
+    },
+    []
+  );
+
+  // Helper function with proper error handling
+  const getCurrentUserVersion = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from("user_usage")
+        .select("*")
+        .eq("user_id", userId)
+        .single();
+
+      if (error) {
+        if (error.code === "PGRST116") {
+          return 0;
+        }
+        return 0;
+      }
+
+      if (data && "version" in data && typeof data.version === "number") {
+        return data.version;
+      }
+
+      return 0;
+    } catch (error) {
+      console.error("Error in getCurrentUserVersion:", error);
+      return 0;
+    }
+  };
+
   const updateProcessingState = useCallback(
     (
       type: keyof JobProcessingState,
       jobId: string,
       action: "add" | "remove"
     ) => {
-      setProcessing((prev) => ({
-        ...prev,
-        [type]:
-          action === "add"
-            ? new Set([...prev[type], jobId])
-            : new Set([...prev[type]].filter((id) => id !== jobId)),
-      }));
+      setProcessing((prev) => {
+        const newSet = new Set(prev[type]);
+        if (action === "add") {
+          newSet.add(jobId);
+        } else {
+          newSet.delete(jobId);
+        }
+        return { ...prev, [type]: newSet };
+      });
     },
     []
   );
@@ -816,18 +844,6 @@ const InstantTailoringAgent = () => {
     [savedJobs, user, toast, updateProcessingState, simulateLoadingStages]
   );
 
-  const processFile = useCallback(async (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        const result = reader.result as string;
-        resolve(result.split(",")[1]);
-      };
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
-  }, []);
-
   const handleTailorResume = useCallback(
     async (job: SavedJob) => {
       if (!user) return;
@@ -845,40 +861,106 @@ const InstantTailoringAgent = () => {
         updateProcessingState("resume", job.id, "add");
 
         try {
-          const userName = user.email?.split("@") || "User";
+          const currentVersion = await getCurrentUserVersion(user.id);
+          const { error: usageError } = await supabase.rpc(
+            "increment_usage_secure",
+            {
+              p_target_user_id: user.id,
+              p_usage_type: "one_click_tailors_used",
+              p_increment_amount: 1,
+              p_current_version: currentVersion,
+              p_audit_metadata: {
+                action: "instant_tailoring_agent",
+                job_role: job.job_title,
+                industry: job.industries || "unspecified",
+                file_type: file.type === "application/pdf" ? "pdf" : "docx",
+                file_size: file.size,
+              },
+            }
+          );
+
+          if (usageError) {
+            if (usageError.message.includes("Usage limit exceeded")) {
+              toast({
+                title: "Agent Limit Reached 🤖",
+                description:
+                  "You've reached your Instant Generation Agent limit. Upgrade to activate unlimited tailoring!",
+                variant: "destructive",
+                action: (
+                  <Button
+                    size="sm"
+                    onClick={() => navigate("/pricing")}
+                    className="bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-700 hover:to-red-700"
+                  >
+                    <Crown className="w-4 h-4 mr-1" />
+                    Upgrade Plan
+                  </Button>
+                ),
+              });
+              return;
+            }
+
+            if (usageError.message.includes("version_conflict")) {
+              toast({
+                title: "Agent Sync Issue 🔄",
+                description: "Your agent data was updated. Please try again.",
+                variant: "destructive",
+              });
+              return;
+            }
+
+            console.error("Usage increment error:", usageError);
+            toast({
+              title: "Agent Activation Failed ⚠️",
+              description:
+                "Unable to activate your Instant Generation Agent. Please try again.",
+              variant: "destructive",
+            });
+            return;
+          }
+
+          const userName = user.email?.split("@")[0] || "User";
           const customFileName = `${userName}_${job.job_title.replace(
             /[^a-zA-Z0-9]/g,
             "_"
           )}`;
-          const base64Resume = await processFile(file);
+
+          const formData = new FormData();
+          formData.append("user_id", user.id);
+          formData.append("feature", "instant_tailoring_agent");
+          formData.append(
+            "jobDescription",
+            job.job_description ||
+              `Job Title: ${job.job_title}\nCompany: ${job.company_name}`
+          );
+          formData.append(
+            "fileType",
+            file.type === "application/pdf" ? "pdf" : "docx"
+          );
+          formData.append("resume", file);
 
           const response = await fetch(
-            "https://n8n.applyforge.cloud/webhook-test/tailor-resume",
+            "https://n8n.applyforge.cloud/webhook-test/instant-tailor-resume",
             {
               method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                user_id: user.id,
-                feature: "instant_tailoring_agent",
-                resume: base64Resume,
-                jobDescription:
-                  job.job_description ||
-                  `Job Title: ${job.job_title}\nCompany: ${job.company_name}`,
-                fileType: file.type === "application/pdf" ? "pdf" : "docx",
-              }),
+              body: formData,
             }
           );
 
-          if (!response.ok)
+          if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
+          }
 
-          const iframeHtml = await response.text();
+          const tailoredResumeUrl = await response.text();
 
-          if (iframeHtml.includes("allowed") && iframeHtml.includes("false")) {
+          if (
+            tailoredResumeUrl.includes("allowed") &&
+            tailoredResumeUrl.includes("false")
+          ) {
             toast({
               title: "Agent Limit Reached 🤖",
               description:
-                "You've reached your Instant Tailoring Agent limit. Upgrade to activate unlimited tailoring!",
+                "You've reached your Instant Generation Agent limit. Upgrade to activate unlimited tailoring!",
               variant: "destructive",
               action: (
                 <Button
@@ -894,54 +976,49 @@ const InstantTailoringAgent = () => {
             return;
           }
 
-          const pdfUrlMatch = iframeHtml.match(/srcdoc="([^"]+)"/);
-          const tailoredResumeUrl = pdfUrlMatch ? pdfUrlMatch[1] : null;
-
-          if (!tailoredResumeUrl) {
-            throw new Error("Could not extract PDF URL from response");
+          if (!tailoredResumeUrl || !tailoredResumeUrl.startsWith("http")) {
+            throw new Error("Received an invalid URL from the agent.");
           }
 
-          if (tailoredResumeUrl) {
-            const { error } = await supabase.from("tailored_resumes").insert([
-              {
-                user_id: user.id,
-                job_description:
-                  job.job_description ||
-                  `Job Title: ${job.job_title}\nCompany: ${job.company_name}`,
-                resume_data: tailoredResumeUrl,
-                title: customFileName,
-                file_type: "pdf",
-              },
-            ]);
+          const { error } = await supabase.from("tailored_resumes").insert([
+            {
+              user_id: user.id,
+              job_description:
+                job.job_description ||
+                `Job Title: ${job.job_title}\nCompany: ${job.company_name}`,
+              resume_data: tailoredResumeUrl,
+              title: customFileName,
+              file_type: "pdf",
+            },
+          ]);
 
-            if (error) {
-              console.error("Database insert error:", error);
-            }
-
-            const a = document.createElement("a");
-            a.href = tailoredResumeUrl;
-            a.download = `${customFileName}.pdf`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-
-            toast({
-              title: "Agent Success! ✨",
-              description: `Tailored resume "${customFileName}" has been generated by your agent!`,
-              action: (
-                <Button size="sm" onClick={() => navigate("/tailored-resumes")}>
-                  <Eye className="w-4 h-4 mr-1" />
-                  View All
-                </Button>
-              ),
-            });
+          if (error) {
+            console.error("Database insert error:", error);
           }
+
+          const a = document.createElement("a");
+          a.href = tailoredResumeUrl;
+          a.download = `${customFileName}.pdf`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+
+          toast({
+            title: "Agent Success! ✨",
+            description: `Tailored resume "${customFileName}" has been generated by your agent!`,
+            action: (
+              <Button size="sm" onClick={() => navigate("/tailored-resumes")}>
+                <Eye className="w-4 h-4 mr-1" />
+                View All
+              </Button>
+            ),
+          });
         } catch (error) {
           console.error("Error tailoring resume:", error);
           toast({
             title: "Agent Error 🤖",
             description:
-              "Your Instant Tailoring Agent encountered an issue. Please try again.",
+              "Your Instant Generation Agent encountered an issue. Please try again.",
             variant: "destructive",
           });
         } finally {
@@ -950,14 +1027,7 @@ const InstantTailoringAgent = () => {
       };
       input.click();
     },
-    [
-      user,
-      toast,
-      processFile,
-      updateProcessingState,
-      simulateLoadingStages,
-      navigate,
-    ]
+    [user, toast, updateProcessingState, simulateLoadingStages, navigate]
   );
 
   const handleGenerateCoverLetter = useCallback(
@@ -977,7 +1047,64 @@ const InstantTailoringAgent = () => {
         updateProcessingState("coverLetter", job.id, "add");
 
         try {
-          const userName = user.email?.split("@") || "User";
+          const currentVersion = await getCurrentUserVersion(user.id);
+          const { error: usageError } = await supabase.rpc(
+            "increment_usage_secure",
+            {
+              p_target_user_id: user.id,
+              p_usage_type: "one_click_tailors_used",
+              p_increment_amount: 1,
+              p_current_version: currentVersion,
+              p_audit_metadata: {
+                action: "cover_tailoring_agent",
+                company: job.company_name,
+                position: job.job_title,
+                industry: job.industries || "unspecified",
+              },
+            }
+          );
+
+          if (usageError) {
+            if (usageError.message.includes("Usage limit exceeded")) {
+              toast({
+                title: "Agent Limit Reached 🤖",
+                description:
+                  "You've reached your Instant Generation Agent limit. Upgrade to activate unlimited crafting!",
+                variant: "destructive",
+                action: (
+                  <Button
+                    size="sm"
+                    onClick={() => navigate("/pricing")}
+                    className="bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-700 hover:to-red-700"
+                  >
+                    <Crown className="w-4 h-4 mr-1" />
+                    Upgrade Plan
+                  </Button>
+                ),
+              });
+              return;
+            }
+
+            if (usageError.message.includes("version_conflict")) {
+              toast({
+                title: "Agent Sync Issue 🔄",
+                description: "Your agent data was updated. Please try again.",
+                variant: "destructive",
+              });
+              return;
+            }
+
+            console.error("Usage increment error:", usageError);
+            toast({
+              title: "Agent Activation Failed ⚠️",
+              description:
+                "Unable to activate your Instant Generation Agent. Please try again.",
+              variant: "destructive",
+            });
+            return;
+          }
+
+          const userName = user.email?.split("@")[0] || "User";
           const customFileName = `${userName}_${job.job_title.replace(
             /[^a-zA-Z0-9]/g,
             "_"
@@ -996,23 +1123,27 @@ const InstantTailoringAgent = () => {
           formData.append("resume", file);
 
           const response = await fetch(
-            "https://n8n.applyforge.cloud/webhook-test/generate-cover-letter",
+            "https://n8n.applyforge.cloud/webhook-test/instant-cover-letter",
             {
               method: "POST",
               body: formData,
             }
           );
 
-          if (!response.ok)
+          if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
+          }
 
-          const iframeHtml = await response.text();
+          const coverLetterUrl = await response.text();
 
-          if (iframeHtml.includes("allowed") && iframeHtml.includes("false")) {
+          if (
+            coverLetterUrl.includes("allowed") &&
+            coverLetterUrl.includes("false")
+          ) {
             toast({
               title: "Agent Limit Reached 🤖",
               description:
-                "You've reached your Instant Tailoring Agent limit. Upgrade to activate unlimited crafting!",
+                "You've reached your Instant Generation Agent limit. Upgrade to activate unlimited crafting!",
               variant: "destructive",
               action: (
                 <Button
@@ -1028,59 +1159,54 @@ const InstantTailoringAgent = () => {
             return;
           }
 
-          const pdfUrlMatch = iframeHtml.match(/srcdoc="([^"]+)"/);
-          const coverLetterUrl = pdfUrlMatch ? pdfUrlMatch[1] : null;
-
-          if (!coverLetterUrl) {
-            throw new Error("Could not extract PDF URL from response");
+          if (!coverLetterUrl || !coverLetterUrl.startsWith("http")) {
+            throw new Error("Received an invalid URL from the agent.");
           }
 
-          if (coverLetterUrl) {
-            const { error } = await supabase.from("cover_letters").insert([
-              {
-                user_id: user.id,
-                job_description:
-                  job.job_description ||
-                  `Job Title: ${job.job_title}\nCompany: ${job.company_name}`,
-                company_name: job.company_name,
-                position_title: job.job_title,
-                cover_letter_url: coverLetterUrl,
-                original_resume_name: file.name,
-                file_type: "pdf",
-              },
-            ]);
+          const { error } = await supabase.from("cover_letters").insert([
+            {
+              user_id: user.id,
+              job_description:
+                job.job_description ||
+                `Job Title: ${job.job_title}\nCompany: ${job.company_name}`,
+              company_name: job.company_name,
+              position_title: job.job_title,
+              cover_letter_url: coverLetterUrl,
+              original_resume_name: file.name,
+              file_type: "pdf",
+            },
+          ]);
 
-            if (error) {
-              console.error("Database insert error:", error);
-            }
-
-            const a = document.createElement("a");
-            a.href = coverLetterUrl;
-            a.download = `${customFileName}.pdf`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-
-            toast({
-              title: "Agent Success! 📋",
-              description: `Cover letter "${customFileName}" has been crafted by your agent!`,
-              action: (
-                <Button
-                  size="sm"
-                  onClick={() => navigate("/saved-cover-letters")}
-                >
-                  <Eye className="w-4 h-4 mr-1" />
-                  View All
-                </Button>
-              ),
-            });
+          if (error) {
+            console.error("Database insert error:", error);
           }
+
+          const a = document.createElement("a");
+          a.href = coverLetterUrl;
+          a.download = `${customFileName}.pdf`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+
+          toast({
+            title: "Agent Success! 📋",
+            description: `Cover letter "${customFileName}" has been crafted by your agent!`,
+            action: (
+              <Button
+                size="sm"
+                onClick={() => navigate("/saved-cover-letters")}
+              >
+                <Eye className="w-4 h-4 mr-1" />
+                View All
+              </Button>
+            ),
+          });
         } catch (error) {
           console.error("Error generating cover letter:", error);
           toast({
             title: "Agent Error 🤖",
             description:
-              "Your Instant Tailoring Agent encountered an issue. Please try again.",
+              "Your Instant Generation Agent encountered an issue. Please try again.",
             variant: "destructive",
           });
         } finally {
@@ -1114,7 +1240,7 @@ const InstantTailoringAgent = () => {
                   Authentication Required
                 </h3>
                 <p className="text-slate-400 mb-6">
-                  Please log in to activate your Instant Tailoring Agent.
+                  Please log in to activate your Instant Generation Agent.
                 </p>
                 <Button
                   onClick={() => navigate("/auth")}
@@ -1195,7 +1321,7 @@ const InstantTailoringAgent = () => {
                     transition={{ delay: 0.3 }}
                     className="text-2xl sm:text-3xl md:text-4xl lg:text-6xl font-bold text-white leading-tight"
                   >
-                    Instant Tailoring{" "}
+                    Instant Generation{" "}
                     <span className="bg-gradient-to-r from-rose-400 via-red-400 to-orange-400 bg-clip-text text-transparent">
                       Agent
                     </span>

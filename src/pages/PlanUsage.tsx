@@ -180,8 +180,8 @@ const getUsageItems = (usage: any): UsageItem[] => [
       "bg-gradient-to-br from-cyan-500/5 via-teal-500/5 to-emerald-500/10",
   },
   {
-    label: "1-Click Tailors",
-    description: "Instant resume optimization",
+    label: "Instant Generations",
+    description: "Instant resumes & cover letters",
     used: usage.one_click_tailors_used || 0,
     limit: getPlanLimit(usage.plan_type, "one_click_tailors_used"),
     IconComponent: Zap,

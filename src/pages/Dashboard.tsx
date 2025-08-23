@@ -142,7 +142,7 @@ const AI_AGENTS = [
   {
     id: "instant-tailoring-agent",
     icon: Zap,
-    title: "Instant Tailoring Agent",
+    title: "Instant Generation Agent",
     subtitle: "One-Click Resume Optimization",
     path: "/one-click-tailoring",
     implemented: true,

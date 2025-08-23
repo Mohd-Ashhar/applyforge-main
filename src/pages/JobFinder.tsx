@@ -332,12 +332,9 @@ MultiSelectDropdown.displayName = "MultiSelectDropdown";
 // **MAIN MOBILE-ENHANCED JOB DISCOVERY AGENT COMPONENT**
 const JobDiscoveryAgent: React.FC = () => {
   const [jobTitle, setJobTitle] = useState("");
-  const [company, setCompany] = useState("");
   const [selectedLocations, setSelectedLocations] = useState<any[]>([]);
   const [jobTypes, setJobTypes] = useState<string[]>([]);
-  const [workTypes, setWorkTypes] = useState<string[]>([]);
   const [experienceLevel, setExperienceLevel] = useState<string[]>([]);
-  const [postedAt, setPostedAt] = useState("");
   const [isDiscovering, setIsDiscovering] = useState(false);
   const [loadingStage, setLoadingStage] = useState(0);
   const [formValidation, setFormValidation] = useState({
@@ -362,43 +359,24 @@ const JobDiscoveryAgent: React.FC = () => {
   // Options
   const jobTypeOptions = useMemo(
     () => [
-      { value: "full-time", label: "Full-time" },
-      { value: "part-time", label: "Part-time" },
-      { value: "contract", label: "Contract" },
-      { value: "internship", label: "Internship" },
-      { value: "temporary", label: "Temporary" },
-      { value: "volunteer", label: "Volunteer" },
-    ],
-    []
-  );
-
-  const workTypeOptions = useMemo(
-    () => [
-      { value: "on-site", label: "On-site" },
-      { value: "remote", label: "Remote" },
-      { value: "hybrid", label: "Hybrid" },
-    ],
-    []
-  );
-
-  const postedAtOptions = useMemo(
-    () => [
-      { value: "past-24-hours", label: "Past 24 hours" },
-      { value: "past-week", label: "Past week" },
-      { value: "past-month", label: "Past month" },
-      { value: "any-time", label: "Any time" },
+      { value: "Full-time", label: "Full-time" },
+      { value: "Part-time", label: "Part-time" },
+      { value: "Contract", label: "Contract" },
+      { value: "Internship", label: "Internship" },
+      { value: "Temporary", label: "Temporary" },
+      { value: "Volunteer", label: "Volunteer" },
     ],
     []
   );
 
   const experienceLevelOptions = useMemo(
     () => [
-      { value: "internship", label: "Internship" },
-      { value: "entry-level", label: "Entry level" },
-      { value: "associate", label: "Associate" },
-      { value: "mid-senior", label: "Mid-Senior level" },
-      { value: "director", label: "Director" },
-      { value: "executive", label: "Executive" },
+      { value: "Internship", label: "Internship" },
+      { value: "Entry level", label: "Entry level" },
+      { value: "Associate", label: "Associate" },
+      { value: "Mid-Senior level", label: "Mid-Senior level" },
+      { value: "Director", label: "Director" },
+      { value: "Executive", label: "Executive" },
     ],
     []
   );
@@ -439,12 +417,8 @@ const JobDiscoveryAgent: React.FC = () => {
 
   const loadAgentExample = useCallback(() => {
     setJobTitle("Senior Software Engineer");
-    setCompany("");
-    setWorkTypes(["remote", "hybrid"]);
-    setJobTypes(["full-time"]);
-    setExperienceLevel(["mid-senior"]);
-    setPostedAt("past-week");
-
+    setJobTypes(["Full-time"]);
+    setExperienceLevel(["Mid-Senior level"]);
     toast({
       title: "Example Loaded! 🚀",
       description:
@@ -454,12 +428,9 @@ const JobDiscoveryAgent: React.FC = () => {
 
   const handleResetAgent = useCallback(() => {
     setJobTitle("");
-    setCompany("");
     setSelectedLocations([]);
     setJobTypes([]);
-    setWorkTypes([]);
     setExperienceLevel([]);
-    setPostedAt("");
     setFormValidation({ jobTitle: true });
 
     toast({
@@ -517,12 +488,9 @@ const JobDiscoveryAgent: React.FC = () => {
           p_audit_metadata: {
             action: "job_discovery_agent",
             job_title: jobTitle,
-            company: company || "any",
             locations: selectedLocations.map((loc) => loc.name),
             job_types: jobTypes,
-            work_types: workTypes,
             experience_level: experienceLevel,
-            posted_at: postedAt || "any_time",
           },
         }
       );
@@ -569,7 +537,6 @@ const JobDiscoveryAgent: React.FC = () => {
 
       const searchParams = {
         jobTitle: jobTitle.trim(),
-        company: company.trim() || undefined,
         locations: selectedLocations.map((loc) => loc.name),
         location:
           selectedLocations.length > 0
@@ -577,12 +544,9 @@ const JobDiscoveryAgent: React.FC = () => {
             : undefined,
         jobTypes,
         jobType: jobTypes.length > 0 ? jobTypes.join(", ") : undefined,
-        workTypes,
-        workType: workTypes.length > 0 ? workTypes.join(", ") : undefined,
         experienceLevel,
         experienceLevels:
           experienceLevel.length > 0 ? experienceLevel.join(", ") : undefined,
-        postedAt: postedAt || undefined,
       };
 
       const cleanParams = Object.fromEntries(
@@ -631,19 +595,6 @@ const JobDiscoveryAgent: React.FC = () => {
       refreshUsage();
       sessionStorage.setItem("jobSearchResults", JSON.stringify(jobResults));
       sessionStorage.setItem("jobSearchParams", JSON.stringify(cleanParams));
-
-      toast({
-        title: "Agent Discovery Complete! 🚀",
-        description: `Your Job Discovery Agent found ${
-          Array.isArray(jobResults) ? jobResults.length : "several"
-        } opportunities matching your criteria.`,
-        action: (
-          <Button size="sm" onClick={() => navigate("/job-results")}>
-            <Eye className="w-4 h-4 mr-1" />
-            View Results
-          </Button>
-        ),
-      });
 
       navigate("/job-results");
     } catch (error) {
@@ -852,8 +803,8 @@ const JobDiscoveryAgent: React.FC = () => {
                 </CardHeader>
                 <CardContent>
                   <form onSubmit={onSubmit} className="space-y-6 sm:space-y-8">
-                    {/* Job Title and Company */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+                    {/* Job Title */}
+                    <div className="grid grid-cols-1 gap-4 sm:gap-6">
                       <div>
                         <Label
                           htmlFor="jobTitle"
@@ -888,31 +839,6 @@ const JobDiscoveryAgent: React.FC = () => {
                           </p>
                         )}
                       </div>
-
-                      <div>
-                        <Label
-                          htmlFor="company"
-                          className="flex items-center gap-2 text-sm sm:text-base font-semibold text-white"
-                        >
-                          <Building className="w-4 h-4 sm:w-5 sm:h-5 text-purple-400 flex-shrink-0" />
-                          <span className="truncate">Company (Optional)</span>
-                          <Tooltip>
-                            <TooltipTrigger>
-                              <Info className="w-4 h-4 text-slate-400 flex-shrink-0" />
-                            </TooltipTrigger>
-                            <TooltipContent className="max-w-xs">
-                              <p>Optionally filter by specific company</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </Label>
-                        <Input
-                          id="company"
-                          value={company}
-                          onChange={(e) => setCompany(e.target.value)}
-                          placeholder="e.g., Google, Microsoft, Apple"
-                          className="mt-1 bg-slate-800/50 border-slate-600 text-white placeholder-slate-400 focus:border-orange-400 h-10 sm:h-11 text-sm sm:text-base"
-                        />
-                      </div>
                     </div>
 
                     {/* Locations */}
@@ -935,13 +861,13 @@ const JobDiscoveryAgent: React.FC = () => {
                       <div className="mt-1">
                         <GeoapifyLocationInput
                           onLocationsChange={setSelectedLocations}
-                          placeholder="Type to search cities, states, or 'Remote'"
-                          maxSelections={10}
+                          placeholder="Discovery upto 5 cities at a time"
+                          maxSelections={5}
                         />
                       </div>
                     </div>
 
-                    {/* Job Types and Work Types */}
+                    {/* Job Types and Experience Level */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                       <div>
                         <Label className="flex items-center gap-2 text-sm sm:text-base font-semibold text-white">
@@ -969,34 +895,6 @@ const JobDiscoveryAgent: React.FC = () => {
 
                       <div>
                         <Label className="flex items-center gap-2 text-sm sm:text-base font-semibold text-white">
-                          <Globe className="w-4 h-4 sm:w-5 sm:h-5 text-blue-400 flex-shrink-0" />
-                          <span className="truncate">Work Type</span>
-                          <Tooltip>
-                            <TooltipTrigger>
-                              <Info className="w-4 h-4 text-slate-400 flex-shrink-0" />
-                            </TooltipTrigger>
-                            <TooltipContent className="max-w-xs">
-                              <p>
-                                Choose between remote, hybrid, or on-site
-                                positions
-                              </p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </Label>
-                        <MultiSelectDropdown
-                          options={workTypeOptions}
-                          selectedValues={workTypes}
-                          onSelectionChange={setWorkTypes}
-                          placeholder="Select work types"
-                          className="mt-1"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Experience Level and Date Posted */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-                      <div>
-                        <Label className="flex items-center gap-2 text-sm sm:text-base font-semibold text-white">
                           <Users className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-400 flex-shrink-0" />
                           <span className="truncate">Experience Level</span>
                           <Tooltip>
@@ -1016,39 +914,6 @@ const JobDiscoveryAgent: React.FC = () => {
                           className="mt-1"
                         />
                       </div>
-
-                      <div>
-                        <Label
-                          htmlFor="postedAt"
-                          className="flex items-center gap-2 text-sm sm:text-base font-semibold text-white"
-                        >
-                          <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-pink-400 flex-shrink-0" />
-                          <span className="truncate">Date Posted</span>
-                          <Tooltip>
-                            <TooltipTrigger>
-                              <Info className="w-4 h-4 text-slate-400 flex-shrink-0" />
-                            </TooltipTrigger>
-                            <TooltipContent className="max-w-xs">
-                              <p>Filter by job posting recency</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </Label>
-                        <Select value={postedAt} onValueChange={setPostedAt}>
-                          <SelectTrigger className="mt-1 bg-slate-800/50 border-slate-600 text-white focus:border-orange-400 h-10 sm:h-11 text-sm sm:text-base">
-                            <SelectValue placeholder="Select time range" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {postedAtOptions.map((option) => (
-                              <SelectItem
-                                key={option.value}
-                                value={option.value}
-                              >
-                                {option.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
                     </div>
 
                     {/* Discovery Summary */}
@@ -1067,14 +932,6 @@ const JobDiscoveryAgent: React.FC = () => {
                             {jobTitle || "Not specified"}
                           </span>
                         </p>
-                        {company && (
-                          <p>
-                            • <span className="text-orange-400">At:</span>{" "}
-                            <span className="text-white font-medium">
-                              {company}
-                            </span>
-                          </p>
-                        )}
                         {selectedLocations.length > 0 && (
                           <p>
                             •{" "}
@@ -1085,16 +942,11 @@ const JobDiscoveryAgent: React.FC = () => {
                           </p>
                         )}
                         {(jobTypes.length > 0 ||
-                          workTypes.length > 0 ||
                           experienceLevel.length > 0) && (
                           <p>
                             • <span className="text-orange-400">Filters:</span>{" "}
                             <span className="text-white font-medium">
-                              {
-                                [...jobTypes, ...workTypes, ...experienceLevel]
-                                  .length
-                              }{" "}
-                              active
+                              {[...jobTypes, ...experienceLevel].length} active
                             </span>
                           </p>
                         )}

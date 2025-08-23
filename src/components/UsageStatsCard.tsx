@@ -437,7 +437,7 @@ const UsageStatsCard: React.FC = () => {
           usageType: "job_searches_used",
         },
         {
-          label: "1-Click Tailors Used",
+          label: "Instant Generation Used",
           used: usage.one_click_tailors_used || 0,
           limit: getPlanLimit(usage.plan_type, "one_click_tailors_used"),
           IconComponent: Zap,

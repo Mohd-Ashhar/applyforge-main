@@ -86,7 +86,7 @@ const FEATURES = [
   {
     icon: Zap,
     iconBg: "from-yellow-400/80 to-orange-500/60",
-    title: "Instant Tailoring Agent",
+    title: "Instant Generation Agent",
     description:"Creates perfectly tailored applications in 30 seconds, 90% faster than manual.",
     tagline: "30-Second Applications",
     benefits: [
