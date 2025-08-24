@@ -233,7 +233,18 @@ const TrackedJobCard = memo(
             <div className="flex items-center justify-between mt-3 sm:mt-4 gap-2">
               <div className="flex items-center gap-2 text-xs sm:text-sm text-slate-400 min-w-0 flex-1">
                 <MapPin className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
-                <span className="truncate">{job.job_location}</span>
+                <span className="truncate">
+                      {(() => {
+                        if (!job.job_location) return "";
+                        try {
+                          // Tries to parse it as an array
+                          return JSON.parse(job.job_location).join(", ");
+                        } catch (e) {
+                          // If parsing fails, it's a plain string, so just return it
+                          return job.job_location;
+                        }
+                      })()}
+                    </span>
               </div>
               <Badge className="bg-cyan-500/20 text-cyan-400 border-cyan-500/30 text-[10px] sm:text-xs whitespace-nowrap flex-shrink-0">
                 <Clock className="w-2 h-2 sm:w-3 sm:h-3 mr-1" />
@@ -251,13 +262,35 @@ const TrackedJobCard = memo(
                 {job.employment_type && (
                   <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30 text-[10px] sm:text-xs whitespace-nowrap">
                     <Briefcase className="w-2 h-2 sm:w-3 sm:h-3 mr-1 flex-shrink-0" />
-                    <span className="truncate">{job.employment_type}</span>
+                    <span className="truncate">
+                      {(() => {
+                        if (!job.employment_type) return "";
+                        try {
+                          // Tries to parse it as an array
+                          return JSON.parse(job.employment_type).join(", ");
+                        } catch (e) {
+                          // If parsing fails, it's a plain string, so just return it
+                          return job.employment_type;
+                        }
+                      })()}
+                    </span>
                   </Badge>
                 )}
                 {job.seniority_level && (
                   <Badge className="bg-purple-500/20 text-purple-400 border-purple-500/30 text-[10px] sm:text-xs whitespace-nowrap">
                     <Target className="w-2 h-2 sm:w-3 sm:h-3 mr-1 flex-shrink-0" />
-                    <span className="truncate">{job.seniority_level}</span>
+                    <span className="truncate">
+                      {(() => {
+                        if (!job.seniority_level) return "";
+                        try {
+                          // Tries to parse it as an array
+                          return JSON.parse(job.seniority_level).join(", ");
+                        } catch (e) {
+                          // If parsing fails, it's a plain string, so just return it
+                          return job.seniority_level;
+                        }
+                      })()}
+                    </span>
                   </Badge>
                 )}
                 {job.job_function && (

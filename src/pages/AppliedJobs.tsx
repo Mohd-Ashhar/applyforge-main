@@ -247,7 +247,16 @@ const MonitoredApplicationCard = memo<{
             <div className="flex items-center gap-2 text-xs sm:text-sm">
               <MapPin className="w-3 h-3 sm:w-4 sm:h-4 text-slate-400 flex-shrink-0" />
               <span className="text-slate-400 truncate">
-                {job.job_location}
+                {(() => {
+                  if (!job.job_location) return "";
+                  try {
+                    // Tries to parse it as an array
+                    return JSON.parse(job.job_location).join(", ");
+                  } catch (e) {
+                    // If parsing fails, it's a plain string, so just return it
+                    return job.job_location;
+                  }
+                })()}
               </span>
             </div>
           </div>
@@ -261,7 +270,16 @@ const MonitoredApplicationCard = memo<{
                 <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30 text-xs whitespace-nowrap flex-shrink-0">
                   <Briefcase className="w-3 h-3 mr-1 flex-shrink-0" />
                   <span className="truncate max-w-[80px] sm:max-w-none">
-                    {job.employment_type}
+                    {(() => {
+                      if (!job.employment_type) return "";
+                      try {
+                        // Tries to parse it as an array
+                        return JSON.parse(job.employment_type).join(", ");
+                      } catch (e) {
+                        // If parsing fails, it's a plain string, so just return it
+                        return job.employment_type;
+                      }
+                    })()}
                   </span>
                 </Badge>
               )}
@@ -269,7 +287,16 @@ const MonitoredApplicationCard = memo<{
                 <Badge className="bg-purple-500/20 text-purple-400 border-purple-500/30 text-xs whitespace-nowrap flex-shrink-0">
                   <Target className="w-3 h-3 mr-1 flex-shrink-0" />
                   <span className="truncate max-w-[100px] sm:max-w-none">
-                    {job.seniority_level}
+                    {(() => {
+                      if (!job.seniority_level) return "";
+                      try {
+                        // Tries to parse it as an array
+                        return JSON.parse(job.seniority_level).join(", ");
+                      } catch (e) {
+                        // If parsing fails, it's a plain string, so just return it
+                        return job.seniority_level;
+                      }
+                    })()}
                   </span>
                 </Badge>
               )}
@@ -507,7 +534,7 @@ const AIApplicationMonitor: React.FC = () => {
 
     setLoading(true);
     try {
-      console.log("Fetching applied jobs for user:", user.id);
+      // console.log("Fetching applied jobs for user:", user.id);
       const { data, error } = await supabase
         .from("applied_jobs")
         .select("*")
@@ -519,7 +546,7 @@ const AIApplicationMonitor: React.FC = () => {
         throw error;
       }
 
-      console.log("Applied jobs fetched successfully:", data);
+      // console.log("Applied jobs fetched successfully:", data);
       setAppliedJobs(data || []);
     } catch (error) {
       console.error("Error fetching applied jobs:", error);

@@ -4,7 +4,7 @@ import React, {
   useMemo,
   useCallback,
   memo,
-  useRef, // Import useRef
+  useRef,
 } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
@@ -65,6 +65,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import DashboardHeader from "@/components/DashboardHeader";
 import UserAvatar from "@/components/header/UserAvatar";
+import { useUsageTracking } from "@/hooks/useUsageTracking";
 
 interface JobResult {
   linkedin_apply_link: string;
@@ -74,12 +75,18 @@ interface JobResult {
   location: string;
   posted_at: string;
   apply_link: string;
-  descriptionText: string;
+  job_description: string;
   experience_level: string;
   job_type: string;
   jobFunction: string;
   industries: string;
   uniqueId: string;
+}
+
+// **NEW**: Defines the status of generated documents for a job, with URLs
+interface GenerationStatus {
+  resumeUrl?: string;
+  coverLetterUrl?: string;
 }
 
 // **ENHANCED LOADING SKELETON - ROSE/RED THEME**
@@ -165,6 +172,9 @@ const DiscoveredJobCard = memo<{
   appliedJobs: Set<string>;
   applyingJobs: Set<string>;
   user: any;
+  // **ADDED**: Props for generation status and view handler
+  generationStatus: GenerationStatus;
+  onViewOrDownload: (url: string, fileName: string) => void;
 }>(
   ({
     job,
@@ -181,6 +191,9 @@ const DiscoveredJobCard = memo<{
     appliedJobs,
     applyingJobs,
     user,
+    // **ADDED**: Destructure new props
+    generationStatus,
+    onViewOrDownload,
   }) => {
     const [isHovered, setIsHovered] = useState(false);
 
@@ -220,7 +233,6 @@ const DiscoveredJobCard = memo<{
     const isApplied = appliedJobs.has(job.uniqueId);
     const isApplying = applyingJobs.has(job.uniqueId);
 
-    // ADDED: Logic to use linkedin_apply_link as a fallback.
     const finalApplyLink = job.apply_link || job.linkedin_apply_link;
 
     return (
@@ -235,12 +247,9 @@ const DiscoveredJobCard = memo<{
         className="group"
       >
         <Card className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl border border-slate-700/50 hover:border-rose-500/30 transition-all duration-300 hover:shadow-xl overflow-hidden">
-          {/* **FIXED MOBILE HEADER** */}
           <CardHeader className="pb-3 sm:pb-4">
             <div className="space-y-3 sm:space-y-4">
-              {/* **MAIN HEADER ROW** */}
               <div className="flex items-start gap-3">
-                {/* Company Avatar */}
                 <motion.div
                   className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br from-rose-500/20 to-red-500/20 flex items-center justify-center font-semibold text-rose-400 border border-rose-500/30 flex-shrink-0"
                   animate={{ rotate: isHovered ? 5 : 0 }}
@@ -251,7 +260,6 @@ const DiscoveredJobCard = memo<{
                   </span>
                 </motion.div>
 
-                {/* Job Title & Company */}
                 <div className="flex-1 min-w-0 overflow-hidden">
                   <CardTitle className="text-sm sm:text-base md:text-lg font-semibold text-white group-hover:text-rose-400 transition-colors leading-tight mb-1 break-words line-clamp-2">
                     {job.job_title || "Job Title Not Available"}
@@ -286,7 +294,6 @@ const DiscoveredJobCard = memo<{
                   </div>
                 </div>
 
-                {/* Desktop Share Button */}
                 <div className="hidden md:flex items-center gap-2 flex-shrink-0">
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -304,9 +311,7 @@ const DiscoveredJobCard = memo<{
                 </div>
               </div>
 
-              {/* **FIXED BADGES AND APPLIED SECTION** */}
               <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 sm:items-center sm:justify-between">
-                {/* Discovery Badges */}
                 <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 min-w-0">
                   <Badge className="bg-rose-500/20 text-rose-400 border-rose-500/30 text-xs whitespace-nowrap flex-shrink-0">
                     {formatPostedDate(job.posted_at)}
@@ -317,7 +322,6 @@ const DiscoveredJobCard = memo<{
                   </Badge>
                 </div>
 
-                {/* Applied Checkbox */}
                 {user && (
                   <div className="flex items-center space-x-2 flex-shrink-0 self-start sm:self-center">
                     <Checkbox
@@ -342,7 +346,6 @@ const DiscoveredJobCard = memo<{
           </CardHeader>
 
           <CardContent className="pt-0 space-y-3 sm:space-y-4">
-            {/* **JOB DETAILS - IMPROVED MOBILE LAYOUT** */}
             <div className="grid grid-cols-1 gap-2 sm:gap-3">
               <div className="flex items-center gap-2 text-xs sm:text-sm">
                 <MapPin className="w-3 h-3 sm:w-4 sm:h-4 text-slate-400 flex-shrink-0" />
@@ -359,7 +362,6 @@ const DiscoveredJobCard = memo<{
               </div>
             </div>
 
-            {/* **FIXED EMPLOYMENT TYPE AND INDUSTRY TAGS** */}
             <div className="flex flex-wrap gap-1 sm:gap-1.5">
               {job.job_type && (
                 <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30 text-xs whitespace-nowrap flex-shrink-0">
@@ -385,8 +387,7 @@ const DiscoveredJobCard = memo<{
               )}
             </div>
 
-            {/* **JOB DESCRIPTION** */}
-            {job.descriptionText && (
+            {job.job_description && (
               <div className="space-y-2">
                 <h4 className="font-medium text-xs sm:text-sm flex items-center gap-2">
                   <FileText className="w-3 h-3 sm:w-4 sm:h-4 text-rose-400 flex-shrink-0" />
@@ -397,7 +398,7 @@ const DiscoveredJobCard = memo<{
                     className="text-xs sm:text-sm text-slate-300 leading-relaxed line-clamp-3 sm:line-clamp-4"
                     dangerouslySetInnerHTML={{
                       __html: truncateDescription(
-                        job.descriptionText
+                        job.job_description
                           .replace(/&gt;/g, ">")
                           .replace(/&lt;/g, "<")
                       ),
@@ -407,7 +408,6 @@ const DiscoveredJobCard = memo<{
               </div>
             )}
 
-            {/* **FIXED AI DISCOVERY BADGES** */}
             <div className="flex flex-wrap gap-1 sm:gap-1.5">
               <Badge className="bg-rose-500/20 text-rose-400 border-rose-500/30 text-xs whitespace-nowrap flex-shrink-0">
                 <Bot className="w-3 h-3 mr-1 flex-shrink-0" />
@@ -423,7 +423,6 @@ const DiscoveredJobCard = memo<{
               </Badge>
             </div>
 
-            {/* **IMPROVED ACTION BUTTONS LAYOUT** */}
             <div className="pt-2">
               {/* Desktop Layout */}
               <div className="hidden md:flex flex-wrap gap-2">
@@ -454,48 +453,86 @@ const DiscoveredJobCard = memo<{
                     )}
                   </Button>
                 </motion.div>
-
+                {/* **MODIFIED**: Conditional rendering for Resume button */}
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button
-                      onClick={() => onTailorResume(job)}
-                      disabled={isProcessingResume}
-                      size="sm"
-                      variant="outline"
-                      className="border-blue-500/30 text-blue-400 hover:bg-blue-500 hover:text-white bg-blue-500/10"
-                    >
-                      {isProcessingResume ? (
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      ) : (
-                        <FileText className="w-4 h-4 mr-2" />
-                      )}
-                      Tailor Resume
-                    </Button>
+                    {generationStatus.resumeUrl ? (
+                      <Button
+                        onClick={() =>
+                          onViewOrDownload(
+                            generationStatus.resumeUrl,
+                            `${job.company_name}_resume.pdf`
+                          )
+                        }
+                        size="sm"
+                        variant="outline"
+                        className="border-green-500/30 text-green-400 hover:bg-green-500 hover:text-white bg-green-500/10"
+                      >
+                        <Eye className="w-4 h-4 mr-2" />
+                        View Resume
+                      </Button>
+                    ) : (
+                      <Button
+                        onClick={() => onTailorResume(job)}
+                        disabled={isProcessingResume}
+                        size="sm"
+                        variant="outline"
+                        className="border-blue-500/30 text-blue-400 hover:bg-blue-500 hover:text-white bg-blue-500/10"
+                      >
+                        {isProcessingResume ? (
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        ) : (
+                          <FileText className="w-4 h-4 mr-2" />
+                        )}
+                        Tailor Resume
+                      </Button>
+                    )}
                   </TooltipTrigger>
                   <TooltipContent>
-                    Upload resume to tailor for this discovery
+                    {generationStatus.resumeUrl
+                      ? "View your tailored resume"
+                      : "Upload resume to tailor for this discovery"}
                   </TooltipContent>
                 </Tooltip>
-
+                {/* **MODIFIED**: Conditional rendering for Cover Letter button */}
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button
-                      onClick={() => onGenerateCoverLetter(job)}
-                      disabled={isProcessingCoverLetter}
-                      size="sm"
-                      variant="outline"
-                      className="border-green-500/30 text-green-400 hover:bg-green-500 hover:text-white bg-green-500/10"
-                    >
-                      {isProcessingCoverLetter ? (
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      ) : (
-                        <Upload className="w-4 h-4 mr-2" />
-                      )}
-                      Cover Letter
-                    </Button>
+                    {generationStatus.coverLetterUrl ? (
+                      <Button
+                        onClick={() =>
+                          onViewOrDownload(
+                            generationStatus.coverLetterUrl,
+                            `${job.company_name}_cover_letter.pdf`
+                          )
+                        }
+                        size="sm"
+                        variant="outline"
+                        className="border-green-500/30 text-green-400 hover:bg-green-500 hover:text-white bg-green-500/10"
+                      >
+                        <Eye className="w-4 h-4 mr-2" />
+                        View Cover
+                      </Button>
+                    ) : (
+                      <Button
+                        onClick={() => onGenerateCoverLetter(job)}
+                        disabled={isProcessingCoverLetter}
+                        size="sm"
+                        variant="outline"
+                        className="border-green-500/30 text-green-400 hover:bg-green-500 hover:text-white bg-green-500/10"
+                      >
+                        {isProcessingCoverLetter ? (
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        ) : (
+                          <Upload className="w-4 h-4 mr-2" />
+                        )}
+                        Cover Letter
+                      </Button>
+                    )}
                   </TooltipTrigger>
                   <TooltipContent>
-                    Generate cover letter for this discovery
+                    {generationStatus.coverLetterUrl
+                      ? "View your generated cover letter"
+                      : "Generate cover letter for this discovery"}
                   </TooltipContent>
                 </Tooltip>
 
@@ -510,7 +547,6 @@ const DiscoveredJobCard = memo<{
                     className="w-full bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-700 hover:to-red-700 text-white"
                   >
                     <a
-                      // CHANGED: Use the new fallback variable
                       href={finalApplyLink}
                       target="_blank"
                       rel="noopener noreferrer"
@@ -523,9 +559,8 @@ const DiscoveredJobCard = memo<{
                 </motion.div>
               </div>
 
-              {/* **COMPLETELY FIXED MOBILE LAYOUT** */}
+              {/* Mobile Layout */}
               <div className="md:hidden space-y-2">
-                {/* First Row: Track & Share */}
                 <div className="grid grid-cols-2 gap-2">
                   <motion.div
                     whileHover={{ scale: 1.02 }}
@@ -567,41 +602,73 @@ const DiscoveredJobCard = memo<{
                     <span className="truncate">Share</span>
                   </Button>
                 </div>
-
-                {/* Second Row: AI Tools */}
+                {/* **MODIFIED**: Conditional rendering for mobile AI tools */}
                 <div className="grid grid-cols-2 gap-2">
-                  <Button
-                    onClick={() => onTailorResume(job)}
-                    disabled={isProcessingResume}
-                    size="sm"
-                    variant="outline"
-                    className="w-full border-blue-500/30 text-blue-400 hover:bg-blue-500 hover:text-white bg-blue-500/10 text-xs h-9"
-                  >
-                    {isProcessingResume ? (
-                      <Loader2 className="w-3 h-3 mr-1 animate-spin flex-shrink-0" />
-                    ) : (
-                      <FileText className="w-3 h-3 mr-1 flex-shrink-0" />
-                    )}
-                    <span className="truncate">Resume</span>
-                  </Button>
+                  {generationStatus.resumeUrl ? (
+                    <Button
+                      onClick={() =>
+                        onViewOrDownload(
+                          generationStatus.resumeUrl,
+                          `${job.company_name}_resume.pdf`
+                        )
+                      }
+                      size="sm"
+                      variant="outline"
+                      className="w-full border-green-500/30 text-green-400 hover:bg-green-500 hover:text-white bg-green-500/10 text-xs h-9"
+                    >
+                      <Eye className="w-3 h-3 mr-1 flex-shrink-0" />
+                      <span className="truncate">View Resume</span>
+                    </Button>
+                  ) : (
+                    <Button
+                      onClick={() => onTailorResume(job)}
+                      disabled={isProcessingResume}
+                      size="sm"
+                      variant="outline"
+                      className="w-full border-blue-500/30 text-blue-400 hover:bg-blue-500 hover:text-white bg-blue-500/10 text-xs h-9"
+                    >
+                      {isProcessingResume ? (
+                        <Loader2 className="w-3 h-3 mr-1 animate-spin flex-shrink-0" />
+                      ) : (
+                        <FileText className="w-3 h-3 mr-1 flex-shrink-0" />
+                      )}
+                      <span className="truncate">Resume</span>
+                    </Button>
+                  )}
 
-                  <Button
-                    onClick={() => onGenerateCoverLetter(job)}
-                    disabled={isProcessingCoverLetter}
-                    size="sm"
-                    variant="outline"
-                    className="w-full border-green-500/30 text-green-400 hover:bg-green-500 hover:text-white bg-green-500/10 text-xs h-9"
-                  >
-                    {isProcessingCoverLetter ? (
-                      <Loader2 className="w-3 h-3 mr-1 animate-spin flex-shrink-0" />
-                    ) : (
-                      <Upload className="w-3 h-3 mr-1 flex-shrink-0" />
-                    )}
-                    <span className="truncate">Cover</span>
-                  </Button>
+                  {generationStatus.coverLetterUrl ? (
+                    <Button
+                      onClick={() =>
+                        onViewOrDownload(
+                          generationStatus.coverLetterUrl,
+                          `${job.company_name}_cover_letter.pdf`
+                        )
+                      }
+                      size="sm"
+                      variant="outline"
+                      className="w-full border-green-500/30 text-green-400 hover:bg-green-500 hover:text-white bg-green-500/10 text-xs h-9"
+                    >
+                      <Eye className="w-3 h-3 mr-1 flex-shrink-0" />
+                      <span className="truncate">View Cover</span>
+                    </Button>
+                  ) : (
+                    <Button
+                      onClick={() => onGenerateCoverLetter(job)}
+                      disabled={isProcessingCoverLetter}
+                      size="sm"
+                      variant="outline"
+                      className="w-full border-green-500/30 text-green-400 hover:bg-green-500 hover:text-white bg-green-500/10 text-xs h-9"
+                    >
+                      {isProcessingCoverLetter ? (
+                        <Loader2 className="w-3 h-3 mr-1 animate-spin flex-shrink-0" />
+                      ) : (
+                        <Upload className="w-3 h-3 mr-1 flex-shrink-0" />
+                      )}
+                      <span className="truncate">Cover</span>
+                    </Button>
+                  )}
                 </div>
 
-                {/* Third Row: Apply Button */}
                 <motion.div
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
@@ -612,7 +679,6 @@ const DiscoveredJobCard = memo<{
                     className="w-full bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-700 hover:to-red-700 text-white h-10 text-sm"
                   >
                     <a
-                      // CHANGED: Use the new fallback variable
                       href={finalApplyLink}
                       target="_blank"
                       rel="noopener noreferrer"
@@ -709,7 +775,6 @@ DiscoveryAgentStats.displayName = "DiscoveryAgentStats";
 const AIJobDiscoveryAgentResults: React.FC = () => {
   const [jobResults, setJobResults] = useState<JobResult[]>([]);
   const [loading, setLoading] = useState(true);
-  // --- BUG FIX: Use string for unique IDs instead of number for index ---
   const [savedJobs, setSavedJobs] = useState<Set<string>>(new Set());
   const [savingJobs, setSavingJobs] = useState<Set<string>>(new Set());
   const [processingResume, setProcessingResume] = useState<Set<string>>(
@@ -720,13 +785,17 @@ const AIJobDiscoveryAgentResults: React.FC = () => {
   >(new Set());
   const [appliedJobs, setAppliedJobs] = useState<Set<string>>(new Set());
   const [applyingJobs, setApplyingJobs] = useState<Set<string>>(new Set());
-  // --- END BUG FIX ---
+  // **ADDED**: State to track which documents have been generated
+  const [generationStatus, setGenerationStatus] = useState<
+    Record<string, GenerationStatus>
+  >({});
   const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState<"date" | "company" | "title">("date");
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
-  const hasSavedResults = useRef(false); // Ref to prevent duplicate saves
+  const { usage } = useUsageTracking();
+  const hasSavedResults = useRef(false);
 
   const userName = useMemo(() => {
     if (!user) return "there";
@@ -745,7 +814,6 @@ const AIJobDiscoveryAgentResults: React.FC = () => {
         const jobsArray = Array.isArray(parsedResults)
           ? parsedResults
           : [parsedResults];
-        // Ensure every job has a stable unique ID
         const jobsWithIds = jobsArray.map((job, index) => ({
           ...job,
           uniqueId:
@@ -758,11 +826,83 @@ const AIJobDiscoveryAgentResults: React.FC = () => {
         setJobResults([]);
       }
     } else {
-      // If there's no data when the page first loads, redirect.
       navigate("/job-discovery");
     }
     setLoading(false);
-  }, [navigate]); // Empty dependency array ensures this runs only once.
+  }, [navigate]);
+
+  // **REFACTORED FUNCTION**
+  const checkGenerationStatus = useCallback(
+    async (jobs: JobResult[]) => {
+      if (!user || jobs.length === 0) return;
+
+      try {
+        // Step 1: Fetch ALL tailored resumes and cover letters for the user.
+        // This avoids creating an excessively long URL.
+        const [resumesRes, coverLettersRes] = await Promise.all([
+          supabase
+            .from("tailored_resumes")
+            .select("job_description, resume_data")
+            .eq("user_id", user.id),
+          supabase
+            .from("cover_letters")
+            .select("job_description, cover_letter_url")
+            .eq("user_id", user.id),
+        ]);
+
+        if (resumesRes.error) throw resumesRes.error;
+        if (coverLettersRes.error) throw coverLettersRes.error;
+
+        // Step 2: Create efficient lookup maps from the fetched data.
+        const resumeMap = new Map<string, string>();
+        resumesRes.data?.forEach((resume) => {
+          if (resume.job_description && resume.resume_data) {
+            resumeMap.set(resume.job_description, resume.resume_data);
+          }
+        });
+
+        const coverLetterMap = new Map<string, string>();
+        coverLettersRes.data?.forEach((cl) => {
+          if (cl.job_description && cl.cover_letter_url) {
+            coverLetterMap.set(cl.job_description, cl.cover_letter_url);
+          }
+        });
+
+        // Step 3: Match jobs with the fetched documents on the client-side.
+        const newStatus: Record<string, GenerationStatus> = {};
+        jobs.forEach((job) => {
+          if (job.job_description) {
+            const resumeUrl = resumeMap.get(job.job_description);
+            const coverLetterUrl = coverLetterMap.get(job.job_description);
+
+            if (resumeUrl || coverLetterUrl) {
+              newStatus[job.uniqueId] = {
+                ...(resumeUrl && { resumeUrl }),
+                ...(coverLetterUrl && { coverLetterUrl }),
+              };
+            }
+          }
+        });
+
+        setGenerationStatus((prevStatus) => ({ ...prevStatus, ...newStatus }));
+      } catch (error) {
+        console.error("Error checking generation status:", error);
+        toast({
+          title: "Agent Sync Error",
+          description:
+            "Could not verify existing documents. Some items may appear as not generated.",
+          variant: "destructive",
+        });
+      }
+    },
+    [user, toast]
+  );
+
+  useEffect(() => {
+    if (user && jobResults.length > 0) {
+      checkGenerationStatus(jobResults);
+    }
+  }, [user, jobResults, checkGenerationStatus]);
 
   const saveJobSearchResults = useCallback(
     async (jobs: JobResult[]) => {
@@ -780,7 +920,7 @@ const AIJobDiscoveryAgentResults: React.FC = () => {
           apply_link: job.apply_link || "",
           company_linkedin_url: job.companyLinkedinUrl || null,
           posted_at: job.posted_at || new Date().toISOString(),
-          job_description: job.descriptionText || null,
+          job_description: job.job_description || null,
           seniority_level: job.experience_level || null,
           employment_type: job.job_type || null,
           job_function: job.jobFunction || null,
@@ -813,16 +953,13 @@ const AIJobDiscoveryAgentResults: React.FC = () => {
     [user, toast]
   );
 
-  // Effect 2: Save results to the database when the user and jobs are available.
-  // The `hasSavedResults` ref ensures this logic runs only one time.
   useEffect(() => {
     if (user && jobResults.length > 0 && !hasSavedResults.current) {
       saveJobSearchResults(jobResults);
-      hasSavedResults.current = true; // Mark as saved to prevent re-triggering.
+      hasSavedResults.current = true;
     }
   }, [user, jobResults, saveJobSearchResults]);
 
-  // Helper function with proper error handling
   const getCurrentUserVersion = async (userId: string) => {
     try {
       const { data, error } = await supabase
@@ -849,8 +986,29 @@ const AIJobDiscoveryAgentResults: React.FC = () => {
     }
   };
 
+  const handleViewOrDownload = useCallback(
+    (url: string, fileName: string) => {
+      try {
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = fileName;
+        a.target = "_blank";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      } catch (error) {
+        console.error("Error opening document:", error);
+        toast({
+          title: "Display Error",
+          description: "Could not open the document. Please try again.",
+          variant: "destructive",
+        });
+      }
+    },
+    [toast]
+  );
+
   const handleSaveJob = useCallback(
-    // --- BUG FIX: Remove index, use job.uniqueId ---
     async (job: JobResult) => {
       if (!user) {
         toast({
@@ -865,7 +1023,6 @@ const AIJobDiscoveryAgentResults: React.FC = () => {
 
       if (savedJobs.has(job.uniqueId)) {
         try {
-          // This logic seems to be for un-saving, which is fine
           const { error } = await supabase
             .from("saved_jobs")
             .delete()
@@ -907,11 +1064,10 @@ const AIJobDiscoveryAgentResults: React.FC = () => {
           job_title: job.job_title || "",
           company_name: job.company_name || "",
           job_location: job.location || "",
-          // job_link: job.linkedin_apply_link || null,
           company_linkedin_url: job.companyLinkedinUrl || null,
           posted_at: job.posted_at || "",
           apply_url: job.apply_link || "",
-          job_description: job.descriptionText || null,
+          job_description: job.job_description || null,
           seniority_level: job.experience_level || null,
           employment_type: job.job_type || null,
           job_function: job.jobFunction || null,
@@ -922,7 +1078,6 @@ const AIJobDiscoveryAgentResults: React.FC = () => {
 
         if (error) {
           if (error.code === "23505") {
-            // Handle unique constraint violation
             setSavedJobs((prev) => new Set(prev).add(job.uniqueId));
             toast({
               title: "Already Tracking ✅",
@@ -953,18 +1108,32 @@ const AIJobDiscoveryAgentResults: React.FC = () => {
         });
       }
     },
-    // --- END BUG FIX ---
     [user, savedJobs, toast]
   );
 
   const handleTailorResume = useCallback(
-    // --- BUG FIX: Remove index, use job.uniqueId ---
     async (job: JobResult) => {
       if (!user) {
         toast({
           title: "Authentication Required 🔐",
           description: "Please log in to use AI resume tailoring.",
           variant: "destructive",
+        });
+        return;
+      }
+
+      if (usage?.plan_type === "Free") {
+        toast({
+          title: "Upgrade to Unlock AI Tools 🚀",
+          description:
+            "Instant AI Resume Optimization is a premium feature. Please upgrade your plan to use it.",
+          variant: "destructive",
+          action: (
+            <Button size="sm" onClick={() => navigate("/pricing")}>
+              <Crown className="w-4 h-4 mr-1" />
+              Upgrade Plan
+            </Button>
+          ),
         });
         return;
       }
@@ -979,12 +1148,13 @@ const AIJobDiscoveryAgentResults: React.FC = () => {
         setProcessingResume((prev) => new Set(prev).add(job.uniqueId));
 
         try {
+          // ... (usage check logic remains the same)
           const currentVersion = await getCurrentUserVersion(user.id);
           const { error: usageError } = await supabase.rpc(
             "increment_usage_secure",
             {
               p_target_user_id: user.id,
-              p_usage_type: "discovery_agent_actions_used",
+              p_usage_type: "one_click_tailors_used",
               p_increment_amount: 1,
               p_current_version: currentVersion,
               p_audit_metadata: {
@@ -997,7 +1167,6 @@ const AIJobDiscoveryAgentResults: React.FC = () => {
               },
             }
           );
-
           if (usageError) {
             if (usageError.message.includes("Usage limit exceeded")) {
               toast({
@@ -1034,30 +1203,24 @@ const AIJobDiscoveryAgentResults: React.FC = () => {
             return;
           }
 
-          const base64Resume = await new Promise<string>((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = () => {
-              const result = reader.result as string;
-              resolve(result.split(",")[1]);
-            };
-            reader.onerror = reject;
-            reader.readAsDataURL(file);
-          });
+          // REFACTORED: Use FormData to send the binary file
+          const formData = new FormData();
+          formData.append("user_id", user.id);
+          formData.append("feature", "instant_tailoring_agent");
+          formData.append("jobRole", job.job_title || "");
+          formData.append("jobDescription", job.job_description || "");
+          formData.append("industry", job.industries || "General");
+          formData.append(
+            "fileType",
+            file.type === "application/pdf" ? "pdf" : "docx"
+          );
+          formData.append("resume", file);
 
           const response = await fetch(
             "https://n8n.applyforge.cloud/webhook-test/instant-tailor-resume",
             {
               method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                user_id: user.id,
-                feature: "discovery_agent_tailoring",
-                resume: base64Resume,
-                jobDescription: job.descriptionText,
-                fileType: file.type === "application/pdf" ? "pdf" : "docx",
-              }),
+              body: formData, // Send FormData directly
             }
           );
 
@@ -1070,7 +1233,7 @@ const AIJobDiscoveryAgentResults: React.FC = () => {
           if (tailoredResumeUrl) {
             const { error } = await supabase.from("tailored_resumes").insert({
               user_id: user.id,
-              job_description: job.descriptionText,
+              job_description: job.job_description,
               resume_data: tailoredResumeUrl,
               title: `${user.email?.split("@")[0] || "User"} - ${
                 job.job_title
@@ -1081,21 +1244,26 @@ const AIJobDiscoveryAgentResults: React.FC = () => {
             if (error) {
               console.error("Error saving tailored resume:", error);
             }
-
-            const a = document.createElement("a");
-            a.href = tailoredResumeUrl;
-            a.download = `${user.email?.split("@")[0] || "User"}-${
-              job.job_title
-            }.pdf`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
+            // **MODIFIED**: Use the reusable handler
+            handleViewOrDownload(
+              tailoredResumeUrl,
+              `${user.email?.split("@")[0] || "User"}-${job.job_title}.pdf`
+            );
 
             toast({
               title: "Agent Success! 🤖",
               description:
                 "Your AI-tailored resume has been generated and downloaded!",
             });
+
+            // **ADDED**: Update generation status on success
+            setGenerationStatus((prev) => ({
+              ...prev,
+              [job.uniqueId]: {
+                ...prev[job.uniqueId],
+                resumeUrl: tailoredResumeUrl,
+              },
+            }));
           }
         } catch (error) {
           console.error("Error tailoring resume:", error);
@@ -1114,7 +1282,7 @@ const AIJobDiscoveryAgentResults: React.FC = () => {
       };
       input.click();
     },
-    [user, toast, navigate]
+    [user, toast, navigate, usage, handleViewOrDownload]
   );
 
   const handleGenerateCoverLetter = useCallback(
@@ -1124,6 +1292,22 @@ const AIJobDiscoveryAgentResults: React.FC = () => {
           title: "Authentication Required 🔐",
           description: "Please log in to use AI cover letter generation.",
           variant: "destructive",
+        });
+        return;
+      }
+
+      if (usage?.plan_type === "Free") {
+        toast({
+          title: "Upgrade to Unlock AI Tools 🚀",
+          description:
+            "Instant AI Cover Letter Generation is a premium feature. Please upgrade your plan to use it.",
+          variant: "destructive",
+          action: (
+            <Button size="sm" onClick={() => navigate("/pricing")}>
+              <Crown className="w-4 h-4 mr-1" />
+              Upgrade Plan
+            </Button>
+          ),
         });
         return;
       }
@@ -1138,12 +1322,13 @@ const AIJobDiscoveryAgentResults: React.FC = () => {
         setProcessingCoverLetter((prev) => new Set(prev).add(job.uniqueId));
 
         try {
+          // ... (usage check logic remains the same)
           const currentVersion = await getCurrentUserVersion(user.id);
           const { error: usageError } = await supabase.rpc(
             "increment_usage_secure",
             {
               p_target_user_id: user.id,
-              p_usage_type: "discovery_agent_actions_used",
+              p_usage_type: "one_click_tailors_used",
               p_increment_amount: 1,
               p_current_version: currentVersion,
               p_audit_metadata: {
@@ -1156,7 +1341,6 @@ const AIJobDiscoveryAgentResults: React.FC = () => {
               },
             }
           );
-
           if (usageError) {
             if (usageError.message.includes("Usage limit exceeded")) {
               toast({
@@ -1192,34 +1376,29 @@ const AIJobDiscoveryAgentResults: React.FC = () => {
             });
             return;
           }
-          const base64Resume = await new Promise<string>((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = () => {
-              const result = reader.result as string;
-              resolve(result.split(",")[1]);
-            };
-            reader.onerror = reject;
-            reader.readAsDataURL(file);
-          });
+
+          // REFACTORED: Use FormData to send the binary file
+          const formData = new FormData();
+          formData.append("user_id", user.id);
+          formData.append("feature", "discovery_agent_cover_letters");
+          formData.append("jobDescription", job.job_description || "");
+          formData.append("companyName", job.company_name || "");
+          formData.append("positionTitle", job.job_title || "");
+          formData.append("industry", job.industries || "General");
+          formData.append(
+            "fileType",
+            file.type === "application/pdf" ? "pdf" : "docx"
+          );
+          formData.append("resume", file);
 
           const response = await fetch(
             "https://n8n.applyforge.cloud/webhook-test/instant-cover-letter",
             {
               method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                user_id: user.id,
-                feature: "discovery_agent_cover_letters",
-                resume: base64Resume,
-                jobDescription: job.descriptionText,
-                companyName: job.company_name,
-                positionTitle: job.job_title,
-                fileType: file.type === "application/pdf" ? "pdf" : "docx",
-              }),
+              body: formData,
             }
           );
+
           if (!response.ok) {
             throw new Error("Failed to generate cover letter");
           }
@@ -1229,7 +1408,7 @@ const AIJobDiscoveryAgentResults: React.FC = () => {
           if (coverLetterUrl) {
             const { error } = await supabase.from("cover_letters").insert({
               user_id: user.id,
-              job_description: job.descriptionText,
+              job_description: job.job_description,
               company_name: job.company_name,
               position_title: job.job_title,
               cover_letter_url: coverLetterUrl,
@@ -1240,19 +1419,26 @@ const AIJobDiscoveryAgentResults: React.FC = () => {
             if (error) {
               console.error("Error saving cover letter:", error);
             }
-
-            const a = document.createElement("a");
-            a.href = coverLetterUrl;
-            a.download = `cover-letter-${job.company_name}-${job.job_title}.pdf`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
+            // **MODIFIED**: Use the reusable handler
+            handleViewOrDownload(
+              coverLetterUrl,
+              `cover-letter-${job.company_name}-${job.job_title}.pdf`
+            );
 
             toast({
               title: "Agent Success! 🤖",
               description:
                 "Your personalized cover letter has been generated and downloaded!",
             });
+
+            // **ADDED**: Update generation status on success
+            setGenerationStatus((prev) => ({
+              ...prev,
+              [job.uniqueId]: {
+                ...prev[job.uniqueId],
+                coverLetterUrl: coverLetterUrl,
+              },
+            }));
           }
         } catch (error) {
           console.error("Error generating cover letter:", error);
@@ -1271,7 +1457,7 @@ const AIJobDiscoveryAgentResults: React.FC = () => {
       };
       input.click();
     },
-    [user, toast, navigate]
+    [user, toast, navigate, usage, handleViewOrDownload]
   );
 
   const handleAppliedChange = useCallback(
@@ -1298,7 +1484,7 @@ const AIJobDiscoveryAgentResults: React.FC = () => {
             company_linkedin_url: job.companyLinkedinUrl || null,
             posted_at: job.posted_at || new Date().toISOString().slice(0, 10),
             apply_url: job.apply_link || "",
-            job_description: job.descriptionText || null,
+            job_description: job.job_description || null,
             seniority_level: job.experience_level || null,
             employment_type: job.job_type || null,
             job_function: job.jobFunction || null,
@@ -1432,7 +1618,6 @@ const AIJobDiscoveryAgentResults: React.FC = () => {
               transition={{ duration: 0.5 }}
               className="space-y-6 sm:space-y-8"
             >
-              {/* Navigation Buttons */}
               <motion.div
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -1448,7 +1633,6 @@ const AIJobDiscoveryAgentResults: React.FC = () => {
                 </Button>
               </motion.div>
 
-              {/* Hero Section - AI Agent Focused */}
               <div className="text-center space-y-4 sm:space-y-6">
                 <motion.div
                   initial={{ opacity: 0, scale: 0.9 }}
@@ -1512,7 +1696,6 @@ const AIJobDiscoveryAgentResults: React.FC = () => {
                   </div>
                 </motion.div>
 
-                {/* Agent Discovery Capabilities */}
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -1560,10 +1743,8 @@ const AIJobDiscoveryAgentResults: React.FC = () => {
                 </motion.div>
               </div>
 
-              {/* Agent Discovery Stats */}
               <DiscoveryAgentStats jobCount={jobResults.length} />
 
-              {/* Content */}
               <AnimatePresence mode="wait">
                 {sortedJobs.length === 0 ? (
                   <motion.div
@@ -1629,9 +1810,9 @@ const AIJobDiscoveryAgentResults: React.FC = () => {
                     <AnimatePresence>
                       {sortedJobs.map((job, index) => (
                         <DiscoveredJobCard
-                          key={job.uniqueId} // Use stable uniqueId for the key
+                          key={job.uniqueId}
                           job={job}
-                          index={index} // index is only used for animation delay
+                          index={index}
                           onSaveJob={handleSaveJob}
                           onTailorResume={handleTailorResume}
                           onGenerateCoverLetter={handleGenerateCoverLetter}
@@ -1644,6 +1825,11 @@ const AIJobDiscoveryAgentResults: React.FC = () => {
                           appliedJobs={appliedJobs}
                           applyingJobs={applyingJobs}
                           user={user}
+                          // **ADDED**: Pass down the new state and handlers
+                          generationStatus={
+                            generationStatus[job.uniqueId] || {}
+                          }
+                          onViewOrDownload={handleViewOrDownload}
                         />
                       ))}
                     </AnimatePresence>
@@ -1651,7 +1837,6 @@ const AIJobDiscoveryAgentResults: React.FC = () => {
                 )}
               </AnimatePresence>
 
-              {/* Continue Discovery CTA */}
               {sortedJobs.length > 0 && (
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}

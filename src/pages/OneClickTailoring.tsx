@@ -1,4 +1,11 @@
-import React, { useState, useEffect, useCallback, useMemo, memo } from "react";
+import React, {
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+  memo,
+  useRef, // Import useRef
+} from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -56,6 +63,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import DashboardHeader from "@/components/DashboardHeader";
 import UserAvatar from "@/components/header/UserAvatar";
+import { useUsageTracking } from "@/hooks/useUsageTracking";
 
 interface SavedJob {
   id: string;
@@ -80,7 +88,11 @@ interface JobProcessingState {
   applying: Set<string>;
 }
 
-// **MOBILE-ENHANCED AI AGENT LOADING EXPERIENCE - ROSE/RED THEME**
+interface GenerationStatus {
+  resumeUrl?: string;
+  coverLetterUrl?: string;
+}
+
 const TailoringAgentLoadingOverlay = memo(
   ({
     show,
@@ -125,7 +137,6 @@ const TailoringAgentLoadingOverlay = memo(
             transition={{ duration: 0.3 }}
             className="fixed inset-0 z-50 flex flex-col items-center justify-center backdrop-blur-lg bg-background/90 p-4"
           >
-            {/* Agent Avatar with Tailoring Animation */}
             <motion.div
               className="relative mb-6 sm:mb-8"
               initial={{ scale: 0.8, opacity: 0 }}
@@ -146,7 +157,6 @@ const TailoringAgentLoadingOverlay = memo(
               >
                 <Wand2 className="w-8 h-8 sm:w-10 sm:h-10 md:w-16 md:h-16 text-rose-400" />
 
-                {/* Tailoring rings */}
                 <motion.div
                   className="absolute inset-0 rounded-full border-2 border-rose-400/30"
                   animate={{
@@ -162,7 +172,6 @@ const TailoringAgentLoadingOverlay = memo(
               </motion.div>
             </motion.div>
 
-            {/* Agent Status */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -188,7 +197,6 @@ const TailoringAgentLoadingOverlay = memo(
               </div>
             </motion.div>
 
-            {/* Security Badge */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -201,7 +209,6 @@ const TailoringAgentLoadingOverlay = memo(
               </span>
             </motion.div>
 
-            {/* Floating particles */}
             <div className="absolute inset-0 overflow-hidden pointer-events-none">
               {[...Array(6)].map((_, i) => (
                 <motion.div
@@ -234,7 +241,6 @@ const TailoringAgentLoadingOverlay = memo(
 
 TailoringAgentLoadingOverlay.displayName = "TailoringAgentLoadingOverlay";
 
-// **MOBILE-ENHANCED Loading Skeleton**
 const LoadingSkeleton = memo(() => (
   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
     {[1, 2, 3, 4, 5, 6].map((index) => (
@@ -290,7 +296,6 @@ const LoadingSkeleton = memo(() => (
 
 LoadingSkeleton.displayName = "LoadingSkeleton";
 
-// **MOBILE-ENHANCED Stats Component**
 const AgentStats = memo(
   ({
     totalJobs,
@@ -362,7 +367,6 @@ const AgentStats = memo(
 
 AgentStats.displayName = "AgentStats";
 
-// **MOBILE-ENHANCED Job Card Component**
 const TailoringJobCard = memo(
   ({
     job,
@@ -371,6 +375,8 @@ const TailoringJobCard = memo(
     onTailorResume,
     onGenerateCoverLetter,
     onMarkAsApplied,
+    generationStatus,
+    onViewOrDownload,
   }: {
     job: SavedJob;
     index: number;
@@ -378,6 +384,8 @@ const TailoringJobCard = memo(
     onTailorResume: (job: SavedJob) => void;
     onGenerateCoverLetter: (job: SavedJob) => void;
     onMarkAsApplied: (jobId: string, checked: boolean) => void;
+    generationStatus: GenerationStatus;
+    onViewOrDownload: (url: string, fileName: string) => void;
   }) => {
     const [isHovered, setIsHovered] = useState(false);
 
@@ -419,7 +427,6 @@ const TailoringJobCard = memo(
       >
         <Card className="bg-gradient-to-br from-rose-500/5 via-red-500/5 to-orange-500/10 backdrop-blur-xl border border-slate-700/50 hover:border-rose-400/40 transition-all duration-300 hover:shadow-xl overflow-hidden h-full flex flex-col">
           <CardHeader className="pb-3 sm:pb-4">
-            {/* Mark as Applied Checkbox */}
             <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
               <Checkbox
                 id={`applied-${job.id}`}
@@ -470,14 +477,20 @@ const TailoringJobCard = memo(
 
             <div className="flex items-center gap-2 mt-3 sm:mt-4">
               <MapPin className="w-3 h-3 sm:w-4 sm:h-4 text-slate-400 flex-shrink-0" />
-              <span className="text-xs sm:text-sm text-slate-400 truncate">
-                {job.job_location}
+              <span className="truncate">
+                {(() => {
+                  if (!job.job_location) return "";
+                  try {
+                    return JSON.parse(job.job_location).join(", ");
+                  } catch (e) {
+                    return job.job_location;
+                  }
+                })()}
               </span>
             </div>
           </CardHeader>
 
           <CardContent className="flex-1 flex flex-col justify-between space-y-3 sm:space-y-4 pt-0">
-            {/* Employment Type and Level Tags */}
             {(job.employment_type ||
               job.seniority_level ||
               job.job_function) && (
@@ -485,13 +498,31 @@ const TailoringJobCard = memo(
                 {job.employment_type && (
                   <Badge className="bg-rose-500/20 text-rose-400 border-rose-500/30 text-xs whitespace-nowrap">
                     <Briefcase className="w-2 h-2 sm:w-3 sm:h-3 mr-1 flex-shrink-0" />
-                    <span className="truncate">{job.employment_type}</span>
+                    <span className="truncate">
+                      {(() => {
+                        if (!job.employment_type) return "";
+                        try {
+                          return JSON.parse(job.employment_type).join(", ");
+                        } catch (e) {
+                          return job.employment_type;
+                        }
+                      })()}
+                    </span>
                   </Badge>
                 )}
                 {job.seniority_level && (
                   <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30 text-xs whitespace-nowrap">
                     <Target className="w-2 h-2 sm:w-3 sm:h-3 mr-1 flex-shrink-0" />
-                    <span className="truncate">{job.seniority_level}</span>
+                    <span className="truncate">
+                      {(() => {
+                        if (!job.seniority_level) return "";
+                        try {
+                          return JSON.parse(job.seniority_level).join(", ");
+                        } catch (e) {
+                          return job.seniority_level;
+                        }
+                      })()}
+                    </span>
                   </Badge>
                 )}
                 {job.job_function && (
@@ -502,7 +533,6 @@ const TailoringJobCard = memo(
               </div>
             )}
 
-            {/* Job Description */}
             {job.job_description && (
               <div className="space-y-2">
                 <h4 className="font-medium text-xs sm:text-sm flex items-center gap-2">
@@ -517,7 +547,6 @@ const TailoringJobCard = memo(
               </div>
             )}
 
-            {/* Posted Date */}
             {job.posted_at && (
               <div className="flex items-center gap-2 text-xs text-slate-400">
                 <Clock className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
@@ -525,55 +554,88 @@ const TailoringJobCard = memo(
               </div>
             )}
 
-            {/* Agent Action Buttons */}
             <div className="space-y-2 sm:space-y-3 pt-2">
               <div className="grid grid-cols-2 gap-2">
                 <motion.div
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                 >
-                  <Button
-                    onClick={() => onTailorResume(job)}
-                    disabled={processing.resume.has(job.id)}
-                    variant="outline"
-                    size="sm"
-                    className="w-full bg-rose-500/10 border-rose-500/30 text-rose-400 hover:bg-rose-500 hover:text-white hover:border-rose-500 transition-all duration-200 h-8 sm:h-9 text-xs sm:text-sm"
-                  >
-                    {processing.resume.has(job.id) ? (
-                      <Loader2 className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2 animate-spin flex-shrink-0" />
-                    ) : (
-                      <Wand2 className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2 flex-shrink-0" />
-                    )}
-                    <span className="truncate">
-                      {processing.resume.has(job.id)
-                        ? "Agent Tailoring..."
-                        : "Tailor Resume"}
-                    </span>
-                  </Button>
+                  {generationStatus.resumeUrl ? (
+                    <Button
+                      onClick={() =>
+                        onViewOrDownload(
+                          generationStatus.resumeUrl,
+                          `${job.company_name}_${job.job_title}_resume.pdf`
+                        )
+                      }
+                      variant="outline"
+                      size="sm"
+                      className="w-full bg-green-500/10 border-green-500/30 text-green-400 hover:bg-green-500 hover:text-white hover:border-green-500 transition-all duration-200 h-8 sm:h-9 text-xs sm:text-sm"
+                    >
+                      <Eye className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2 flex-shrink-0" />
+                      <span className="truncate">View Resume</span>
+                    </Button>
+                  ) : (
+                    <Button
+                      onClick={() => onTailorResume(job)}
+                      disabled={processing.resume.has(job.id)}
+                      variant="outline"
+                      size="sm"
+                      className="w-full bg-rose-500/10 border-rose-500/30 text-rose-400 hover:bg-rose-500 hover:text-white hover:border-rose-500 transition-all duration-200 h-8 sm:h-9 text-xs sm:text-sm"
+                    >
+                      {processing.resume.has(job.id) ? (
+                        <Loader2 className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2 animate-spin flex-shrink-0" />
+                      ) : (
+                        <Wand2 className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2 flex-shrink-0" />
+                      )}
+                      <span className="truncate">
+                        {processing.resume.has(job.id)
+                          ? "Agent Tailoring..."
+                          : "Tailor Resume"}
+                      </span>
+                    </Button>
+                  )}
                 </motion.div>
 
                 <motion.div
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                 >
-                  <Button
-                    onClick={() => onGenerateCoverLetter(job)}
-                    disabled={processing.coverLetter.has(job.id)}
-                    variant="outline"
-                    size="sm"
-                    className="w-full bg-red-500/10 border-red-500/30 text-red-400 hover:bg-red-500 hover:text-white hover:border-red-500 transition-all duration-200 h-8 sm:h-9 text-xs sm:text-sm"
-                  >
-                    {processing.coverLetter.has(job.id) ? (
-                      <Loader2 className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2 animate-spin flex-shrink-0" />
-                    ) : (
-                      <FileText className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2 flex-shrink-0" />
-                    )}
-                    <span className="truncate">
-                      {processing.coverLetter.has(job.id)
-                        ? "Agent Crafting..."
-                        : "Cover Letter"}
-                    </span>
-                  </Button>
+                  {generationStatus.coverLetterUrl ? (
+                    <Button
+                      onClick={() =>
+                        onViewOrDownload(
+                          generationStatus.coverLetterUrl,
+                          `${job.company_name}_${job.job_title}_cover_letter.pdf`
+                        )
+                      }
+                      variant="outline"
+                      size="sm"
+                      className="w-full bg-green-500/10 border-green-500/30 text-green-400 hover:bg-green-500 hover:text-white hover:border-green-500 transition-all duration-200 h-8 sm:h-9 text-xs sm:text-sm"
+                    >
+                      <Eye className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2 flex-shrink-0" />
+                      <span className="truncate">View Cover</span>
+                    </Button>
+                  ) : (
+                    <Button
+                      onClick={() => onGenerateCoverLetter(job)}
+                      disabled={processing.coverLetter.has(job.id)}
+                      variant="outline"
+                      size="sm"
+                      className="w-full bg-red-500/10 border-red-500/30 text-red-400 hover:bg-red-500 hover:text-white hover:border-red-500 transition-all duration-200 h-8 sm:h-9 text-xs sm:text-sm"
+                    >
+                      {processing.coverLetter.has(job.id) ? (
+                        <Loader2 className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2 animate-spin flex-shrink-0" />
+                      ) : (
+                        <FileText className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2 flex-shrink-0" />
+                      )}
+                      <span className="truncate">
+                        {processing.coverLetter.has(job.id)
+                          ? "Agent Crafting..."
+                          : "Cover Letter"}
+                      </span>
+                    </Button>
+                  )}
                 </motion.div>
               </div>
 
@@ -617,6 +679,9 @@ const InstantTailoringAgent = () => {
     coverLetter: new Set(),
     applying: new Set(),
   });
+  const [generationStatus, setGenerationStatus] = useState<
+    Record<string, GenerationStatus>
+  >({});
   const [loadingOperation, setLoadingOperation] = useState<
     "tailoring" | "cover-letter" | "applying"
   >("tailoring");
@@ -624,8 +689,10 @@ const InstantTailoringAgent = () => {
   const { toast } = useToast();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { usage } = useUsageTracking();
+  // **FIX**: Add a ref to prevent re-fetching on window focus
+  const fetchedForUserId = useRef<string | null>(null);
 
-  // Calculate user name for personalized greeting
   const userName = useMemo(() => {
     if (!user) return "there";
     return (
@@ -635,7 +702,6 @@ const InstantTailoringAgent = () => {
     );
   }, [user]);
 
-  // Filtered and sorted jobs
   const filteredJobs = useMemo(
     () =>
       savedJobs.filter(
@@ -665,7 +731,6 @@ const InstantTailoringAgent = () => {
     [filteredJobs, sortBy]
   );
 
-  // Statistics calculations
   const stats = useMemo(
     () => ({
       total: savedJobs.length,
@@ -685,11 +750,79 @@ const InstantTailoringAgent = () => {
     processing.coverLetter.size > 0 ||
     processing.applying.size > 0;
 
+  // **REFACTORED FUNCTION**
+  const checkGenerationStatus = useCallback(
+    async (jobs: SavedJob[]) => {
+      if (!user || jobs.length === 0) return;
+
+      try {
+        // Step 1: Fetch ALL tailored resumes and cover letters for the user.
+        // This avoids creating an excessively long URL.
+        const [resumesRes, coverLettersRes] = await Promise.all([
+          supabase
+            .from("tailored_resumes")
+            .select("job_description, resume_data")
+            .eq("user_id", user.id),
+          supabase
+            .from("cover_letters")
+            .select("job_description, cover_letter_url")
+            .eq("user_id", user.id),
+        ]);
+
+        if (resumesRes.error) throw resumesRes.error;
+        if (coverLettersRes.error) throw coverLettersRes.error;
+
+        // Step 2: Create efficient lookup maps from the fetched data.
+        const resumeMap = new Map<string, string>();
+        resumesRes.data?.forEach((resume) => {
+          if (resume.job_description && resume.resume_data) {
+            resumeMap.set(resume.job_description, resume.resume_data);
+          }
+        });
+
+        const coverLetterMap = new Map<string, string>();
+        coverLettersRes.data?.forEach((cl) => {
+          if (cl.job_description && cl.cover_letter_url) {
+            coverLetterMap.set(cl.job_description, cl.cover_letter_url);
+          }
+        });
+
+        // Step 3: Match jobs with the fetched documents on the client-side.
+        const newStatus: Record<string, GenerationStatus> = {};
+        jobs.forEach((job) => {
+          const jobDescKey =
+            job.job_description ||
+            `Job Title: ${job.job_title}\nCompany: ${job.company_name}`;
+          const resumeUrl = resumeMap.get(jobDescKey);
+          const coverLetterUrl = coverLetterMap.get(jobDescKey);
+
+          if (resumeUrl || coverLetterUrl) {
+            newStatus[job.id] = {
+              ...(resumeUrl && { resumeUrl }),
+              ...(coverLetterUrl && { coverLetterUrl }),
+            };
+          }
+        });
+
+        setGenerationStatus((prevStatus) => ({ ...prevStatus, ...newStatus }));
+      } catch (error) {
+        console.error("Error checking generation status:", error);
+        toast({
+          title: "Agent Sync Error",
+          description:
+            "Could not verify existing documents. Some items may appear as not generated.",
+          variant: "destructive",
+        });
+      }
+    },
+    [user, toast]
+  );
+
   const fetchSavedJobs = useCallback(async () => {
     if (!user) return;
 
+    setIsLoading(true);
     try {
-      setIsLoading(true);
       const { data, error } = await supabase
         .from("saved_jobs")
         .select("*")
@@ -710,11 +843,21 @@ const InstantTailoringAgent = () => {
     }
   }, [user, toast]);
 
+  // **FIX**: This useEffect now prevents re-fetching data for the same user
   useEffect(() => {
-    if (user) {
+    // Fetches data only if a user is present and their data hasn't been fetched yet.
+    if (user && user.id !== fetchedForUserId.current) {
       fetchSavedJobs();
+      // Mark that we have fetched data for this user ID.
+      fetchedForUserId.current = user.id;
     }
   }, [user, fetchSavedJobs]);
+
+  useEffect(() => {
+    if (savedJobs.length > 0) {
+      checkGenerationStatus(savedJobs);
+    }
+  }, [savedJobs, checkGenerationStatus]);
 
   const simulateLoadingStages = useCallback(
     (operation: "tailoring" | "cover-letter" | "applying") => {
@@ -728,13 +871,12 @@ const InstantTailoringAgent = () => {
       const stages = Array.from({ length: stageCount }, (_, i) => i);
 
       stages.forEach((stage, index) => {
-        setTimeout(() => setLoadingStage(stage), index * 1200); // Slightly faster simulation
+        setTimeout(() => setLoadingStage(stage), index * 1200);
       });
     },
     []
   );
 
-  // Helper function with proper error handling
   const getCurrentUserVersion = async (userId: string) => {
     try {
       const { data, error } = await supabase
@@ -778,6 +920,28 @@ const InstantTailoringAgent = () => {
       });
     },
     []
+  );
+
+  const handleDownload = useCallback(
+    async (url: string, fileName: string) => {
+      try {
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = fileName;
+        a.target = "_blank";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      } catch (error) {
+        console.error("Error downloading file:", error);
+        toast({
+          title: "Download Error",
+          description: "Could not download the file. Please try again.",
+          variant: "destructive",
+        });
+      }
+    },
+    [toast]
   );
 
   const handleMarkAsApplied = useCallback(
@@ -848,6 +1012,22 @@ const InstantTailoringAgent = () => {
     async (job: SavedJob) => {
       if (!user) return;
 
+      if (usage?.plan_type === "Free") {
+        toast({
+          title: "Upgrade to Activate Your Agent 🚀",
+          description:
+            "The Instant Generation Agent is a premium feature. Please upgrade your plan to use it.",
+          variant: "destructive",
+          action: (
+            <Button size="sm" onClick={() => navigate("/pricing")}>
+              <Crown className="w-4 h-4 mr-1" />
+              Upgrade Plan
+            </Button>
+          ),
+        });
+        return;
+      }
+
       const input = document.createElement("input");
       input.type = "file";
       input.accept = ".pdf,.docx";
@@ -872,7 +1052,7 @@ const InstantTailoringAgent = () => {
               p_audit_metadata: {
                 action: "instant_tailoring_agent",
                 job_role: job.job_title,
-                industry: job.industries || "unspecified",
+                industry: job.industries || "General",
                 file_type: file.type === "application/pdf" ? "pdf" : "docx",
                 file_size: file.size,
               },
@@ -928,6 +1108,8 @@ const InstantTailoringAgent = () => {
           const formData = new FormData();
           formData.append("user_id", user.id);
           formData.append("feature", "instant_tailoring_agent");
+          formData.append("jobRole", job.job_title);
+          formData.append("industry", job.industries || "General");
           formData.append(
             "jobDescription",
             job.job_description ||
@@ -996,12 +1178,7 @@ const InstantTailoringAgent = () => {
             console.error("Database insert error:", error);
           }
 
-          const a = document.createElement("a");
-          a.href = tailoredResumeUrl;
-          a.download = `${customFileName}.pdf`;
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
+          await handleDownload(tailoredResumeUrl, `${customFileName}.pdf`);
 
           toast({
             title: "Agent Success! ✨",
@@ -1013,6 +1190,10 @@ const InstantTailoringAgent = () => {
               </Button>
             ),
           });
+          setGenerationStatus((prev) => ({
+            ...prev,
+            [job.id]: { ...prev[job.id], resumeUrl: tailoredResumeUrl },
+          }));
         } catch (error) {
           console.error("Error tailoring resume:", error);
           toast({
@@ -1027,12 +1208,36 @@ const InstantTailoringAgent = () => {
       };
       input.click();
     },
-    [user, toast, updateProcessingState, simulateLoadingStages, navigate]
+    [
+      user,
+      toast,
+      updateProcessingState,
+      simulateLoadingStages,
+      navigate,
+      usage,
+      handleDownload,
+    ]
   );
 
   const handleGenerateCoverLetter = useCallback(
     async (job: SavedJob) => {
       if (!user) return;
+
+      if (usage?.plan_type === "Free") {
+        toast({
+          title: "Upgrade to Activate Your Agent 🚀",
+          description:
+            "The Instant Generation Agent is a premium feature. Please upgrade your plan to use it.",
+          variant: "destructive",
+          action: (
+            <Button size="sm" onClick={() => navigate("/pricing")}>
+              <Crown className="w-4 h-4 mr-1" />
+              Upgrade Plan
+            </Button>
+          ),
+        });
+        return;
+      }
 
       const input = document.createElement("input");
       input.type = "file";
@@ -1059,7 +1264,7 @@ const InstantTailoringAgent = () => {
                 action: "cover_tailoring_agent",
                 company: job.company_name,
                 position: job.job_title,
-                industry: job.industries || "unspecified",
+                industry: job.industries || "General",
               },
             }
           );
@@ -1112,12 +1317,13 @@ const InstantTailoringAgent = () => {
 
           const formData = new FormData();
           formData.append("user_id", user.id);
-          formData.append("feature", "instant_tailoring_agent");
+          formData.append("feature", "instant_generation_agent");
           formData.append(
             "jobDescription",
             job.job_description ||
               `Job Title: ${job.job_title}\nCompany: ${job.company_name}`
           );
+          formData.append("industry", job.industries || "General");
           formData.append("companyName", job.company_name);
           formData.append("positionTitle", job.job_title);
           formData.append("resume", file);
@@ -1181,12 +1387,7 @@ const InstantTailoringAgent = () => {
             console.error("Database insert error:", error);
           }
 
-          const a = document.createElement("a");
-          a.href = coverLetterUrl;
-          a.download = `${customFileName}.pdf`;
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
+          await handleDownload(coverLetterUrl, `${customFileName}.pdf`);
 
           toast({
             title: "Agent Success! 📋",
@@ -1201,6 +1402,10 @@ const InstantTailoringAgent = () => {
               </Button>
             ),
           });
+          setGenerationStatus((prev) => ({
+            ...prev,
+            [job.id]: { ...prev[job.id], coverLetterUrl: coverLetterUrl },
+          }));
         } catch (error) {
           console.error("Error generating cover letter:", error);
           toast({
@@ -1215,7 +1420,15 @@ const InstantTailoringAgent = () => {
       };
       input.click();
     },
-    [user, toast, updateProcessingState, simulateLoadingStages, navigate]
+    [
+      user,
+      toast,
+      updateProcessingState,
+      simulateLoadingStages,
+      navigate,
+      usage,
+      handleDownload,
+    ]
   );
 
   if (!user) {
@@ -1265,7 +1478,6 @@ const InstantTailoringAgent = () => {
           operation={loadingOperation}
         />
 
-        {/* Header */}
         <DashboardHeader />
 
         <div className="container mx-auto px-4 py-6 sm:py-8 max-w-7xl">
@@ -1275,7 +1487,6 @@ const InstantTailoringAgent = () => {
             transition={{ duration: 0.5 }}
             className="space-y-6 sm:space-y-8"
           >
-            {/* Back to Home Button */}
             <motion.div
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
@@ -1290,7 +1501,6 @@ const InstantTailoringAgent = () => {
               </Button>
             </motion.div>
 
-            {/* Hero Section - AI Agent Focused */}
             <div className="text-center space-y-4 sm:space-y-6">
               <motion.div
                 initial={{ opacity: 0, scale: 0.9 }}
@@ -1351,7 +1561,6 @@ const InstantTailoringAgent = () => {
                 </div>
               </motion.div>
 
-              {/* Agent Capabilities */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -1397,7 +1606,6 @@ const InstantTailoringAgent = () => {
               </motion.div>
             </div>
 
-            {/* Statistics */}
             <AgentStats
               totalJobs={stats.total}
               thisWeek={stats.thisWeek}
@@ -1405,7 +1613,6 @@ const InstantTailoringAgent = () => {
               companies={stats.companies}
             />
 
-            {/* Search and Filter Controls */}
             {savedJobs.length > 0 && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
@@ -1466,7 +1673,6 @@ const InstantTailoringAgent = () => {
               </motion.div>
             )}
 
-            {/* Content */}
             <AnimatePresence mode="wait">
               {isLoading ? (
                 <LoadingSkeleton />
@@ -1540,13 +1746,14 @@ const InstantTailoringAgent = () => {
                       onTailorResume={handleTailorResume}
                       onGenerateCoverLetter={handleGenerateCoverLetter}
                       onMarkAsApplied={handleMarkAsApplied}
+                      generationStatus={generationStatus[job.id] || {}}
+                      onViewOrDownload={handleDownload}
                     />
                   ))}
                 </motion.div>
               )}
             </AnimatePresence>
 
-            {/* Continue Job Search CTA */}
             {sortedJobs.length > 0 && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
