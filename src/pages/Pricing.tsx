@@ -16,10 +16,15 @@ import {
 } from "lucide-react";
 import { usePayment } from "@/hooks/usePayment";
 import { useAuth } from "@/contexts/AuthContext";
-import { useUsageTracking } from "@/hooks/useUsageTracking"; // **NEW: Import usage tracking**
-import { useToast } from "@/hooks/use-toast"; // **NEW: Import toast for messaging**
-import { SubscriptionPlan } from "@/services/paymentService";
-import { motion, Variants } from "framer-motion";
+import { useUsageTracking } from "@/hooks/useUsageTracking";
+import { useToast } from "@/hooks/use-toast";
+// MODIFIED: Import new types for currency and billing period
+import {
+  SubscriptionPlan,
+  Currency,
+  BillingPeriod,
+} from "@/services/paymentService";
+import { Variants, motion } from "framer-motion";
 
 /* ------------------------------------------------------------------ */
 /* Types                                                               */
@@ -47,8 +52,8 @@ interface PlanData {
   cta: string;
   highlight: boolean;
   badge?: string;
-  isCurrentPlan?: boolean; // **NEW: Track if this is user's current plan**
-  canUpgrade?: boolean; // **NEW: Track if user can upgrade to this plan**
+  isCurrentPlan?: boolean;
+  canUpgrade?: boolean;
 }
 
 /* ------------------------------------------------------------------ */
@@ -136,23 +141,25 @@ const cardVariants: Variants = {
 const Pricing: React.FC = () => {
   /* currency / auth / payment ---------------------------------------------- */
   const { detectedCurrency, isLoading } = useRegionDetection();
-  const [currency, setCurrency] = useState<"INR" | "USD">("INR");
-  const [billingPeriod, setBillingPeriod] = useState<"monthly" | "yearly">(
-    "yearly"
-  );
+  // MODIFIED: Use imported types for state
+  const [currency, setCurrency] = useState<Currency>("INR");
+  const [billingPeriod, setBillingPeriod] = useState<BillingPeriod>("yearly");
 
   const { processPayment, isProcessing } = usePayment();
   const { user } = useAuth();
 
-  // **NEW: Get user's current plan**
-  const { usage, isLoading: isUsageLoading } = useUsageTracking();
+  // =================================================================
+  // **FIX: Pass options to disable re-fetching when switching tabs.**
+  // =================================================================
+  const { usage, isLoading: isUsageLoading } = useUsageTracking({
+    refetchOnWindowFocus: false,
+  });
   const { toast } = useToast();
 
   useEffect(() => {
     if (!isLoading) setCurrency(detectedCurrency);
   }, [detectedCurrency, isLoading]);
 
-  // **NEW: Enhanced subscribe handler with plan validation**
   const handleSubscribe = useCallback(
     async (
       plan: SubscriptionPlan,
@@ -164,7 +171,6 @@ const Pricing: React.FC = () => {
         return;
       }
 
-      // **NEW: Prevent buying same plan**
       if (isCurrentPlan) {
         toast({
           title: "This is your current plan! 📋",
@@ -175,7 +181,6 @@ const Pricing: React.FC = () => {
         return;
       }
 
-      // **NEW: Prevent downgrading**
       if (!canUpgrade) {
         toast({
           title: "Cannot downgrade plan ⬇️",
@@ -187,12 +192,11 @@ const Pricing: React.FC = () => {
         return;
       }
 
-      await processPayment(plan);
+      await processPayment(plan, currency, billingPeriod);
     },
-    [user, processPayment, toast]
+    [user, processPayment, toast, currency, billingPeriod]
   );
 
-  // **NEW: Get plan hierarchy for upgrade logic**
   const getPlanHierarchy = useCallback((planName: string): number => {
     const hierarchy = { Free: 0, Basic: 1, Pro: 2 };
     return hierarchy[planName as keyof typeof hierarchy] || 0;
@@ -342,19 +346,16 @@ const Pricing: React.FC = () => {
   }
 
   const PricingCard: React.FC<PricingCardProps> = React.memo(({ plan }) => {
-    // **ENHANCED: Dynamic ring based on current plan status**
     const baseRing = plan.isCurrentPlan
-      ? "ring-2 ring-green-500/60 border-green-500/50" // Current plan gets green ring
+      ? "ring-2 ring-green-500/60 border-green-500/50"
       : plan.highlight
       ? "ring-2 ring-appforge-blue/50 border-appforge-blue/50"
       : plan.badge === "Best AI"
       ? "ring-2 ring-purple-500/80 border-purple-500/60"
       : "border-white/10";
 
-    /* Only the target values go in whileHover ------------------------ */
     const hoverTarget = { y: -6, scale: 1.02 } as const;
 
-    // **ENHANCED: Dynamic badge styling**
     const badgeClass = plan.isCurrentPlan
       ? "bg-green-500 text-white border border-green-500/30"
       : plan.highlight
@@ -369,7 +370,6 @@ const Pricing: React.FC = () => {
       Pro: "bg-gradient-to-br from-purple-500 to-pink-600",
     }[plan.name] as string;
 
-    // **ENHANCED: Handle click with validation**
     const handleClick = () =>
       handleSubscribe(
         plan.name,
@@ -377,7 +377,6 @@ const Pricing: React.FC = () => {
         plan.canUpgrade || false
       );
 
-    // **NEW: Get button styling and text based on plan status**
     const getButtonConfig = () => {
       if (plan.isCurrentPlan) {
         return {
@@ -397,7 +396,6 @@ const Pricing: React.FC = () => {
         };
       }
 
-      // Default upgrade styling
       if (plan.name === "Pro") {
         return {
           className:
@@ -439,7 +437,6 @@ const Pricing: React.FC = () => {
         <Card
           className={`relative glass bg-background/75 backdrop-blur-sm shadow-xl overflow-hidden ${baseRing} rounded-2xl p-4 sm:p-6 md:p-8 flex flex-col h-full`}
         >
-          {/* **ENHANCED: Multiple badges support** */}
           <div className="absolute top-3 right-3 sm:top-4 sm:right-4 flex flex-col gap-2 z-10">
             {plan.isCurrentPlan && (
               <Badge className="bg-green-500 text-white px-2 py-1 sm:px-3 sm:py-1 rounded-full text-xs font-semibold shadow-md flex items-center gap-1">
@@ -456,14 +453,12 @@ const Pricing: React.FC = () => {
             )}
           </div>
 
-          {/* Icon */}
           <div
             className={`${iconBg} text-white mb-4 sm:mb-6 mx-auto p-3 sm:p-4 rounded-xl shadow-md flex justify-center items-center`}
           >
             {plan.icon}
           </div>
 
-          {/* Header */}
           <div className="text-center mb-4 sm:mb-6">
             <h3 className="text-lg sm:text-xl md:text-2xl font-bold mb-1">
               {plan.displayName}
@@ -486,7 +481,6 @@ const Pricing: React.FC = () => {
               {plan.description}
             </p>
 
-            {/* Price */}
             <div className="mb-2">
               <div className="flex items-center justify-center gap-2 mb-1">
                 <span className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-white">
@@ -518,7 +512,6 @@ const Pricing: React.FC = () => {
             </div>
           </div>
 
-          {/* Feature list */}
           <ul className="space-y-2 sm:space-y-3 mb-4 sm:mb-6 md:mb-8 flex-1">
             {plan.features.map((f, i) => (
               <li
@@ -542,7 +535,6 @@ const Pricing: React.FC = () => {
             ))}
           </ul>
 
-          {/* **ENHANCED: Dynamic CTA button** */}
           <Button
             size="lg"
             disabled={isProcessing || buttonConfig.disabled}
@@ -588,13 +580,11 @@ const Pricing: React.FC = () => {
       className="min-h-screen bg-background overflow-hidden"
       style={{ contain: "layout style paint", willChange: "auto" }}
     >
-      {/* background blobs */}
       <span className="pointer-events-none absolute -left-40 top-1/4 w-80 h-80 bg-blue-400/15 rounded-full blur-3xl" />
       <span className="pointer-events-none absolute right-0 top-0 w-80 h-56 bg-purple-500/10 rounded-full blur-3xl" />
       <span className="pointer-events-none absolute left-1/2 top-1/2 w-96 h-96 bg-pink-500/5 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2" />
 
       <div className="container mx-auto px-4 sm:px-6 lg:px-10 py-8 relative z-10">
-        {/* nav */}
         <div className="mb-8">
           <Link to="/">
             <Button
@@ -607,7 +597,6 @@ const Pricing: React.FC = () => {
           </Link>
         </div>
 
-        {/* header */}
         <motion.header
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
@@ -631,17 +620,6 @@ const Pricing: React.FC = () => {
             on interviews.
           </p>
 
-          {/* **NEW: Current plan indicator** */}
-          {usage?.plan_type && usage.plan_type !== "Free" && (
-            <div className="mb-6">
-              <Badge className="bg-green-500/20 text-green-400 border border-green-500/30 px-4 py-2">
-                <Crown className="w-4 h-4 mr-2" />
-                Currently on {usage.plan_type} Plan
-              </Badge>
-            </div>
-          )}
-
-          {/* toggles */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-6">
             <div className="flex items-center gap-2">
               <Button
@@ -689,9 +667,7 @@ const Pricing: React.FC = () => {
           </div>
         </motion.header>
 
-        {/* pricing grids ---------------------------------------------------- */}
         <div className="max-w-7xl mx-auto">
-          {/* desktop */}
           <motion.div
             className="hidden lg:grid lg:grid-cols-3 gap-6 xl:gap-10"
             variants={fadeStagger}
@@ -704,7 +680,6 @@ const Pricing: React.FC = () => {
             ))}
           </motion.div>
 
-          {/* tablet */}
           <motion.div
             className="hidden md:grid lg:hidden md:grid-cols-2 gap-6 max-w-4xl mx-auto"
             variants={fadeStagger}
@@ -720,8 +695,6 @@ const Pricing: React.FC = () => {
             </div>
           </motion.div>
 
-          {/* mobile carousel */}
-          {/* mobile carousel */}
           <div className="md:hidden mt-8 sm:mt-12">
             <motion.div
               initial={{ opacity: 0, y: 30 }}
@@ -747,11 +720,9 @@ const Pricing: React.FC = () => {
                   ))}
                 </div>
               </div>
-            </motion.div>{" "}
-            {/* ✅ Corrected Closing Tag */}
+            </motion.div>
           </div>
 
-          {/* feature highlight */}
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}

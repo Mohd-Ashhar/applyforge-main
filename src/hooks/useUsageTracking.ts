@@ -1,8 +1,9 @@
-import { useState, useEffect, useCallback } from "react";
+import { useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useQuery, UseQueryOptions } from "@tanstack/react-query";
 
-// The types for identifying features remain the same.
+// Types remain the same
 export type UsageType =
   | "resume_tailors_used"
   | "cover_letters_used"
@@ -10,7 +11,6 @@ export type UsageType =
   | "one_click_tailors_used"
   | "ats_checks_used";
 
-// This interface is robustly typed to handle potential nulls from the DB.
 interface UserUsage {
   user_id: string;
   plan_type: string;
@@ -23,113 +23,132 @@ interface UserUsage {
   billing_cycle_end: string | null;
 }
 
-// A simple map for the current plan's limits.
 interface PlanLimits {
   [key: string]: number;
 }
 
-export const useUsageTracking = () => {
+// The combined data structure that our fetching function will return
+interface UsageAndLimits {
+  usage: UserUsage;
+  limits: PlanLimits;
+}
+
+/**
+ * The core data fetching logic is now isolated in this function.
+ * This function is used by TanStack Query.
+ */
+const fetchUsageAndLimits = async (
+  userId?: string
+): Promise<UsageAndLimits | null> => {
+  if (!userId) return null;
+
+  // We fetch usage data and all plan limits in parallel, just like before.
+  const [usageRes, limitsRes] = await Promise.all([
+    (supabase.rpc as any)("get_user_usage_secure", {
+      p_target_user_id: userId,
+    }).single(),
+    supabase.from("plan_limits").select("plan_type, usage_type, usage_limit"),
+  ]);
+
+  // --- Process User Usage ---
+  const { data: usageData, error: usageError } = usageRes;
+  let effectiveUsageData: UserUsage;
+
+  if (usageError && usageError.code !== "PGRST116") {
+    console.error("Error loading usage via RPC:", usageError);
+    throw new Error("Failed to fetch user usage.");
+  }
+
+  // If no usage record exists, create a default "Free" plan object.
+  if (!usageData) {
+    effectiveUsageData = {
+      user_id: userId,
+      plan_type: "Free",
+      resume_tailors_used: 0,
+      cover_letters_used: 0,
+      job_searches_used: 0,
+      one_click_tailors_used: 0,
+      ats_checks_used: 0,
+      last_reset_date: null,
+      billing_cycle_end: null,
+    };
+  } else {
+    effectiveUsageData = usageData as UserUsage;
+  }
+
+  // --- Process Plan Limits ---
+  const { data: limitsData, error: limitsError } = limitsRes;
+  let limitsObj: PlanLimits = {};
+  if (limitsError) {
+    console.error("Error loading limits:", limitsError);
+    // Non-fatal, we can proceed with empty limits
+  } else if (limitsData) {
+    const currentPlan = effectiveUsageData.plan_type;
+    limitsObj = limitsData
+      .filter((limit) => limit.plan_type === currentPlan)
+      .reduce((acc, limit) => {
+        acc[limit.usage_type] = limit.usage_limit;
+        return acc;
+      }, {} as PlanLimits);
+  }
+
+  return { usage: effectiveUsageData, limits: limitsObj };
+};
+
+// Define a type for the options you can pass to your hook
+type UsageTrackingOptions = Omit<
+  UseQueryOptions<UsageAndLimits | null>,
+  "queryKey" | "queryFn"
+>;
+
+/**
+ * This is the refactored hook using TanStack Query.
+ * It now accepts an options object to control fetching behavior.
+ */
+export const useUsageTracking = (options?: UsageTrackingOptions) => {
   const { user } = useAuth();
-  const [usage, setUsage] = useState<UserUsage | null>(null);
-  const [limits, setLimits] = useState<PlanLimits>({});
-  const [isLoading, setIsLoading] = useState(true);
 
-  const loadData = useCallback(async () => {
-    if (!user) return;
+  const {
+    data,
+    isLoading,
+    refetch: refreshUsage, // TanStack Query's refetch function is aliased to refreshUsage
+  } = useQuery<UsageAndLimits | null>({
+    // The query key uniquely identifies this data based on the user.
+    queryKey: ["usageAndLimits", user?.id],
+    // The query function is the one we defined above.
+    queryFn: () => fetchUsageAndLimits(user?.id),
+    // The query will only run if there is a logged-in user.
+    enabled: !!user,
+    // **This is the key change:** it applies any options passed in,
+    // such as { refetchOnWindowFocus: false }
+    ...options,
+  });
 
-    setIsLoading(true);
-    try {
-      // We call the database function via RPC to trigger the auto-reset logic.
-      // We also fetch all possible plan limits at the same time.
-      const [usageRes, limitsRes] = await Promise.all([
-        // FIX: Cast .rpc to 'any' to bypass strict type checking for this specific call.
-        // This tells TypeScript to trust that this function exists on the backend.
-        (supabase.rpc as any)("get_user_usage_secure", {
-          p_target_user_id: user.id,
-        }).single(),
-        supabase
-          .from("plan_limits")
-          .select("plan_type, usage_type, usage_limit"),
-      ]);
+  // Re-create the checkUsageLimit function using the data from useQuery.
+  // useMemo ensures this function isn't re-created on every render.
+  const checkUsageLimit = useMemo(
+    () =>
+      (usageType: UsageType): boolean => {
+        if (!data || isLoading) return true; // Default to limit reached if no data
 
-      // --- Process User Usage ---
-      const { data: usageData, error: usageError } = usageRes;
-      let effectiveUsageData: UserUsage | null = usageData as UserUsage | null;
+        const { usage, limits } = data;
+        const currentValue = usage[usageType] || 0;
+        const limit = limits[usageType];
 
-      if (usageError) {
-        // It's possible for the RPC to return no rows for a new user, which is not an error.
-        if (usageError.code !== "PGRST116") {
-          console.error("Error loading usage via RPC:", usageError);
-        }
-      }
+        if (limit === undefined) return true; // Block if no limit defined
+        if (limit === -1) return false; // -1 is unlimited
 
-      // If no usage record exists after the RPC call, it means they are a new user.
-      // We create a default "Free" plan object for them on the client-side.
-      if (!effectiveUsageData) {
-        effectiveUsageData = {
-          user_id: user.id,
-          plan_type: "Free",
-          resume_tailors_used: 0,
-          cover_letters_used: 0,
-          job_searches_used: 0,
-          one_click_tailors_used: 0,
-          ats_checks_used: 0,
-          last_reset_date: null,
-          billing_cycle_end: null,
-        };
-      }
-      setUsage(effectiveUsageData);
-
-      // --- Process Plan Limits ---
-      const { data: limitsData, error: limitsError } = limitsRes;
-      if (limitsError) {
-        console.error("Error loading limits:", limitsError);
-      } else if (limitsData) {
-        // Filter the full list of limits to only include those for the user's current plan.
-        const currentPlan = effectiveUsageData.plan_type;
-        const limitsObj = limitsData
-          .filter((limit) => limit.plan_type === currentPlan)
-          .reduce((acc, limit) => {
-            acc[limit.usage_type] = limit.usage_limit;
-            return acc;
-          }, {} as PlanLimits);
-        setLimits(limitsObj);
-      }
-    } catch (error) {
-      console.error("Error in loadData:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [user]);
-
-  const checkUsageLimit = (usageType: UsageType): boolean => {
-    if (!usage || isLoading) return true; // Default to limit reached if no data or loading
-
-    const currentValue = usage[usageType] || 0;
-    const limit = limits[usageType];
-
-    if (limit === undefined) return true; // If no limit is defined, block by default.
-    if (limit === -1) return false; // -1 means unlimited usage.
-
-    return currentValue >= limit;
-  };
-
-  useEffect(() => {
-    if (user) {
-      loadData();
-    } else {
-      // Clear data when user logs out
-      setIsLoading(false);
-      setUsage(null);
-      setLimits({});
-    }
-  }, [user, loadData]);
+        return currentValue >= limit;
+      },
+    [data, isLoading]
+  );
 
   return {
-    usage,
-    limits,
+    // The returned values have the same names as before to avoid breaking changes.
+    usage: data?.usage ?? null,
+    limits: data?.limits ?? {},
     isLoading,
-    refreshUsage: loadData,
+    refreshUsage,
     checkUsageLimit,
   };
 };

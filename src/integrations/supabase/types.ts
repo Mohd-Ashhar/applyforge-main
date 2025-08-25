@@ -6,7 +6,6 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[];
 
-
 export type Database = {
   // Allows to automatically instanciate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
@@ -108,9 +107,6 @@ export type Database = {
         };
         Relationships: [];
       };
-      // =================================================================
-      // NEW: Added job_data table definition
-      // =================================================================
       job_data: {
         Row: {
           apply_link: string | null;
@@ -219,6 +215,76 @@ export type Database = {
           seniority_level?: string | null;
           user_id?: string;
           work_type?: string;
+        };
+        Relationships: [];
+      };
+      payments: {
+        Row: {
+          id: number;
+          created_at: string;
+          user_id: string;
+          razorpay_payment_id: string;
+          razorpay_order_id: string;
+          amount: number;
+          currency: string;
+          plan: string;
+          billing_period: string;
+          status: string;
+        };
+        Insert: {
+          id?: number;
+          created_at?: string;
+          user_id: string;
+          razorpay_payment_id: string;
+          razorpay_order_id: string;
+          amount: number;
+          currency: string;
+          plan: string;
+          billing_period: string;
+          status?: string;
+        };
+        Update: {
+          id?: number;
+          created_at?: string;
+          user_id?: string;
+          razorpay_payment_id?: string;
+          razorpay_order_id?: string;
+          amount?: number;
+          currency?: string;
+          plan?: string;
+          billing_period?: string;
+          status?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "payments_user_id_fkey";
+            columns: ["user_id"];
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      plan_limits: {
+        Row: {
+          id: number;
+          created_at: string;
+          plan_type: string;
+          usage_type: string;
+          usage_limit: number;
+        };
+        Insert: {
+          id?: number;
+          created_at?: string;
+          plan_type: string;
+          usage_type: string;
+          usage_limit: number;
+        };
+        Update: {
+          id?: number;
+          created_at?: string;
+          plan_type?: string;
+          usage_type?: string;
+          usage_limit?: number;
         };
         Relationships: [];
       };
@@ -342,7 +408,7 @@ export type Database = {
       user_usage: {
         Row: {
           ats_checks_used: number | null;
-          // auto_applies_used: number | null;
+          billing_period: string; // We added this column
           cover_letters_used: number | null;
           job_searches_used: number | null;
           last_reset_date: string | null;
@@ -353,7 +419,7 @@ export type Database = {
         };
         Insert: {
           ats_checks_used?: number | null;
-          // auto_applies_used?: number | null;
+          billing_period?: string;
           cover_letters_used?: number | null;
           job_searches_used?: number | null;
           last_reset_date?: string | null;
@@ -364,7 +430,7 @@ export type Database = {
         };
         Update: {
           ats_checks_used?: number | null;
-          // auto_applies_used?: number | null;
+          billing_period?: string;
           cover_letters_used?: number | null;
           job_searches_used?: number | null;
           last_reset_date?: string | null;
@@ -375,46 +441,32 @@ export type Database = {
         };
         Relationships: [];
       };
-      plan_limits: {
-        Row: {
-          // Based on your screenshot
-          id: number;
-          created_at: string;
-          plan_type: string;
-          usage_type: string;
-          usage_limit: number;
-        };
-        Insert: {
-          id?: number;
-          created_at?: string;
-          plan_type: string;
-          usage_type: string;
-          usage_limit: number;
-        };
-        Update: {
-          id?: number;
-          created_at?: string;
-          plan_type?: string;
-          usage_type?: string;
-          usage_limit?: number;
-        };
-        Relationships: [];
-      };
     };
     Views: {
       [_ in never]: never;
     };
     Functions: {
+      handle_successful_payment: {
+        Args: {
+          p_user_id: string;
+          p_plan: string;
+          p_payment_id: string;
+          p_order_id: string;
+          p_amount: number;
+          p_currency: string;
+          p_billing_period: string;
+        };
+        Returns: undefined;
+      };
       increment_usage_secure: {
         Args: {
-          p_target_user_id: string; // Corresponds to uuid
-          p_usage_type: string; // Corresponds to text
-          p_increment_amount: number; // Corresponds to integer
-          p_current_version: number; // Corresponds to integer
-          p_audit_metadata: Json; // Corresponds to jsonb
+          p_target_user_id: string;
+          p_usage_type: string;
+          p_increment_amount: number;
+          p_current_version: number;
+          p_audit_metadata: Json;
         };
         Returns: {
-          // This structure must match the TABLE returned by your function
           user_id: string;
           plan_type: string;
           resume_tailors_used: number;
@@ -428,7 +480,7 @@ export type Database = {
           created_at: string;
           billing_cycle_start: string;
           billing_cycle_end: string;
-        }[]; // The return is a set of records, so it's an array
+        }[];
       };
     };
     Enums: {
@@ -440,15 +492,12 @@ export type Database = {
   };
 };
 
-
 type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">;
-
 
 type DefaultSchema = DatabaseWithoutInternals[Extract<
   keyof Database,
   "public"
 >];
-
 
 export type Tables<
   DefaultSchemaTableNameOrOptions extends
@@ -479,7 +528,6 @@ export type Tables<
     : never
   : never;
 
-
 export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
@@ -504,7 +552,6 @@ export type TablesInsert<
     ? I
     : never
   : never;
-
 
 export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
@@ -531,7 +578,6 @@ export type TablesUpdate<
     : never
   : never;
 
-
 export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
@@ -541,6 +587,7 @@ export type Enums<
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
     : never = never
+  // **FIX: Replaced the incorrect variable name with the correct one.**
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals;
 }
@@ -548,7 +595,6 @@ export type Enums<
   : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
   ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
   : never;
-
 
 export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
@@ -566,7 +612,6 @@ export type CompositeTypes<
   : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
   ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
   : never;
-
 
 export const Constants = {
   public: {

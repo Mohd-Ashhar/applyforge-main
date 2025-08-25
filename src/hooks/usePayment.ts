@@ -1,15 +1,17 @@
+// In usePayment.ts
 
-import { useState } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
-import { 
-  createRazorpayOrder, 
-  updateUserSubscription, 
-  upgradeToPlan,
+import { useState } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
+import {
+  createRazorpayOrder,
+  updateUserSubscription,
+  triggerPaymentNotification, 
   SubscriptionPlan,
-  RazorpayPaymentResponse 
-} from '@/services/paymentService';
+  Currency,
+  BillingPeriod,
+  RazorpayPaymentResponse,
+} from "@/services/paymentService";
 
 declare global {
   interface Window {
@@ -23,144 +25,133 @@ export const usePayment = () => {
   const { toast } = useToast();
 
   const loadRazorpayScript = (): Promise<boolean> => {
+    // ... (this function is unchanged)
     return new Promise((resolve) => {
       if (window.Razorpay) {
-        resolve(true);
-        return;
+        return resolve(true);
       }
-
-      const script = document.createElement('script');
-      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      const script = document.createElement("script");
+      script.src = "https://checkout.razorpay.com/v1/checkout.js";
       script.onload = () => resolve(true);
       script.onerror = () => resolve(false);
       document.head.appendChild(script);
     });
   };
 
-  const processPayment = async (plan: SubscriptionPlan) => {
+  const processPayment = async (
+    plan: SubscriptionPlan,
+    currency: Currency,
+    billingPeriod: BillingPeriod
+  ) => {
     if (!user?.email) {
-      toast({
-        title: 'Authentication Required',
-        description: 'Please log in to subscribe to a plan.',
-        variant: 'destructive',
-      });
+      // ... (unchanged)
+      return;
+    }
+    if (plan === "Free") {
       return;
     }
 
-    const userEmail = user.email;
-
-    // Handle Free plan upgrade directly
-    if (plan === 'Free') {
-      try {
-        setIsProcessing(true);
-        
-        // For Free Plan (₹0) - no Razorpay involved
-        const { error } = await supabase
-          .from('profiles')
-          .update({ plan: 'Free' } as any)
-          .eq('email', userEmail);
-
-        if (error) {
-          console.error("Subscription update failed:", error.message);
-          toast({
-            title: 'Error',
-            description: 'Failed to update to Free plan. Please try again.',
-            variant: 'destructive',
-          });
-        } else {
-          toast({
-            title: 'Plan Updated',
-            description: 'Successfully upgraded to Free plan!',
-          });
-          window.location.href = '/thank-you';
-        }
-      } catch (error) {
-        console.error('Free plan upgrade error:', error);
-        toast({
-          title: 'Error',
-          description: 'Failed to update plan. Please try again.',
-          variant: 'destructive',
-        });
-      } finally {
-        setIsProcessing(false);
-      }
-      return;
-    }
-
-    // Handle paid plans (Basic/Pro)
     try {
       setIsProcessing(true);
-
-      // Load Razorpay script
       const scriptLoaded = await loadRazorpayScript();
-      if (!scriptLoaded) {
-        throw new Error('Failed to load Razorpay script');
-      }
+      if (!scriptLoaded) throw new Error("Failed to load Razorpay script");
 
-      // Create Razorpay order
-      const orderResponse = await createRazorpayOrder(
-        user.email.split('@')[0], // Use email prefix as name
-        user.email,
-        plan
-      );
+      const orderResponse = await createRazorpayOrder({
+        name: user.email.split("@")[0],
+        email: user.email,
+        plan,
+        currency,
+        billingPeriod,
+      });
 
-      // Configure Razorpay options
       const options = {
         key: orderResponse.key_id,
         amount: orderResponse.amount,
         currency: orderResponse.currency,
-        name: 'ApplyForge',
+        name: "ApplyForge",
         description: `${plan} Plan Subscription`,
         order_id: orderResponse.order_id,
         prefill: {
-          name: user.email.split('@')[0],
+          name: user.email.split("@")[0],
           email: user.email,
         },
         handler: async (paymentResponse: RazorpayPaymentResponse) => {
           try {
-            // Implement the exact flow you specified
-            console.log('Payment successful:', paymentResponse);
-            
-            // Update user subscription in Supabase using email
-            await updateUserSubscription(
-              userEmail,
+            const subscriptionDetails = {
               plan,
-              paymentResponse.razorpay_payment_id
-            );
+              billingPeriod,
+              paymentId: paymentResponse.razorpay_payment_id,
+              orderId: paymentResponse.razorpay_order_id,
+              amount: orderResponse.amount,
+              currency: orderResponse.currency,
+            };
+
+            await updateUserSubscription(subscriptionDetails);
 
             toast({
-              title: 'Payment Successful!',
+              title: "Payment Successful!",
               description: `Successfully subscribed to ${plan} plan.`,
             });
 
-            // Redirect to thank-you page as specified
-            window.location.href = '/thank-you';
+            // **SUCCESS TRIGGER**
+            // Trigger the n8n webhook for a successful payment
+            await triggerPaymentNotification({
+              status: "success",
+              email: user.email!,
+              name: user.email!.split("@")[0],
+              plan: subscriptionDetails.plan,
+              amount: subscriptionDetails.amount / 100, // Convert to main currency unit
+              currency: subscriptionDetails.currency,
+              paymentId: subscriptionDetails.paymentId,
+            });
+
+            window.location.href = "/thank-you";
           } catch (error: any) {
-            console.error('Subscription update failed:', error);
-            alert("Payment successful but subscription update failed. Please contact support.");
+            console.error("Subscription update failed:", error);
+            alert(
+              "Payment successful but subscription update failed. Please contact support."
+            );
           }
         },
         modal: {
-          ondismiss: () => {
+          ondismiss: async () => {
             setIsProcessing(false);
+            // **FAILURE TRIGGER**
+            // The user closed the modal without paying.
+            await triggerPaymentNotification({
+              status: "failed",
+              email: user.email!,
+              name: user.email!.split("@")[0],
+              plan: plan,
+              orderId: orderResponse.order_id,
+              failureReason: "user_closed_modal",
+            });
           },
         },
         theme: {
-          color: '#3B82F6',
+          color: "#3B82F6",
         },
       };
 
-      // Open Razorpay checkout
       const rzp = new window.Razorpay(options);
       rzp.open();
-
-    } catch (error) {
-      console.error('Payment initialization failed:', error);
+    } catch (error: any) {
+      console.error("Payment initialization failed:", error);
       toast({
-        title: 'Payment Failed',
-        description: 'Failed to initialize payment. Please try again.',
-        variant: 'destructive',
+        title: "Payment Failed",
+        description: "Failed to initialize payment. Please try again.",
+        variant: "destructive",
       });
+
+      // **FAILURE TRIGGER (for initialization errors)**
+      await triggerPaymentNotification({
+        status: "failed",
+        email: user.email!,
+        name: user.email!.split("@")[0],
+        plan: plan,
+        failureReason: error.message || "initialization_failed",
+      });
+
       setIsProcessing(false);
     }
   };

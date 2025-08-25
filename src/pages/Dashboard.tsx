@@ -60,9 +60,11 @@ import UserAvatar from "@/components/header/UserAvatar";
 import DashboardHeader from "@/components/DashboardHeader";
 import { useUsageTracking } from "@/hooks/useUsageTracking";
 import { supabase } from "@/integrations/supabase/client";
+import { useQuery, UseQueryOptions } from "@tanstack/react-query";
 
 // **UNCHANGED: AGENT DEFINITIONS**
 const AI_AGENTS = [
+  // ... (Agent definitions are unchanged)
   {
     id: "ats-screening-agent",
     icon: Shield,
@@ -176,43 +178,57 @@ const AI_AGENTS = [
     comingSoon: true,
     priority: 6,
   },
-] as const;
+];
 
-// **UNCHANGED: HOOKS AND UTILITIES**
-const useAppliedJobsCount = () => {
+// **REFACTORED: useAppliedJobsCount hook**
+const fetchAppliedJobsCount = async (userId?: string): Promise<number> => {
+  if (!userId) return 0;
+  try {
+    const { count, error } = await supabase
+      .from("applied_jobs")
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", userId);
+    if (error) throw error;
+    return count || 0;
+  } catch (error) {
+    console.error("Error fetching applied jobs count:", error);
+    return 0; // Return 0 on error
+  }
+};
+
+// =================================================================
+// **FIX: Correctly type the options parameter.**
+// This new type omits properties that are already defined inside the hook.
+// =================================================================
+type AppliedJobsCountOptions = Omit<
+  UseQueryOptions<number>,
+  "queryKey" | "queryFn" | "enabled" | "initialData"
+>;
+
+const useAppliedJobsCount = (options?: AppliedJobsCountOptions) => {
   const { user } = useAuth();
-  const [appliedJobsCount, setAppliedJobsCount] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
 
-  const fetchAppliedJobsCount = useCallback(async () => {
-    if (!user?.id) {
-      setIsLoading(false);
-      return;
-    }
-    try {
-      setIsLoading(true);
-      const { count, error } = await supabase
-        .from("applied_jobs")
-        .select("*", { count: "exact", head: true })
-        .eq("user_id", user.id);
-      if (error) throw error;
-      setAppliedJobsCount(count || 0);
-    } catch (error) {
-      console.error("Error fetching applied jobs count:", error);
-      setAppliedJobsCount(0);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [user]);
+  const {
+    data: appliedJobsCount,
+    isLoading,
+    refetch,
+  } = useQuery<number>({
+    queryKey: ["appliedJobsCount", user?.id],
+    queryFn: () => fetchAppliedJobsCount(user?.id),
+    enabled: !!user,
+    initialData: 0,
+    ...options,
+  });
 
-  useEffect(() => {
-    fetchAppliedJobsCount();
-  }, [fetchAppliedJobsCount]);
-
-  return { appliedJobsCount, isLoading, refreshCount: fetchAppliedJobsCount };
+  return {
+    appliedJobsCount: appliedJobsCount ?? 0,
+    isLoading,
+    refreshCount: refetch,
+  };
 };
 
 const useCareerState = () => {
+  // ... (unchanged)
   const [state] = useState({
     isLoading: false,
     resumeUploaded: true,
@@ -226,6 +242,7 @@ const useCareerState = () => {
 
 // **UNCHANGED: AI Agent Card Component**
 const AIAgentCard = memo(
+  // ... (unchanged)
   ({
     agent,
     onAgentActivate,
@@ -334,23 +351,25 @@ const AIAgentCard = memo(
     );
   }
 );
+AIAgentCard.displayName = "AIAgentCard";
 
 // **ENHANCED: AI Agent-Oriented Live Analytics**
 const LiveAnalyticsCards = memo(() => {
   const {
     usage,
-    limits,
     isLoading: usageLoading,
     refreshUsage,
-  } = useUsageTracking();
+  } = useUsageTracking({ refetchOnWindowFocus: false });
+
   const {
     appliedJobsCount,
     isLoading: jobsLoading,
     refreshCount,
-  } = useAppliedJobsCount();
+  } = useAppliedJobsCount({ refetchOnWindowFocus: false });
+
   const { toast } = useToast();
 
-  // **NEW: Agent-focused metrics calculation**
+  // ... (rest of the component is unchanged)
   const agentMetrics = useMemo(() => {
     const resumeOptimized = usage?.resume_tailors_used || 0;
     const coverLettersCrafted = usage?.cover_letters_used || 0;
@@ -358,7 +377,6 @@ const LiveAnalyticsCards = memo(() => {
     const oneClickTailors = usage?.one_click_tailors_used || 0;
     const atsChecks = usage?.ats_checks_used || 0;
 
-    // Calculate total agent actions performed
     const totalAgentActions =
       resumeOptimized +
       coverLettersCrafted +
@@ -366,7 +384,6 @@ const LiveAnalyticsCards = memo(() => {
       oneClickTailors +
       atsChecks;
 
-    // Calculate active agents (agents that have performed actions)
     const activeAgents = [
       resumeOptimized > 0,
       coverLettersCrafted > 0,
@@ -375,7 +392,6 @@ const LiveAnalyticsCards = memo(() => {
       atsChecks > 0,
     ].filter(Boolean).length;
 
-    // Total agents available (based on plan)
     const totalAgentsLive =
       usage?.plan_type === "Pro" ? 6 : usage?.plan_type === "Basic" ? 6 : 3;
 
@@ -651,320 +667,314 @@ const LiveAnalyticsCards = memo(() => {
     </motion.div>
   );
 });
+LiveAnalyticsCards.displayName = "LiveAnalyticsCards";
 
-// **ENHANCED: RedesignedCallToAction with proper plan mapping and improved design**
-const RedesignedCallToAction = memo(() => {
-  const navigate = useNavigate();
-  const { usage } = useUsageTracking();
+// **UNCHANGED: RedesignedCallToAction**
+const RedesignedCallToAction = memo(
+  // ... (unchanged)
+  () => {
+    const navigate = useNavigate();
+    const { usage } = useUsageTracking();
 
-  // **PLAN MAPPING: Handle old plan names from DB to new UI names**
-  const mapPlanName = (dbPlanName) => {
-    const planMapping = {
-      Free: "Starter",
-      Basic: "Pro",
-      Pro: "Advanced",
-      Enterprise: "Advanced",
-      // Handle null/undefined
-      null: "Starter",
-      undefined: "Starter",
+    const mapPlanName = (dbPlanName) => {
+      const planMapping = {
+        Free: "Starter",
+        Basic: "Pro",
+        Pro: "Advanced",
+        Enterprise: "Advanced",
+        null: "Starter",
+        undefined: "Starter",
+      };
+
+      return planMapping[dbPlanName] || "Starter";
     };
 
-    return planMapping[dbPlanName] || "Starter";
-  };
+    const rawPlan = usage?.plan_type;
+    const currentPlan = mapPlanName(rawPlan);
 
-  const rawPlan = usage?.plan_type;
-  const currentPlan = mapPlanName(rawPlan);
+    const planTiers = [
+      {
+        title: "AI Agent Starter",
+        subtitle: "(Starter)",
+        aiLabel: "Basic AI Models",
+        description: "Powered by foundational AI models",
+        color: "text-slate-400",
+        bgColor: "bg-slate-500/10",
+        borderColor: "border-slate-500/20",
+        iconBg: "bg-slate-900",
+        icon: Bot,
+        badgeColor: "bg-emerald-500/20 text-emerald-400",
+        planKey: "Starter",
+      },
+      {
+        title: "AI Professional",
+        subtitle: "(Pro)",
+        aiLabel: "GPT-4 Class AI",
+        description: "Enhanced with mid-tier AI for professional results",
+        color: "text-blue-400",
+        bgColor: "bg-blue-500/10",
+        borderColor: "border-blue-500/20",
+        iconBg: "bg-slate-900",
+        icon: Cpu,
+        badgeColor: "bg-blue-500/20 text-blue-400",
+        popular: true,
+        planKey: "Pro",
+      },
+      {
+        title: "AI Career Accelerator",
+        subtitle: "(Advanced)",
+        aiLabel: "GPT-5 Class AI",
+        description: "Fueled by cutting-edge AI for maximum career impact",
+        color: "text-purple-400",
+        bgColor: "bg-purple-500/10",
+        borderColor: "border-purple-500/20",
+        iconBg: "bg-slate-900",
+        icon: Sparkles,
+        badgeColor: "bg-purple-500/20 text-purple-400",
+        premium: true,
+        planKey: "Advanced",
+      },
+    ];
 
-  const planTiers = [
-    {
-      title: "AI Agent Starter",
-      subtitle: "(Starter)",
-      aiLabel: "Basic AI Models",
-      description: "Powered by foundational AI models", // Matches pricing page
-      color: "text-slate-400",
-      bgColor: "bg-slate-500/10",
-      borderColor: "border-slate-500/20",
-      iconBg: "bg-slate-900",
-      icon: Bot,
-      // badge: "3 Agents",
-      badgeColor: "bg-emerald-500/20 text-emerald-400",
-      planKey: "Starter",
-    },
-    {
-      title: "AI Professional",
-      subtitle: "(Pro)",
-      aiLabel: "GPT-4 Class AI", // Matches your pricing page
-      description: "Enhanced with mid-tier AI for professional results", // Matches pricing page
-      color: "text-blue-400",
-      bgColor: "bg-blue-500/10",
-      borderColor: "border-blue-500/20",
-      iconBg: "bg-slate-900",
-      icon: Cpu,
-      // badge: "6 Agents",
-      badgeColor: "bg-blue-500/20 text-blue-400",
-      popular: true,
-      planKey: "Pro",
-    },
-    {
-      title: "AI Career Accelerator",
-      subtitle: "(Advanced)",
-      aiLabel: "GPT-5 Class AI", // Matches your pricing page
-      description: "Fueled by cutting-edge AI for maximum career impact", // Matches pricing page
-      color: "text-purple-400",
-      bgColor: "bg-purple-500/10",
-      borderColor: "border-purple-500/20",
-      iconBg: "bg-slate-900",
-      icon: Sparkles,
-      // badge: "6+ Agents",
-      badgeColor: "bg-purple-500/20 text-purple-400",
-      premium: true,
-      planKey: "Advanced",
-    },
-  ];
+    const getUpgradeButton = () => {
+      switch (currentPlan) {
+        case "Starter":
+          return {
+            text: "🚀 Upgrade to AI Pro",
+            className:
+              "bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 shadow-lg shadow-blue-500/25",
+            path: "/pricing",
+            enabled: true,
+          };
+        case "Pro":
+          return {
+            text: "⚡ Go AI Advanced",
+            className:
+              "bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 shadow-lg shadow-purple-500/25",
+            path: "/pricing",
+            enabled: true,
+          };
+        case "Advanced":
+          return {
+            text: "✅ You're on the best plan!",
+            className:
+              "bg-gradient-to-r from-emerald-500 to-emerald-600 opacity-75 cursor-not-allowed shadow-lg shadow-emerald-500/25",
+            path: null,
+            enabled: false,
+          };
+        default:
+          return {
+            text: "🚀 Upgrade to AI Pro",
+            className:
+              "bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 shadow-lg shadow-blue-500/25",
+            path: "/pricing",
+            enabled: true,
+          };
+      }
+    };
 
-  // **FIXED: Enhanced upgrade button logic with mapped plan names**
-  const getUpgradeButton = () => {
-    switch (currentPlan) {
-      case "Starter":
-        return {
-          text: "🚀 Upgrade to AI Pro",
-          className:
-            "bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 shadow-lg shadow-blue-500/25",
-          path: "/pricing",
-          enabled: true,
-        };
-      case "Pro":
-        return {
-          text: "⚡ Go AI Advanced",
-          className:
-            "bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 shadow-lg shadow-purple-500/25",
-          path: "/pricing",
-          enabled: true,
-        };
-      case "Advanced":
-        return {
-          text: "✅ You're on the best plan!",
-          className:
-            "bg-gradient-to-r from-emerald-500 to-emerald-600 opacity-75 cursor-not-allowed shadow-lg shadow-emerald-500/25",
-          path: null,
-          enabled: false,
-        };
-      default:
-        return {
-          text: "🚀 Upgrade to AI Pro",
-          className:
-            "bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 shadow-lg shadow-blue-500/25",
-          path: "/pricing",
-          enabled: true,
-        };
-    }
-  };
+    const upgradeButton = getUpgradeButton();
 
-  const upgradeButton = getUpgradeButton();
-
-  return (
-    <div className="relative py-16 overflow-hidden">
-      {/* Enhanced background */}
-      <div aria-hidden="true" className="absolute inset-0 -z-10">
-        <div className="absolute inset-0 bg-gradient-to-b from-slate-900 via-slate-900/95 to-slate-800" />
-        <div className="absolute inset-x-0 top-0 h-[500px] bg-gradient-to-b from-emerald-950/30 via-blue-950/15 to-transparent" />
-        {/* Subtle dot pattern */}
-        <div
-          className="absolute inset-0 opacity-[0.02]"
-          style={{
-            backgroundImage: `radial-gradient(circle at 1px 1px, white 1px, transparent 0)`,
-            backgroundSize: "24px 24px",
-          }}
-        />
-      </div>
-
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.5 }}
-        className="text-center relative"
-      >
-        {/* Header */}
-        <div className="text-center mb-12">
-          <motion.h2
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="text-3xl md:text-4xl font-bold text-white mb-4"
-          >
-            Upgrade Your AI Agents with{" "}
-            <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
-              Smarter Models
-            </span>
-          </motion.h2>
-          <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="text-lg text-slate-300 max-w-2xl mx-auto leading-relaxed"
-          >
-            Unlock powerful AI models to accelerate your job search and land
-            your dream role faster.
-          </motion.p>
+    return (
+      <div className="relative py-16 overflow-hidden">
+        {/* Enhanced background */}
+        <div aria-hidden="true" className="absolute inset-0 -z-10">
+          <div className="absolute inset-0 bg-gradient-to-b from-slate-900 via-slate-900/95 to-slate-800" />
+          <div className="absolute inset-x-0 top-0 h-[500px] bg-gradient-to-b from-emerald-950/30 via-blue-950/15 to-transparent" />
+          {/* Subtle dot pattern */}
+          <div
+            className="absolute inset-0 opacity-[0.02]"
+            style={{
+              backgroundImage: `radial-gradient(circle at 1px 1px, white 1px, transparent 0)`,
+              backgroundSize: "24px 24px",
+            }}
+          />
         </div>
 
-        {/* Plan cards matching your pricing design */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12 max-w-5xl mx-auto">
-          {planTiers.map((tier, index) => {
-            const isCurrentPlan = tier.planKey === currentPlan;
-
-            return (
-              <motion.div
-                key={tier.title}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 + 0.2 }}
-                className="relative"
-              >
-                {/* Badges */}
-                {tier.popular && (
-                  <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 z-10">
-                    <Badge className="bg-blue-500 hover:bg-blue-500 text-white px-3 py-1 text-xs font-medium shadow-lg">
-                      Most Popular
-                    </Badge>
-                  </div>
-                )}
-                {tier.premium && (
-                  <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 z-10">
-                    <Badge className="bg-purple-500 hover:bg-purple-500 text-white px-3 py-1 text-xs font-medium shadow-lg">
-                      Best AI
-                    </Badge>
-                  </div>
-                )}
-
-                {/* Current plan indicator */}
-                {isCurrentPlan && (
-                  <div className="absolute -top-3 right-4 z-10">
-                    <Badge className="bg-emerald-500 hover:bg-emerald-500 text-white px-2 py-1 text-xs font-medium shadow-lg">
-                      Current
-                    </Badge>
-                  </div>
-                )}
-
-                <Card
-                  className={`relative bg-slate-800/40 backdrop-blur-xl border transition-all duration-300 group h-full ${
-                    isCurrentPlan
-                      ? `ring-2 ring-emerald-500/50 ${tier.borderColor}`
-                      : `${tier.borderColor} hover:border-opacity-80`
-                  } ${tier.popular ? "ring-2 ring-blue-500/20" : ""} ${
-                    tier.premium ? "ring-2 ring-purple-500/20" : ""
-                  } hover:shadow-xl`}
-                >
-                  <CardContent className="p-8 text-center flex flex-col items-center justify-center h-full">
-                    {/* Agent count badge */}
-                    {/* <div className="absolute top-4 left-4">
-                      <Badge
-                        className={`${tier.badgeColor} border-0 text-xs font-medium`}
-                      >
-                        {tier.badge}
-                      </Badge>
-                    </div> */}
-
-                    {/* Icon */}
-                    <motion.div
-                      className={`w-16 h-16 ${tier.iconBg} border ${tier.borderColor} rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg`}
-                      whileHover={{ scale: 1.1, rotate: 5 }}
-                      transition={{ type: "spring", stiffness: 300 }}
-                    >
-                      <tier.icon className={`w-8 h-8 ${tier.color}`} />
-                    </motion.div>
-
-                    {/* Title */}
-                    <div className="mb-4">
-                      <h3 className="font-bold text-white text-xl mb-1">
-                        {tier.title}
-                      </h3>
-                      <span className="text-sm text-slate-400 font-medium">
-                        {tier.subtitle}
-                      </span>
-                    </div>
-
-                    {/* AI model badge */}
-                    <div
-                      className={`text-xs px-3 py-2 rounded-full ${tier.bgColor} ${tier.color} border ${tier.borderColor} mb-4 font-semibold backdrop-blur-sm`}
-                    >
-                      {tier.aiLabel}
-                    </div>
-
-                    {/* Description */}
-                    <p className="text-sm text-slate-400 leading-relaxed max-w-xs">
-                      {tier.description}
-                    </p>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            );
-          })}
-        </div>
-
-        {/* CTA button */}
-        <div className="text-center">
-          <motion.div
-            whileHover={{ scale: upgradeButton.enabled ? 1.05 : 1 }}
-            whileTap={{ scale: upgradeButton.enabled ? 0.95 : 1 }}
-          >
-            <Button
-              onClick={() =>
-                upgradeButton.enabled &&
-                upgradeButton.path &&
-                navigate(upgradeButton.path)
-              }
-              size="lg"
-              disabled={!upgradeButton.enabled}
-              className={`${upgradeButton.className} text-white font-bold px-10 py-5 text-base rounded-full transition-all duration-300 relative overflow-hidden`}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
+          className="text-center relative"
+        >
+          {/* Header */}
+          <div className="text-center mb-12">
+            <motion.h2
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="text-3xl md:text-4xl font-bold text-white mb-4"
             >
-              {/* Shine effect */}
-              {upgradeButton.enabled && (
+              Upgrade Your AI Agents with{" "}
+              <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
+                Smarter Models
+              </span>
+            </motion.h2>
+            <motion.p
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+              className="text-lg text-slate-300 max-w-2xl mx-auto leading-relaxed"
+            >
+              Unlock powerful AI models to accelerate your job search and land
+              your dream role faster.
+            </motion.p>
+          </div>
+
+          {/* Plan cards matching your pricing design */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12 max-w-5xl mx-auto">
+            {planTiers.map((tier, index) => {
+              const isCurrentPlan = tier.planKey === currentPlan;
+
+              return (
                 <motion.div
-                  className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full"
-                  animate={{
-                    translateX: ["100%", "100%", "-100%", "-100%"],
-                  }}
-                  transition={{
-                    duration: 3,
-                    repeat: Infinity,
-                    repeatDelay: 2,
-                  }}
-                />
-              )}
-              <span className="relative">{upgradeButton.text}</span>
-            </Button>
-          </motion.div>
-        </div>
-      </motion.div>
-    </div>
-  );
-});
+                  key={tier.title}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.1 + 0.2 }}
+                  className="relative"
+                >
+                  {/* Badges */}
+                  {tier.popular && (
+                    <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 z-10">
+                      <Badge className="bg-blue-500 hover:bg-blue-500 text-white px-3 py-1 text-xs font-medium shadow-lg">
+                        Most Popular
+                      </Badge>
+                    </div>
+                  )}
+                  {tier.premium && (
+                    <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 z-10">
+                      <Badge className="bg-purple-500 hover:bg-purple-500 text-white px-3 py-1 text-xs font-medium shadow-lg">
+                        Best AI
+                      </Badge>
+                    </div>
+                  )}
+
+                  {/* Current plan indicator */}
+                  {isCurrentPlan && (
+                    <div className="absolute -top-3 right-4 z-10">
+                      <Badge className="bg-emerald-500 hover:bg-emerald-500 text-white px-2 py-1 text-xs font-medium shadow-lg">
+                        Current
+                      </Badge>
+                    </div>
+                  )}
+
+                  <Card
+                    className={`relative bg-slate-800/40 backdrop-blur-xl border transition-all duration-300 group h-full ${
+                      isCurrentPlan
+                        ? `ring-2 ring-emerald-500/50 ${tier.borderColor}`
+                        : `${tier.borderColor} hover:border-opacity-80`
+                    } ${tier.popular ? "ring-2 ring-blue-500/20" : ""} ${
+                      tier.premium ? "ring-2 ring-purple-500/20" : ""
+                    } hover:shadow-xl`}
+                  >
+                    <CardContent className="p-8 text-center flex flex-col items-center justify-center h-full">
+                      {/* Icon */}
+                      <motion.div
+                        className={`w-16 h-16 ${tier.iconBg} border ${tier.borderColor} rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg`}
+                        whileHover={{ scale: 1.1, rotate: 5 }}
+                        transition={{ type: "spring", stiffness: 300 }}
+                      >
+                        <tier.icon className={`w-8 h-8 ${tier.color}`} />
+                      </motion.div>
+
+                      {/* Title */}
+                      <div className="mb-4">
+                        <h3 className="font-bold text-white text-xl mb-1">
+                          {tier.title}
+                        </h3>
+                        <span className="text-sm text-slate-400 font-medium">
+                          {tier.subtitle}
+                        </span>
+                      </div>
+
+                      {/* AI model badge */}
+                      <div
+                        className={`text-xs px-3 py-2 rounded-full ${tier.bgColor} ${tier.color} border ${tier.borderColor} mb-4 font-semibold backdrop-blur-sm`}
+                      >
+                        {tier.aiLabel}
+                      </div>
+
+                      {/* Description */}
+                      <p className="text-sm text-slate-400 leading-relaxed max-w-xs">
+                        {tier.description}
+                      </p>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              );
+            })}
+          </div>
+
+          {/* CTA button */}
+          <div className="text-center">
+            <motion.div
+              whileHover={{ scale: upgradeButton.enabled ? 1.05 : 1 }}
+              whileTap={{ scale: upgradeButton.enabled ? 0.95 : 1 }}
+            >
+              <Button
+                onClick={() =>
+                  upgradeButton.enabled &&
+                  upgradeButton.path &&
+                  navigate(upgradeButton.path)
+                }
+                size="lg"
+                disabled={!upgradeButton.enabled}
+                className={`${upgradeButton.className} text-white font-bold px-10 py-5 text-base rounded-full transition-all duration-300 relative overflow-hidden`}
+              >
+                {/* Shine effect */}
+                {upgradeButton.enabled && (
+                  <motion.div
+                    className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full"
+                    animate={{
+                      translateX: ["100%", "100%", "-100%", "-100%"],
+                    }}
+                    transition={{
+                      duration: 3,
+                      repeat: Infinity,
+                      repeatDelay: 2,
+                    }}
+                  />
+                )}
+                <span className="relative">{upgradeButton.text}</span>
+              </Button>
+            </motion.div>
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
+);
+RedesignedCallToAction.displayName = "RedesignedCallToAction";
 
 // **UNCHANGED: Mobile Bottom Navigation**
-const MobileBottomNav = memo(() => {
-  const navigate = useNavigate();
-  const navItems = [
-    { icon: Home, label: "Dashboard", path: "/dashboard" },
-    { icon: Briefcase, label: "Jobs", path: "/job-finder" },
-    { icon: LayoutGrid, label: "Agents", path: "/dashboard" },
-    { icon: BarChart3, label: "Analytics", path: "/analytics" },
-  ];
+const MobileBottomNav = memo(
+  // ... (unchanged)
+  () => {
+    const navigate = useNavigate();
+    const navItems = [
+      { icon: Home, label: "Dashboard", path: "/dashboard" },
+      { icon: Briefcase, label: "Jobs", path: "/job-finder" },
+      { icon: LayoutGrid, label: "Agents", path: "/dashboard" },
+      { icon: BarChart3, label: "Analytics", path: "/analytics" },
+    ];
 
-  return (
-    <div className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-slate-900/80 backdrop-blur-lg border-t border-slate-700/50 flex justify-around items-center z-50">
-      {navItems.map((item) => (
-        <button
-          key={item.label}
-          onClick={() => navigate(item.path)}
-          className="flex flex-col items-center justify-center text-slate-400 hover:text-white transition-colors"
-        >
-          <item.icon className="w-6 h-6" />
-          <span className="text-xs font-medium">{item.label}</span>
-        </button>
-      ))}
-    </div>
-  );
-});
+    return (
+      <div className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-slate-900/80 backdrop-blur-lg border-t border-slate-700/50 flex justify-around items-center z-50">
+        {navItems.map((item) => (
+          <button
+            key={item.label}
+            onClick={() => navigate(item.path)}
+            className="flex flex-col items-center justify-center text-slate-400 hover:text-white transition-colors"
+          >
+            <item.icon className="w-6 h-6" />
+            <span className="text-xs font-medium">{item.label}</span>
+          </button>
+        ))}
+      </div>
+    );
+  }
+);
+MobileBottomNav.displayName = "MobileBottomNav";
 
 // **MAIN DASHBOARD COMPONENT**
 const Dashboard = memo(() => {
@@ -1086,6 +1096,7 @@ const Dashboard = memo(() => {
                   </span>{" "}
                   Toolkit
                 </motion.h2>
+
                 <motion.p
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
