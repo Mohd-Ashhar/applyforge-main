@@ -1,6 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 
-// Types remain the same
+// Types
 export type SubscriptionPlan = "Free" | "Basic" | "Pro";
 export type Currency = "INR" | "USD";
 export type BillingPeriod = "monthly" | "yearly";
@@ -13,10 +13,9 @@ export interface CreateOrderPayload {
   billingPeriod: BillingPeriod;
 }
 
-export interface RazorpayOrderResponse {
-  order_id: string;
+export interface RazorpaySubscriptionResponse {
+  id: string;
   amount: number;
-  currency: string;
   key_id: string;
 }
 
@@ -26,7 +25,6 @@ export interface RazorpayPaymentResponse {
   razorpay_signature: string;
 }
 
-// This interface now matches the arguments of our new database function
 export interface SubscriptionUpdateDetails {
   plan: SubscriptionPlan;
   billingPeriod: BillingPeriod;
@@ -41,21 +39,19 @@ export interface PaymentNotificationPayload {
   email: string;
   name: string;
   plan?: SubscriptionPlan;
-  amount?: number; // Main currency unit (e.g., 399), not paise/cents
+  amount?: number;
   currency?: string;
   paymentId?: string;
-  orderId?: string;
+  subscriptionId?: string;
   failureReason?: string;
 }
 
-/**
- * Sends a request to the n8n webhook to create a Razorpay order. (Unchanged)
- */
-export const createRazorpayOrder = async (
+// Renamed to create Razorpay Subscription
+export const createRazorpaySubscription = async (
   payload: CreateOrderPayload
-): Promise<RazorpayOrderResponse> => {
+): Promise<RazorpaySubscriptionResponse> => {
   const response = await fetch(
-    "https://n8n.applyforge.cloud/webhook-test/create-razorpay-order",
+    "https://n8n.applyforge.cloud/webhook-test/create-razorpay-subscription",
     {
       method: "POST",
       headers: {
@@ -67,16 +63,19 @@ export const createRazorpayOrder = async (
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
-    console.error("Failed to create Razorpay order:", errorData);
-    throw new Error("Failed to create Razorpay order. Please try again.");
+    console.error("Failed to create Razorpay subscription:", errorData);
+    throw new Error(
+      "Failed to create Razorpay subscription. Please try again."
+    );
   }
 
   return response.json();
 };
+
 export const triggerPaymentNotification = async (
   payload: PaymentNotificationPayload
 ) => {
-  // Use a try-catch block so a failed webhook doesn't break the user's experience
+  // ... (function is unchanged)
   try {
     await fetch("https://n8n.applyforge.cloud/webhook-test/payment-sucess", {
       method: "POST",
@@ -87,12 +86,11 @@ export const triggerPaymentNotification = async (
     });
   } catch (error) {
     console.error("Failed to trigger payment notification webhook:", error);
-    // Do not re-throw the error, as this is a non-critical background task
   }
 };
+
 /**
- * **REVISED: Calls the database function to perform a secure transaction.**
- * This is now the single point of truth for updating a subscription.
+ * **REVISED: Calls the database function with the CORRECT parameters.**
  */
 export const updateUserSubscription = async (
   details: SubscriptionUpdateDetails
@@ -102,11 +100,12 @@ export const updateUserSubscription = async (
     throw new Error("User not found for subscription update.");
   }
 
-  // Call the 'handle_successful_payment' function we created in the database
+  // Call the 'handle_successful_payment' function with all required parameters
   const { error: rpcError } = await supabase.rpc("handle_successful_payment", {
     p_user_id: authUser.user.id,
     p_plan: details.plan,
     p_payment_id: details.paymentId,
+    // **FIX: The missing p_order_id parameter is now included.**
     p_order_id: details.orderId,
     p_amount: details.amount,
     p_currency: details.currency,

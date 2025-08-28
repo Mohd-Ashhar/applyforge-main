@@ -4,12 +4,13 @@ import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import {
-  createRazorpayOrder,
+  createRazorpaySubscription,
   updateUserSubscription,
-  triggerPaymentNotification, 
+  triggerPaymentNotification,
   SubscriptionPlan,
   Currency,
   BillingPeriod,
+  RazorpaySubscriptionResponse,
   RazorpayPaymentResponse,
 } from "@/services/paymentService";
 
@@ -44,7 +45,6 @@ export const usePayment = () => {
     billingPeriod: BillingPeriod
   ) => {
     if (!user?.email) {
-      // ... (unchanged)
       return;
     }
     if (plan === "Free") {
@@ -56,7 +56,7 @@ export const usePayment = () => {
       const scriptLoaded = await loadRazorpayScript();
       if (!scriptLoaded) throw new Error("Failed to load Razorpay script");
 
-      const orderResponse = await createRazorpayOrder({
+      const subscriptionResponse = await createRazorpaySubscription({
         name: user.email.split("@")[0],
         email: user.email,
         plan,
@@ -65,12 +65,10 @@ export const usePayment = () => {
       });
 
       const options = {
-        key: orderResponse.key_id,
-        amount: orderResponse.amount,
-        currency: orderResponse.currency,
+        key: subscriptionResponse.key_id,
+        subscription_id: subscriptionResponse.id,
         name: "ApplyForge",
         description: `${plan} Plan Subscription`,
-        order_id: orderResponse.order_id,
         prefill: {
           name: user.email.split("@")[0],
           email: user.email,
@@ -81,9 +79,10 @@ export const usePayment = () => {
               plan,
               billingPeriod,
               paymentId: paymentResponse.razorpay_payment_id,
-              orderId: paymentResponse.razorpay_order_id,
-              amount: orderResponse.amount,
-              currency: orderResponse.currency,
+              // **FIX: Safely handle the missing orderId by providing a fallback**
+              orderId: paymentResponse.razorpay_order_id || "",
+              amount: subscriptionResponse.amount,
+              currency: currency,
             };
 
             await updateUserSubscription(subscriptionDetails);
@@ -93,14 +92,12 @@ export const usePayment = () => {
               description: `Successfully subscribed to ${plan} plan.`,
             });
 
-            // **SUCCESS TRIGGER**
-            // Trigger the n8n webhook for a successful payment
             await triggerPaymentNotification({
               status: "success",
               email: user.email!,
               name: user.email!.split("@")[0],
               plan: subscriptionDetails.plan,
-              amount: subscriptionDetails.amount / 100, // Convert to main currency unit
+              amount: subscriptionDetails.amount / 100,
               currency: subscriptionDetails.currency,
               paymentId: subscriptionDetails.paymentId,
             });
@@ -116,14 +113,12 @@ export const usePayment = () => {
         modal: {
           ondismiss: async () => {
             setIsProcessing(false);
-            // **FAILURE TRIGGER**
-            // The user closed the modal without paying.
             await triggerPaymentNotification({
               status: "failed",
               email: user.email!,
               name: user.email!.split("@")[0],
               plan: plan,
-              orderId: orderResponse.order_id,
+              subscriptionId: subscriptionResponse.id,
               failureReason: "user_closed_modal",
             });
           },
@@ -143,7 +138,6 @@ export const usePayment = () => {
         variant: "destructive",
       });
 
-      // **FAILURE TRIGGER (for initialization errors)**
       await triggerPaymentNotification({
         status: "failed",
         email: user.email!,

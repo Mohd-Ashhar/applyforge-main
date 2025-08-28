@@ -63,8 +63,8 @@ interface PlanData {
 const PRICING_DATA: Record<"INR" | "USD", Record<string, PricingData>> = {
   INR: {
     Free: { monthly: 0, yearly: 0 },
-    Basic: { monthly: 399, yearly: 3591, yearlyMonthly: 299 }, // 25 % off
-    Pro: { monthly: 999, yearly: 8991, yearlyMonthly: 749 }, // 25 % off
+    Basic: { monthly: 499, yearly: 3999, yearlyMonthly: 299 }, // 25 % off
+    Pro: { monthly: 999, yearly: 7999, yearlyMonthly: 749 }, // 25 % off
   },
   USD: {
     Free: { monthly: 0, yearly: 0 },
