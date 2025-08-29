@@ -1070,11 +1070,12 @@ Preferred Qualifications:
               </motion.div>
 
               {/* Agent Capabilities */}
+
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.5 }}
-                className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-6 max-w-4xl mx-auto"
+                className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-6 max-w-5xl mx-auto"
               >
                 {[
                   {
@@ -1091,6 +1092,11 @@ Preferred Qualifications:
                     icon: Target,
                     title: "Precision Scoring",
                     desc: "Accurate compatibility rating",
+                  },
+                  {
+                    icon: Sparkles,
+                    title: "Feedback & Guidance",
+                    desc: "Detailed improvement tips",
                   },
                 ].map((capability, index) => (
                   <motion.div

@@ -74,7 +74,7 @@ import { Badge } from "@/components/ui/badge";
 import { useUsageTracking } from "@/hooks/useUsageTracking";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import GeoapifyLocationInput from "@/components/Geoapify";
+import RadarLocationInput from "@/components/RadarLocationInput"; // **UPDATED IMPORT**
 import DashboardHeader from "@/components/DashboardHeader";
 import UserAvatar from "@/components/header/UserAvatar";
 
@@ -82,12 +82,12 @@ import UserAvatar from "@/components/header/UserAvatar";
 const DiscoveryAgentLoadingOverlay = memo(
   ({ show, stage = 0 }: { show: boolean; stage?: number }) => {
     const agentMessages = [
-      "🔍 Connecting to global job databases...",
-      "🧠 Analyzing your search criteria...",
-      "⚡ Discovering matching opportunities...",
-      "🎯 Filtering results based on preferences...",
-      "📊 Ranking best opportunities for you...",
-      "✨ Preparing personalized job recommendations...",
+      "ðŸ”  Connecting to global job databases...",
+      "ðŸ§  Analyzing your search criteria...",
+      "âš¡ Discovering matching opportunities...",
+      "ðŸŽ¯ Filtering results based on preferences...",
+      "ðŸ“Š Ranking best opportunities for you...",
+      "âœ¨ Preparing personalized job recommendations...",
     ];
 
     return (
@@ -98,7 +98,7 @@ const DiscoveryAgentLoadingOverlay = memo(
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.3 }}
-            className="fixed inset-0 z-[999] flex flex-col items-center justify-center backdrop-blur-lg bg-background/90 p-4"
+            className="fixed inset-0 z- flex flex-col items-center justify-center backdrop-blur-lg bg-background/90 p-4"
           >
             {/* Agent Avatar with Discovery Animation */}
             <motion.div
@@ -148,7 +148,7 @@ const DiscoveryAgentLoadingOverlay = memo(
                 Job Discovery Agent
               </h3>
               <p className="text-sm sm:text-base md:text-lg text-orange-400 font-medium leading-relaxed">
-                {agentMessages[stage] || agentMessages[0]}
+                {agentMessages[stage] || agentMessages}
               </p>
 
               <div className="space-y-2 sm:space-y-3">
@@ -157,8 +157,8 @@ const DiscoveryAgentLoadingOverlay = memo(
                   className="w-full max-w-80 h-2 sm:h-3 bg-slate-700/50 mx-auto"
                 />
                 <p className="text-xs sm:text-sm text-slate-400">
-                  {Math.round((stage + 1) * 16.67)}% Complete • Discovering with
-                  AI precision
+                  {Math.round((stage + 1) * 16.67)}% Complete â€¢ Discovering
+                  with AI precision
                 </p>
               </div>
             </motion.div>
@@ -350,8 +350,8 @@ const JobDiscoveryAgent: React.FC = () => {
   const userName = useMemo(() => {
     if (!user) return "there";
     return (
-      user.user_metadata?.full_name?.split(" ")?.[0] ||
-      user.email?.split("@")?.[0] ||
+      user.user_metadata?.full_name?.split(" ")[0] ||
+      user.email?.split("@")[0] ||
       "there"
     );
   }, [user?.user_metadata?.full_name, user?.email]);
@@ -420,7 +420,7 @@ const JobDiscoveryAgent: React.FC = () => {
     setJobTypes(["Full-time"]);
     setExperienceLevel(["Mid-Senior level"]);
     toast({
-      title: "Example Loaded! 🚀",
+      title: "Example Loaded! ðŸš€",
       description:
         "Agent training data loaded. Ready to discover opportunities!",
     });
@@ -434,7 +434,7 @@ const JobDiscoveryAgent: React.FC = () => {
     setFormValidation({ jobTitle: true });
 
     toast({
-      title: "Agent Reset ✨",
+      title: "Agent Reset âœ¨",
       description: "Ready for your next job discovery!",
     });
   }, [toast]);
@@ -448,12 +448,40 @@ const JobDiscoveryAgent: React.FC = () => {
     return Object.values(newValidation).every(Boolean);
   }, [jobTitle]);
 
+  // NEW: Webhook endpoints and helpers (non-breaking additions)
+  const PRIMARY_WEBHOOK =
+    "https://n8n.applyforge.cloud/webhook-test/job-search-db";
+  const FALLBACK_WEBHOOK =
+    "https://n8n.applyforge.cloud/webhook-test/job-search-API";
+
+  const callWebhook = async (url: string, payload: any) => {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(errorText || `Failed to discover jobs via ${url}`);
+    }
+    return response.json();
+  };
+
+  const countResults = (data: any): number => {
+    if (!data) return 0;
+    if (Array.isArray(data)) return data.length;
+    if (Array.isArray(data.results)) return data.results.length;
+    if (Array.isArray(data.data)) return data.data.length;
+    // If schema is unknown or object without recognizable array, treat as zero for fallback purposes
+    return 0;
+  };
+
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!validateForm()) {
       toast({
-        title: "Job Title Required 📄",
+        title: "Job Title Required ðŸ“„",
         description:
           "Please enter a job title for the agent to discover opportunities.",
         variant: "destructive",
@@ -463,7 +491,7 @@ const JobDiscoveryAgent: React.FC = () => {
 
     if (!user) {
       toast({
-        title: "Authentication Required 🔐",
+        title: "Authentication Required ðŸ” ",
         description: "Please log in to activate your Job Discovery Agent.",
         variant: "destructive",
       });
@@ -498,7 +526,7 @@ const JobDiscoveryAgent: React.FC = () => {
       if (usageError) {
         if (usageError.message.includes("Usage limit exceeded")) {
           toast({
-            title: "Agent Limit Reached 🤖",
+            title: "Agent Limit Reached",
             description:
               "You've reached your Job Discovery Agent limit. Upgrade to activate unlimited job discovery!",
             variant: "destructive",
@@ -518,7 +546,7 @@ const JobDiscoveryAgent: React.FC = () => {
 
         if (usageError.message.includes("version_conflict")) {
           toast({
-            title: "Agent Sync Issue 🔄",
+            title: "Agent Sync Issue ðŸ”„",
             description: "Your agent data was updated. Please try again.",
             variant: "destructive",
           });
@@ -527,7 +555,7 @@ const JobDiscoveryAgent: React.FC = () => {
 
         console.error("Usage increment error:", usageError);
         toast({
-          title: "Agent Activation Failed ⚠️",
+          title: "Agent Activation Failed¸ ",
           description:
             "Unable to activate your Job Discovery Agent. Please try again.",
           variant: "destructive",
@@ -561,36 +589,43 @@ const JobDiscoveryAgent: React.FC = () => {
         ...cleanParams,
       };
 
-      const response = await fetch(
-        "https://n8n.applyforge.cloud/webhook-test/job-search",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(payload),
-        }
-      );
+      // PRIMARY: DB webhook
+      const primaryData = await callWebhook(PRIMARY_WEBHOOK, payload);
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(errorText || "Failed to discover jobs");
-      }
-
-      const responseData = await response.json();
-
-      if (responseData.allowed === false) {
+      if (primaryData?.allowed === false) {
         toast({
-          title: "Agent Access Denied 🚫",
+          title: "Agent Access Denied ðŸš«",
           description:
-            responseData.message ||
+            primaryData?.message ||
             "Unable to access Job Discovery Agent with your current plan.",
           variant: "destructive",
         });
         return;
       }
 
-      const jobResults = responseData.results || responseData;
+      const primaryCount = countResults(primaryData);
+
+      let finalData = primaryData;
+
+      // FALLBACK: Only if zero results from primary
+      if (primaryCount === 0) {
+        const fallbackData = await callWebhook(FALLBACK_WEBHOOK, payload);
+
+        if (fallbackData?.allowed === false) {
+          toast({
+            title: "Agent Access Denied ðŸš«",
+            description:
+              fallbackData?.message ||
+              "Unable to access Job Discovery Agent with your current plan.",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        finalData = fallbackData;
+      }
+
+      const jobResults = finalData?.results ?? finalData;
 
       refreshUsage();
       sessionStorage.setItem("jobSearchResults", JSON.stringify(jobResults));
@@ -601,7 +636,7 @@ const JobDiscoveryAgent: React.FC = () => {
       console.error("Agent discovery error:", error);
 
       toast({
-        title: "Agent Error 🤖",
+        title: "Agent Error",
         description:
           "Your Job Discovery Agent encountered an issue. Please try again.",
         variant: "destructive",
@@ -694,7 +729,6 @@ const JobDiscoveryAgent: React.FC = () => {
                       <span className="text-orange-400 font-semibold">
                         {userName}
                       </span>
-                      ! 👋
                       <br />
                       Your intelligent job discovery agent is ready to find your
                       next opportunity
@@ -859,7 +893,8 @@ const JobDiscoveryAgent: React.FC = () => {
                         </Tooltip>
                       </Label>
                       <div className="mt-1">
-                        <GeoapifyLocationInput
+                        {/* **COMPONENT REPLACED HERE** */}
+                        <RadarLocationInput
                           onLocationsChange={setSelectedLocations}
                           placeholder="Discovery upto 5 cities at a time"
                           maxSelections={5}
@@ -924,7 +959,7 @@ const JobDiscoveryAgent: React.FC = () => {
                       </h4>
                       <div className="text-sm text-slate-400 space-y-1">
                         <p>
-                          •{" "}
+                          {" "}
                           <span className="text-orange-400">
                             Searching for:
                           </span>{" "}
@@ -934,8 +969,10 @@ const JobDiscoveryAgent: React.FC = () => {
                         </p>
                         {selectedLocations.length > 0 && (
                           <p>
-                            •{" "}
-                            <span className="text-orange-400">Locations:</span>{" "}
+                            {" "}
+                            <span className="text-orange-400">
+                              Locations:
+                            </span>{" "}
                             <span className="text-white font-medium">
                               {selectedLocations.map((l) => l.name).join(", ")}
                             </span>
@@ -944,7 +981,10 @@ const JobDiscoveryAgent: React.FC = () => {
                         {(jobTypes.length > 0 ||
                           experienceLevel.length > 0) && (
                           <p>
-                            • <span className="text-orange-400">Filters:</span>{" "}
+                            {" "}
+                            <span className="text-orange-400">
+                              Filters:
+                            </span>{" "}
                             <span className="text-white font-medium">
                               {[...jobTypes, ...experienceLevel].length} active
                             </span>

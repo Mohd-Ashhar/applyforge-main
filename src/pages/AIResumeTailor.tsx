@@ -90,14 +90,16 @@ import { useUsageTracking } from "@/hooks/useUsageTracking";
 import { supabase } from "@/integrations/supabase/client";
 import DashboardHeader from "@/components/DashboardHeader";
 import UserAvatar from "@/components/header/UserAvatar";
+import ResumeTemplateViewer from "@/components/ResumeTemplateViewer";
+import { templates } from "@/lib/templates"; // --- CHANGE: Import templates ---
 
+// --- CHANGE: Removed 'resumeStyle' from schema ---
 const resumeOptimizerSchema = z.object({
   jobRole: z.string().min(2, "Job role must be at least 2 characters"),
   jobDescription: z
     .string()
     .min(100, "Job description must be at least 100 characters"),
   industry: z.string().optional(),
-  resumeStyle: z.string().default("modern"),
 });
 
 type ResumeOptimizerForm = z.infer<typeof resumeOptimizerSchema>;
@@ -110,7 +112,7 @@ interface GeneratedResume {
   created_at: string;
 }
 
-// **ENHANCED MOBILE-FIRST AI AGENT LOADING EXPERIENCE**
+// ... (OptimizationAgentLoadingOverlay component remains the same)
 const OptimizationAgentLoadingOverlay = memo(
   ({ show, stage = 0 }: { show: boolean; stage?: number }) => {
     const agentMessages = [
@@ -238,10 +240,7 @@ const OptimizationAgentLoadingOverlay = memo(
     );
   }
 );
-
-OptimizationAgentLoadingOverlay.displayName = "OptimizationAgentLoadingOverlay";
-
-// **MOBILE-ENHANCED AI AGENT FILE UPLOAD**
+// ... (AgentFileUploadArea component remains the same)
 const AgentFileUploadArea = memo(
   ({
     onFileSelect,
@@ -404,10 +403,7 @@ const AgentFileUploadArea = memo(
     );
   }
 );
-
-AgentFileUploadArea.displayName = "AgentFileUploadArea";
-
-// **MOBILE-ENHANCED AI AGENT RESULTS COMPONENT**
+// ... (AgentOptimizationResults component remains the same)
 const AgentOptimizationResults = memo(
   ({
     results,
@@ -618,15 +614,18 @@ const AgentOptimizationResults = memo(
     );
   }
 );
-
-AgentOptimizationResults.displayName = "AgentOptimizationResults";
-
 // **MAIN MOBILE-ENHANCED RESUME OPTIMIZATION AGENT COMPONENT**
 const ResumeOptimizationAgent: React.FC = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [loadingStage, setLoadingStage] = useState(0);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [results, setResults] = useState<GeneratedResume | null>(null);
+  const [isTemplateViewerOpen, setIsTemplateViewerOpen] = useState(false);
+  // --- CHANGE: State for selected template ---
+  const [selectedTemplate, setSelectedTemplate] = useState<string>(
+    templates[0].id
+  );
+
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
@@ -639,14 +638,16 @@ const ResumeOptimizationAgent: React.FC = () => {
       jobRole: "",
       jobDescription: "",
       industry: "",
-      resumeStyle: "modern",
     },
   });
 
   const jobDescription = form.watch("jobDescription");
-  const jobRole = form.watch("jobRole");
 
-  // Calculate user name for personalized greeting
+  // --- CHANGE: Find the display name for the selected template ---
+  const selectedTemplateName = useMemo(() => {
+    return templates.find((t) => t.id === selectedTemplate)?.name || "Default";
+  }, [selectedTemplate]);
+
   const userName = useMemo(() => {
     if (!user) return "there";
     return (
@@ -677,31 +678,7 @@ const ResumeOptimizationAgent: React.FC = () => {
     []
   );
 
-  const resumeStyles = useMemo(
-    () => [
-      {
-        value: "modern",
-        label: "Modern & Clean",
-        desc: "Contemporary design with clean lines",
-      },
-      {
-        value: "traditional",
-        label: "Traditional & Professional",
-        desc: "Classic format preferred by recruiters",
-      },
-      {
-        value: "creative",
-        label: "Creative & Dynamic",
-        desc: "Bold design for creative industries",
-      },
-      {
-        value: "technical",
-        label: "Technical & Detailed",
-        desc: "Structured format for technical roles",
-      },
-    ],
-    []
-  );
+  // --- CHANGE: Removed unused resumeStyles memo ---
 
   const simulateLoadingStages = useCallback(() => {
     const stages = [0, 1, 2, 3, 4, 5];
@@ -710,7 +687,6 @@ const ResumeOptimizationAgent: React.FC = () => {
     });
   }, []);
 
-  // Helper function with proper error handling
   const getCurrentUserVersion = async (userId: string) => {
     try {
       const { data, error } = await supabase
@@ -778,6 +754,7 @@ Preferred Qualifications:
     form.reset();
     setSelectedFile(null);
     setResults(null);
+    setSelectedTemplate(templates[0].id); // Reset to default template
 
     toast({
       title: "Agent Reset ✨",
@@ -824,7 +801,8 @@ Preferred Qualifications:
             action: "resume_optimization_agent",
             job_role: formData.jobRole,
             industry: formData.industry || "unspecified",
-            resume_style: formData.resumeStyle,
+            // --- CHANGE: Changed resume_style to resume_template ---
+            resume_template: selectedTemplate,
             file_type: selectedFile.type === "application/pdf" ? "pdf" : "docx",
             file_size: selectedFile.size,
           },
@@ -871,13 +849,13 @@ Preferred Qualifications:
         return;
       }
 
-      // --- CHANGE: Use FormData to send binary file instead of base64 ---
       const requestFormData = new FormData();
       requestFormData.append("user_id", user.id);
       requestFormData.append("feature", "resume_optimization_agent");
       requestFormData.append("jobDescription", formData.jobDescription);
       requestFormData.append("jobIndustry", formData.industry || "");
-      requestFormData.append("resumeStyle", formData.resumeStyle);
+      // --- CHANGE: Changed resumeStyle to resumeTemplate ---
+      requestFormData.append("resumeTemplate", selectedTemplate);
       requestFormData.append("jobRole", formData.jobRole);
       requestFormData.append(
         "fileType",
@@ -885,12 +863,11 @@ Preferred Qualifications:
       );
       requestFormData.append("resume", selectedFile);
 
-      // Send request to webhook
       const response = await fetch(
         "https://n8n.applyforge.cloud/webhook-test/tailor-resume",
         {
           method: "POST",
-          body: requestFormData, // Send FormData directly
+          body: requestFormData,
         }
       );
 
@@ -919,7 +896,6 @@ Preferred Qualifications:
         throw new Error("Received an invalid URL from the agent.");
       }
 
-      // Get user's name from profile or use email
       let userName = "User";
       try {
         const { data: profile } = await supabase
@@ -939,7 +915,6 @@ Preferred Qualifications:
 
       const resumeTitle = `${userName} ${formData.jobRole} Resume (Optimized)`;
 
-      // Store the optimized resume in Supabase
       const { data, error } = await supabase
         .from("tailored_resumes")
         .insert({
@@ -1214,7 +1189,7 @@ Preferred Qualifications:
                         onSubmit={form.handleSubmit(onSubmit)}
                         className="space-y-6 sm:space-y-8"
                       >
-                        {/* Resume Upload */}
+                        {/* Resume Upload and Template Selection */}
                         <div className="space-y-2 sm:space-y-3">
                           <Label className="flex items-center gap-2 text-sm sm:text-base font-semibold text-white">
                             <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-blue-400 flex-shrink-0" />
@@ -1239,6 +1214,24 @@ Preferred Qualifications:
                             selectedFile={selectedFile}
                             error={!selectedFile}
                           />
+                          {/* --- CHANGE: Updated template selection display --- */}
+                          <div className="pt-4 text-center flex flex-col items-center gap-4">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={() => setIsTemplateViewerOpen(true)}
+                              className="border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white"
+                            >
+                              <Palette className="w-4 h-4 mr-2" />
+                              Choose Resume Template
+                            </Button>
+                            <div className="text-sm text-slate-400 bg-slate-800/50 border border-slate-700 px-4 py-2 rounded-lg">
+                              Selected Template:{" "}
+                              <span className="font-semibold text-blue-400">
+                                {selectedTemplateName}
+                              </span>
+                            </div>
+                          </div>
                         </div>
 
                         {/* Job Role and Industry */}
@@ -1441,6 +1434,13 @@ Preferred Qualifications:
             )}
           </motion.div>
         </div>
+        {/* --- CHANGE: Pass new props to viewer --- */}
+        <ResumeTemplateViewer
+          isOpen={isTemplateViewerOpen}
+          onOpenChange={setIsTemplateViewerOpen}
+          currentTemplateId={selectedTemplate}
+          onTemplateSelect={setSelectedTemplate}
+        />
       </div>
     </TooltipProvider>
   );
