@@ -985,15 +985,12 @@ Requirements:
         );
       }
 
-      // Get the iframe HTML as text
-      const iframeHtml = await response.text();
+      // The response text IS the URL
+      const craftedLetterUrl = await response.text();
 
-      // Extract the PDF URL from the srcdoc attribute
-      const pdfUrlMatch = iframeHtml.match(/srcdoc="([^"]+)"/);
-      const craftedLetterUrl = pdfUrlMatch ? pdfUrlMatch[1] : null;
-
-      if (!craftedLetterUrl) {
-        throw new Error("Could not extract PDF URL from response");
+      // Add a simple validation to ensure the URL is not empty and looks like a URL
+      if (!craftedLetterUrl || !craftedLetterUrl.startsWith("http")) {
+        throw new Error("Received an invalid URL from the agent.");
       }
 
       if (craftedLetterUrl) {

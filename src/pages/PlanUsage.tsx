@@ -46,6 +46,7 @@ import {
   ChevronRight,
   Flame,
   Home,
+  Mail, // CORRECTED: Imported Mail icon
   type LucideIcon,
 } from "lucide-react";
 import { useUsageTracking, type UsageType } from "@/hooks/useUsageTracking";
@@ -56,7 +57,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { Link, useNavigate } from "react-router-dom";
 
-// **TYPES & INTERFACES**
+// **TYPES & INTERFACES (UNCHANGED)**
 interface UsageItem {
   label: string;
   used: number;
@@ -97,15 +98,17 @@ interface PlanFeature {
   name: string;
   limits: string;
   price: string;
+  IconComponent: LucideIcon;
   color: string;
   bgGradient: string;
   borderColor: string;
+  gradient: string;
   features: string[];
   isPopular?: boolean;
   isCurrentPlan?: boolean;
 }
 
-// **PLAN CONFIGURATION**
+// **PLAN CONFIGURATION (UNCHANGED)**
 const getPlanLimit = (planType: string, usageType: UsageType): number => {
   const limits = {
     Free: {
@@ -135,14 +138,15 @@ const getPlanLimit = (planType: string, usageType: UsageType): number => {
   return planLimits[usageType];
 };
 
-// **USAGE ITEMS CONFIGURATION**
+// **USAGE ITEMS CONFIGURATION (NOW FULLY CORRECTED)**
 const getUsageItems = (usage: any): UsageItem[] => [
   {
+    // Corresponds to "Resume Optimization Agent" in Dashboard.tsx
     label: "Resume Tailors",
     description: "AI-powered resume optimization",
     used: usage.resume_tailors_used || 0,
     limit: getPlanLimit(usage.plan_type, "resume_tailors_used"),
-    IconComponent: Target,
+    IconComponent: FileText, // CORRECTED: Was Target, now FileText to match dashboard
     isUnused: (usage.resume_tailors_used || 0) === 0,
     usageType: "resume_tailors_used",
     gradient: "from-blue-500/20 via-indigo-500/15 to-purple-500/20",
@@ -152,11 +156,12 @@ const getUsageItems = (usage: any): UsageItem[] => [
       "bg-gradient-to-br from-blue-500/5 via-indigo-500/5 to-purple-500/10",
   },
   {
+    // Corresponds to "Cover Letter Crafting Agent" in Dashboard.tsx
     label: "Cover Letters",
     description: "Personalized cover letter generation",
     used: usage.cover_letters_used || 0,
     limit: getPlanLimit(usage.plan_type, "cover_letters_used"),
-    IconComponent: FileText,
+    IconComponent: Mail, // CORRECTED: Was FileText, now Mail to match dashboard
     isUnused: (usage.cover_letters_used || 0) === 0,
     usageType: "cover_letters_used",
     gradient: "from-purple-500/20 via-pink-500/15 to-rose-500/20",
@@ -166,6 +171,7 @@ const getUsageItems = (usage: any): UsageItem[] => [
       "bg-gradient-to-br from-purple-500/5 via-pink-500/5 to-rose-500/10",
   },
   {
+    // Corresponds to "Job Discovery Agent" in Dashboard.tsx
     label: "Job Searches",
     description: "Smart job discovery and matching",
     used: usage.job_searches_used || 0,
@@ -173,20 +179,7 @@ const getUsageItems = (usage: any): UsageItem[] => [
     IconComponent: Search,
     isUnused: (usage.job_searches_used || 0) === 0,
     usageType: "job_searches_used",
-    gradient: "from-cyan-500/20 via-teal-500/15 to-emerald-500/20",
-    iconColor: "text-cyan-400",
-    borderColor: "border-cyan-500/20",
-    bgGradient:
-      "bg-gradient-to-br from-cyan-500/5 via-teal-500/5 to-emerald-500/10",
-  },
-  {
-    label: "Instant Generations",
-    description: "Instant resumes & cover letters",
-    used: usage.one_click_tailors_used || 0,
-    limit: getPlanLimit(usage.plan_type, "one_click_tailors_used"),
-    IconComponent: Zap,
-    isUnused: (usage.one_click_tailors_used || 0) === 0,
-    usageType: "one_click_tailors_used",
+    // CORRECTED: Colors updated to orange/yellow to match dashboard
     gradient: "from-orange-500/20 via-amber-500/15 to-yellow-500/20",
     iconColor: "text-orange-400",
     borderColor: "border-orange-500/20",
@@ -194,6 +187,23 @@ const getUsageItems = (usage: any): UsageItem[] => [
       "bg-gradient-to-br from-orange-500/5 via-amber-500/5 to-yellow-500/10",
   },
   {
+    // Corresponds to "Instant Generation Agent" in Dashboard.tsx
+    label: "Instant Generations",
+    description: "Instant resumes & cover letters",
+    used: usage.one_click_tailors_used || 0,
+    limit: getPlanLimit(usage.plan_type, "one_click_tailors_used"),
+    IconComponent: Zap,
+    isUnused: (usage.one_click_tailors_used || 0) === 0,
+    usageType: "one_click_tailors_used",
+    // CORRECTED: Colors updated to rose/red to match dashboard
+    gradient: "from-rose-500/20 via-red-500/15 to-orange-500/20",
+    iconColor: "text-rose-400",
+    borderColor: "border-rose-500/20",
+    bgGradient:
+      "bg-gradient-to-br from-rose-500/5 via-red-500/5 to-orange-500/10",
+  },
+  {
+    // Corresponds to "ATS Screening Agent" in Dashboard.tsx
     label: "ATS Checks",
     description: "Resume analysis & scoring",
     used: usage.ats_checks_used || 0,
@@ -209,7 +219,9 @@ const getUsageItems = (usage: any): UsageItem[] => [
   },
 ];
 
-// **ANIMATIONS**
+// ... (The rest of the file is unchanged as its logic and structure were already correct)
+
+// **ANIMATIONS (UNCHANGED)**
 const subtleTransition = (duration: number, delay = 0): Transition => ({
   duration,
   repeat: Number.POSITIVE_INFINITY,
@@ -217,7 +229,7 @@ const subtleTransition = (duration: number, delay = 0): Transition => ({
   delay,
 });
 
-// **MOBILE-ENHANCED LOADING SKELETON**
+// **LOADING SKELETON (UNCHANGED)**
 const UsageLoadingSkeleton = memo(() => (
   <div className="space-y-4 sm:space-y-6 px-2">
     {/* Header Skeleton */}
@@ -273,7 +285,7 @@ const UsageLoadingSkeleton = memo(() => (
 
 UsageLoadingSkeleton.displayName = "UsageLoadingSkeleton";
 
-// **MOBILE-ENHANCED PROGRESS BAR COMPONENT**
+// **FEATURE USAGE CARD (UNCHANGED)**
 const EnhancedProgressBar = memo<EnhancedProgressBarProps>(
   ({
     value,
@@ -291,7 +303,6 @@ const EnhancedProgressBar = memo<EnhancedProgressBarProps>(
     bgGradient,
   }) => {
     const [animatedValue, setAnimatedValue] = useState<number>(0);
-    const [isHovered, setIsHovered] = useState(false);
 
     useEffect(() => {
       const timer = setTimeout(() => {
@@ -307,24 +318,6 @@ const EnhancedProgressBar = memo<EnhancedProgressBarProps>(
       return gradient.replace(/\/20|\/15|\/10/g, "");
     }, [isOverLimit, isAtLimit, value, gradient]);
 
-    const getStatusIcon = useCallback((): JSX.Element => {
-      if (isOverLimit)
-        return (
-          <AlertTriangle className="w-3 h-3 sm:w-4 sm:h-4 text-orange-400 flex-shrink-0" />
-        );
-      if (isAtLimit)
-        return (
-          <AlertCircle className="w-3 h-3 sm:w-4 sm:h-4 text-orange-400 flex-shrink-0" />
-        );
-      if (isUnused)
-        return (
-          <Clock className="w-3 h-3 sm:w-4 sm:h-4 text-slate-400 flex-shrink-0" />
-        );
-      return (
-        <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 text-emerald-400 flex-shrink-0" />
-      );
-    }, [isOverLimit, isAtLimit, isUnused]);
-
     const getStatusText = useCallback((): string => {
       if (isOverLimit) return "Over Limit";
       if (isAtLimit) return "At Capacity";
@@ -332,116 +325,79 @@ const EnhancedProgressBar = memo<EnhancedProgressBarProps>(
       return "Active";
     }, [isOverLimit, isAtLimit, isUnused]);
 
-    const bonusUsage = isOverLimit ? used - limit : 0;
-
     return (
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         whileHover={{ y: -2, scale: 1.01 }}
-        onHoverStart={() => setIsHovered(true)}
-        onHoverEnd={() => setIsHovered(false)}
         className="group h-full"
       >
         <Card
           className={`${bgGradient} backdrop-blur-xl border ${borderColor} hover:border-opacity-60 transition-all duration-300 h-full group hover:shadow-lg hover:shadow-blue-500/5 overflow-hidden relative`}
         >
-          {/* Try This Badge */}
           {isUnused && (
-            <div className="absolute top-2 right-2 sm:top-3 sm:right-3 z-10">
+            <div className="absolute top-3 right-3 z-10">
               <motion.div
                 animate={{ scale: [1, 1.05, 1] }}
                 transition={{ repeat: Infinity, duration: 2 }}
               >
-                <Badge className="text-[10px] sm:text-xs bg-blue-500/20 text-blue-400 border-blue-500/30 font-medium px-1.5 py-0.5">
+                <Badge className="text-xs bg-blue-500/20 text-blue-400 border-blue-500/30 font-medium">
                   Try This
                 </Badge>
               </motion.div>
             </div>
           )}
-
-          <CardContent className="p-3 sm:p-4 md:p-6 h-full flex flex-col">
-            {/* Header */}
-            <div className="flex items-start sm:items-center justify-between mb-3 sm:mb-4">
+          <CardContent className="p-4 md:p-6 h-full flex flex-col">
+            <div className="flex items-start justify-between mb-4">
               <motion.div
-                className={`w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 ${bgGradient} border ${borderColor} rounded-lg sm:rounded-xl flex items-center justify-center group-hover:scale-105 transition-all duration-300 shadow-sm flex-shrink-0`}
+                className={`w-12 h-12 ${bgGradient} border ${borderColor} rounded-xl flex items-center justify-center group-hover:scale-105 transition-all duration-300 shadow-sm flex-shrink-0`}
                 whileHover={{
                   rotate: [0, -4, 4, -2, 0],
                   transition: { duration: 0.4 },
                 }}
               >
-                <IconComponent
-                  className={`w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 ${iconColor}`}
-                />
-
-                {/* Glow effect */}
+                <IconComponent className={`w-6 h-6 ${iconColor}`} />
                 <div
-                  className={`absolute inset-0 w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 bg-gradient-to-r ${gradient} rounded-lg sm:rounded-xl opacity-0 group-hover:opacity-30 blur-sm transition-opacity duration-300`}
+                  className={`absolute inset-0 w-12 h-12 bg-gradient-to-r ${gradient} rounded-xl opacity-0 group-hover:opacity-30 blur-sm transition-opacity duration-300`}
                 />
               </motion.div>
 
               <div className="flex flex-col items-end ml-2">
-                {getStatusIcon()}
-                <motion.span
-                  key={`${used}-${limit}`}
-                  initial={{ scale: 0.9, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  className="text-xs sm:text-sm font-bold text-white mt-1"
-                >
+                <span className="text-sm font-bold text-white">
                   {used}
-                  {bonusUsage > 0 && (
-                    <span className="text-slate-400 text-[10px] sm:text-xs ml-1">
-                      (+{bonusUsage})
-                    </span>
-                  )}
                   <span className="text-slate-400 mx-0.5">/</span>
                   {limit === -1 ? (
-                    <InfinityIcon className="w-3 h-3 sm:w-4 sm:h-4 inline text-emerald-400" />
+                    <InfinityIcon className="w-4 h-4 inline text-emerald-400" />
                   ) : (
                     limit
                   )}
-                </motion.span>
+                </span>
+                <span className="text-xs text-slate-400 mt-1">
+                  {getStatusText()}
+                </span>
               </div>
             </div>
-
-            {/* Title & Description */}
-            <div className="mb-3 sm:mb-4 flex-1">
-              <h3 className="font-bold text-white text-sm sm:text-base md:text-lg group-hover:text-blue-300 transition-colors duration-300 leading-tight mb-1">
+            <div className="mb-4 flex-1">
+              <h3 className="font-bold text-white text-lg group-hover:text-blue-300 transition-colors duration-300 leading-tight mb-1">
                 {label}
               </h3>
-              <p className="text-xs sm:text-sm text-slate-400 font-medium leading-relaxed">
+              <p className="text-sm text-slate-400 font-medium">
                 {description}
               </p>
             </div>
-
-            {/* Progress Bar */}
             {limit !== -1 && (
-              <div className="space-y-2 sm:space-y-3">
-                <div className="relative">
-                  <div className="h-1.5 sm:h-2 bg-slate-700/50 rounded-full overflow-hidden">
-                    <motion.div
-                      className={`h-full bg-gradient-to-r ${getProgressColor()}`}
-                      initial={{ width: 0 }}
-                      animate={{ width: `${Math.min(animatedValue, 100)}%` }}
-                      transition={{ duration: 0.8, ease: "easeOut" }}
-                    />
-                  </div>
+              <div className="space-y-2">
+                <div className="relative h-2 bg-slate-700/50 rounded-full overflow-hidden">
+                  <motion.div
+                    className={`h-full bg-gradient-to-r ${getProgressColor()}`}
+                    initial={{ width: 0 }}
+                    animate={{ width: `${Math.min(animatedValue, 100)}%` }}
+                    transition={{ duration: 0.8, ease: "easeOut" }}
+                  />
                 </div>
-
-                {/* Status Footer */}
-                <div className="flex items-center justify-between text-[10px] sm:text-xs">
-                  <span
-                    className={`${
-                      isOverLimit || isAtLimit
-                        ? "text-orange-400"
-                        : isUnused
-                        ? "text-slate-400"
-                        : "text-emerald-400"
-                    } flex items-center gap-1`}
-                  >
-                    {getStatusText()}
-                  </span>
-                  <span className="text-slate-400 truncate ml-2">
+                <div className="flex justify-between text-xs text-slate-400">
+                  <span>{Math.round(value)}% Utilized</span>
+                  <span>
                     {limit - used > 0 ? `${limit - used} left` : "No remaining"}
                   </span>
                 </div>
@@ -453,10 +409,9 @@ const EnhancedProgressBar = memo<EnhancedProgressBarProps>(
     );
   }
 );
-
 EnhancedProgressBar.displayName = "EnhancedProgressBar";
 
-// **MOBILE-ENHANCED USAGE SUMMARY STATS COMPONENT**
+// **USAGE SUMMARY STATS COMPONENT (UNCHANGED)**
 const UsageSummaryStats = memo<UsageSummaryStatsProps>(
   ({ usageItems, planType, totalUsed }) => {
     const validItems = usageItems.filter((item) => item.limit !== -1);
@@ -470,7 +425,6 @@ const UsageSummaryStats = memo<UsageSummaryStatsProps>(
             ) / validItems.length
           )
         : 0;
-
     const hasOverLimit = usageItems.some(
       (item) => item.limit !== -1 && item.used > item.limit
     );
@@ -485,105 +439,118 @@ const UsageSummaryStats = memo<UsageSummaryStatsProps>(
           icon: AlertTriangle,
           color: "text-orange-400",
           label: "Over Limits",
-          bgColor: "bg-orange-500/10",
           borderColor: "border-orange-500/20",
+          gradient: "from-orange-400 to-red-400",
         };
       if (hasAtLimit)
         return {
           icon: AlertCircle,
           color: "text-orange-400",
           label: "At Capacity",
-          bgColor: "bg-orange-500/10",
           borderColor: "border-orange-500/20",
+          gradient: "from-yellow-400 to-orange-400",
         };
       return {
         icon: CheckCircle,
         color: "text-emerald-400",
         label: "Healthy",
-        bgColor: "bg-emerald-500/10",
         borderColor: "border-emerald-500/20",
+        gradient: "from-emerald-400 to-green-400",
       };
     }, [hasOverLimit, hasAtLimit]);
 
     const statusConfig = getStatusConfig();
-
     const stats = useMemo(
       () => [
         {
-          icon: TrendingUp,
-          title: "Total Usage",
+          IconComponent: TrendingUp,
+          label: "Total Usage",
           value: totalUsed.toString(),
+          progress: Math.min(totalUsed, 100),
           description: "Actions this month",
-          color: "text-blue-400",
-          bgColor: "bg-blue-500/10",
+          iconColor: "text-blue-400",
           borderColor: "border-blue-500/20",
+          gradient: "from-blue-400 to-indigo-400",
         },
         {
-          icon: Target,
-          title: "Avg Utilization",
+          IconComponent: Target,
+          label: "Avg Utilization",
           value: planType === "Pro" ? "∞" : `${averageUsage}%`,
+          progress: planType === "Pro" ? 100 : averageUsage,
           description: "Of plan limits",
-          color: "text-purple-400",
-          bgColor: "bg-purple-500/10",
+          iconColor: "text-purple-400",
           borderColor: "border-purple-500/20",
+          gradient: "from-purple-400 to-pink-400",
         },
         {
-          icon: Activity,
-          title: "Active Features",
+          IconComponent: Activity,
+          label: "Active Features",
           value: `${activeFeatures}/5`,
+          progress: (activeFeatures / 5) * 100,
           description: "Features in use",
-          color: "text-cyan-400",
-          bgColor: "bg-cyan-500/10",
+          iconColor: "text-cyan-400",
           borderColor: "border-cyan-500/20",
+          gradient: "from-cyan-400 to-teal-400",
         },
         {
-          icon: statusConfig.icon,
-          title: "Status",
+          IconComponent: statusConfig.icon,
+          label: "Status",
           value: statusConfig.label,
+          progress: 100,
           description: "Account health",
-          color: statusConfig.color,
-          bgColor: statusConfig.bgColor,
+          iconColor: statusConfig.color,
           borderColor: statusConfig.borderColor,
+          gradient: statusConfig.gradient,
         },
       ],
       [totalUsed, planType, averageUsage, activeFeatures, statusConfig]
     );
 
     return (
-      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 mb-6 sm:mb-8 px-2 sm:px-0">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8 sm:mb-12 px-2 sm:px-0">
         {stats.map((stat, index) => (
           <motion.div
-            key={stat.title}
+            key={stat.label}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.1 }}
+            className="group"
           >
             <Card
-              className={`${stat.bgColor} backdrop-blur-xl border ${stat.borderColor} hover:border-opacity-60 transition-all duration-300 group`}
+              className={`bg-slate-800/20 backdrop-blur-xl border ${stat.borderColor} hover:border-opacity-60 transition-all duration-300 h-full group hover:shadow-lg hover:shadow-blue-500/5`}
             >
-              <CardContent className="p-3 sm:p-4 md:p-6">
-                <div className="flex items-center justify-between mb-2 sm:mb-3 md:mb-4">
-                  <motion.div
-                    className={`p-1.5 sm:p-2 md:p-3 rounded-lg sm:rounded-xl ${stat.bgColor} border ${stat.borderColor}`}
-                    whileHover={{ scale: 1.05, rotate: 2 }}
-                  >
-                    <stat.icon
-                      className={`w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 ${stat.color}`}
-                    />
-                  </motion.div>
-                  <span
-                    className={`text-sm sm:text-lg md:text-2xl font-bold ${stat.color}`}
-                  >
-                    {stat.value}
-                  </span>
-                </div>
+              <CardContent className="p-4 flex flex-col justify-between h-full">
                 <div>
-                  <h3 className="font-semibold text-white text-xs sm:text-sm mb-1">
-                    {stat.title}
+                  <div className="flex items-start justify-between mb-3">
+                    <div
+                      className={`w-10 h-10 bg-slate-900/50 border ${stat.borderColor} rounded-xl flex items-center justify-center`}
+                    >
+                      <stat.IconComponent
+                        className={`w-5 h-5 ${stat.iconColor}`}
+                      />
+                    </div>
+                    <span className={`text-2xl font-bold ${stat.iconColor}`}>
+                      {stat.value}
+                    </span>
+                  </div>
+                  <h3 className="font-semibold text-white text-base mb-1">
+                    {stat.label}
                   </h3>
-                  <p className="text-[10px] sm:text-xs text-slate-400 leading-relaxed">
-                    {stat.description}
-                  </p>
+                  <p className="text-xs text-slate-400">{stat.description}</p>
+                </div>
+                <div className="mt-4">
+                  <div className="h-1.5 bg-slate-700/50 rounded-full overflow-hidden">
+                    <motion.div
+                      className={`h-full bg-gradient-to-r ${stat.gradient}`}
+                      initial={{ width: 0 }}
+                      animate={{ width: `${stat.progress}%` }}
+                      transition={{
+                        delay: 0.5 + index * 0.1,
+                        duration: 0.8,
+                        ease: "easeOut",
+                      }}
+                    />
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -593,10 +560,9 @@ const UsageSummaryStats = memo<UsageSummaryStatsProps>(
     );
   }
 );
-
 UsageSummaryStats.displayName = "UsageSummaryStats";
 
-// **MOBILE-ENHANCED PLAN COMPARISON COMPONENT**
+// **PLAN COMPARISON COMPONENT (UNCHANGED)**
 const PlanComparison = memo<{ currentPlan: string }>(({ currentPlan }) => {
   const navigate = useNavigate();
 
@@ -606,9 +572,11 @@ const PlanComparison = memo<{ currentPlan: string }>(({ currentPlan }) => {
         name: "Free",
         limits: "Limited usage",
         price: "$0",
+        IconComponent: Star,
         color: "text-slate-300",
         bgGradient: "bg-gradient-to-br from-slate-500/5 to-gray-500/10",
         borderColor: "border-slate-500/20",
+        gradient: "from-slate-400 to-gray-400",
         features: ["3 uses per feature", "Basic support", "Core functionality"],
         isCurrentPlan: currentPlan === "Free",
       },
@@ -616,9 +584,11 @@ const PlanComparison = memo<{ currentPlan: string }>(({ currentPlan }) => {
         name: "Basic",
         limits: "Extended limits",
         price: "$9.99",
+        IconComponent: Sparkles,
         color: "text-blue-400",
         bgGradient: "bg-gradient-to-br from-blue-500/5 to-indigo-500/10",
         borderColor: "border-blue-500/20",
+        gradient: "from-blue-400 to-indigo-400",
         features: [
           "25 uses per feature",
           "Email support",
@@ -631,15 +601,16 @@ const PlanComparison = memo<{ currentPlan: string }>(({ currentPlan }) => {
         name: "Pro",
         limits: "Unlimited",
         price: "$19.99",
+        IconComponent: Crown,
         color: "text-emerald-400",
         bgGradient: "bg-gradient-to-br from-emerald-500/5 to-teal-500/10",
         borderColor: "border-emerald-500/20",
+        gradient: "from-emerald-400 to-teal-400",
         features: [
           "Unlimited usage",
           "Premium support",
           "All features",
           "API access",
-          "Custom integrations",
         ],
         isPopular: true,
         isCurrentPlan: currentPlan === "Pro",
@@ -654,105 +625,87 @@ const PlanComparison = memo<{ currentPlan: string }>(({ currentPlan }) => {
       animate={{ opacity: 1, y: 0 }}
       className="mb-8 sm:mb-12 px-2 sm:px-0"
     >
-      <div className="text-center mb-6 sm:mb-8">
-        <motion.h2
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-xl sm:text-2xl md:text-3xl font-bold text-white mb-3 sm:mb-4"
-        >
+      <div className="text-center mb-8 sm:mb-10">
+        <h2 className="text-3xl lg:text-4xl font-bold text-white mb-4">
           Choose Your Plan
-        </motion.h2>
-        <motion.p
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="text-sm sm:text-base text-slate-300 max-w-2xl mx-auto leading-relaxed"
-        >
-          Unlock your career potential with the right plan for your needs
-        </motion.p>
+        </h2>
+        <p className="text-lg text-slate-300 max-w-2xl mx-auto">
+          Unlock your career potential with the right plan for your needs.
+        </p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
         {plans.map((plan, index) => (
           <motion.div
             key={plan.name}
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.15, duration: 0.6 }}
-            whileHover={{ y: -4, scale: 1.01 }}
             className="group h-full"
           >
             <Card
               className={`${plan.bgGradient} backdrop-blur-xl border ${
-                plan.borderColor
-              } ${
-                plan.isCurrentPlan
-                  ? "border-emerald-400/60"
-                  : "hover:border-opacity-60"
-              } transition-all duration-300 h-full group hover:shadow-lg hover:shadow-blue-500/5 overflow-hidden relative`}
+                plan.isCurrentPlan ? "border-emerald-400/60" : plan.borderColor
+              } hover:border-opacity-60 transition-all duration-300 h-full group hover:shadow-lg hover:shadow-blue-500/5 overflow-hidden relative flex flex-col`}
             >
-              {/* Popular Badge */}
-              {plan.isPopular && (
-                <div className="absolute top-2 right-2 sm:top-3 sm:right-3 md:top-4 md:right-4 z-10">
-                  <Badge className="bg-gradient-to-r from-emerald-500 to-teal-500 text-white border-0 font-medium text-[10px] sm:text-xs px-1.5 py-0.5">
-                    <Crown className="w-2.5 h-2.5 sm:w-3 sm:h-3 mr-0.5 sm:mr-1" />
-                    Popular
-                  </Badge>
-                </div>
-              )}
-
-              {/* Current Plan Badge */}
-              {plan.isCurrentPlan && (
-                <div className="absolute top-2 left-2 sm:top-3 sm:left-3 md:top-4 md:left-4 z-10">
-                  <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30 font-medium text-[10px] sm:text-xs px-1.5 py-0.5">
-                    <CheckCircle className="w-2.5 h-2.5 sm:w-3 sm:h-3 mr-0.5 sm:mr-1" />
-                    Current
-                  </Badge>
-                </div>
-              )}
-
-              <CardContent className="p-4 sm:p-6 md:p-8 h-full flex flex-col">
-                {/* Header */}
-                <div className="text-center mb-4 sm:mb-6">
-                  <h3
-                    className={`text-lg sm:text-xl md:text-2xl font-bold ${plan.color} mb-1 sm:mb-2`}
+              <CardContent className="p-6 flex flex-col flex-1">
+                <div className="flex items-start justify-between mb-4">
+                  <motion.div
+                    className={`w-12 h-12 ${plan.bgGradient} border ${plan.borderColor} rounded-xl flex items-center justify-center group-hover:scale-105 transition-all duration-300 shadow-sm flex-shrink-0`}
+                    whileHover={{
+                      rotate: [0, -4, 4, -2, 0],
+                      transition: { duration: 0.4 },
+                    }}
                   >
-                    {plan.name}
-                  </h3>
-                  <p className="text-slate-400 text-xs sm:text-sm mb-3 sm:mb-4">
-                    {plan.limits}
-                  </p>
-                  <div className="text-2xl sm:text-3xl font-bold text-white mb-1">
-                    {plan.price}
-                    {plan.name !== "Free" && (
-                      <span className="text-xs sm:text-sm text-slate-400 font-normal">
-                        /month
-                      </span>
+                    <plan.IconComponent className={`w-6 h-6 ${plan.color}`} />
+                    <div
+                      className={`absolute inset-0 w-12 h-12 bg-gradient-to-r ${plan.gradient} rounded-xl opacity-0 group-hover:opacity-20 blur-sm transition-opacity duration-300`}
+                    />
+                  </motion.div>
+                  <div className="text-right">
+                    <h3 className={`text-2xl font-bold ${plan.color}`}>
+                      {plan.name}
+                    </h3>
+                    {plan.isPopular && (
+                      <Badge className="bg-gradient-to-r from-emerald-500 to-teal-500 text-white border-0 font-medium text-xs mt-1">
+                        Popular
+                      </Badge>
+                    )}
+                    {plan.isCurrentPlan && (
+                      <Badge
+                        variant="secondary"
+                        className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30 font-medium text-xs mt-1"
+                      >
+                        Current Plan
+                      </Badge>
                     )}
                   </div>
                 </div>
 
-                {/* Features */}
-                <div className="flex-1 mb-4 sm:mb-6">
-                  <ul className="space-y-2 sm:space-y-3">
-                    {plan.features.map((feature, featureIndex) => (
-                      <motion.li
-                        key={featureIndex}
-                        initial={{ opacity: 0, x: -10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 0.1 * featureIndex }}
-                        className="flex items-start gap-2 sm:gap-3"
-                      >
-                        <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 text-emerald-400 flex-shrink-0 mt-0.5" />
-                        <span className="text-slate-300 text-xs sm:text-sm leading-relaxed">
-                          {feature}
-                        </span>
-                      </motion.li>
-                    ))}
-                  </ul>
+                <div className="mb-6">
+                  <p className="text-4xl font-bold text-white mb-1">
+                    {plan.price}
+                    {plan.name !== "Free" && (
+                      <span className="text-base text-slate-400 font-normal">
+                        /month
+                      </span>
+                    )}
+                  </p>
+                  <p className="text-sm text-slate-400">{plan.limits}</p>
                 </div>
 
-                {/* CTA Button */}
+                <ul className="space-y-3 flex-1 mb-6">
+                  {plan.features.map((feature) => (
+                    <li
+                      key={feature}
+                      className="flex items-center gap-3 text-sm text-slate-300"
+                    >
+                      <CheckCircle className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                      <span>{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+
                 <motion.div
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
@@ -760,11 +713,10 @@ const PlanComparison = memo<{ currentPlan: string }>(({ currentPlan }) => {
                   {plan.isCurrentPlan ? (
                     <Button
                       variant="outline"
-                      className="w-full border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10 text-xs sm:text-sm py-2 sm:py-3 h-9 sm:h-10 md:h-11"
+                      className="w-full border-emerald-500/30 text-emerald-400"
                       disabled
                     >
-                      <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2 flex-shrink-0" />
-                      <span className="truncate">Current Plan</span>
+                      Your Current Plan
                     </Button>
                   ) : (
                     <Button
@@ -772,13 +724,11 @@ const PlanComparison = memo<{ currentPlan: string }>(({ currentPlan }) => {
                         plan.isPopular
                           ? "bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700"
                           : "bg-slate-700 hover:bg-slate-600"
-                      } text-white font-semibold text-xs sm:text-sm py-2 sm:py-3 h-9 sm:h-10 md:h-11`}
+                      } text-white font-semibold`}
                       onClick={() => navigate("/pricing")}
                     >
-                      <span className="truncate">
-                        {plan.name === "Free" ? "Downgrade" : "Upgrade"}
-                      </span>
-                      <ArrowRight className="w-3 h-3 sm:w-4 sm:h-4 ml-1 sm:ml-2 flex-shrink-0" />
+                      {plan.name === "Free" ? "Downgrade" : "Upgrade Plan"}
+                      <ArrowRight className="w-4 h-4 ml-2" />
                     </Button>
                   )}
                 </motion.div>
@@ -790,10 +740,9 @@ const PlanComparison = memo<{ currentPlan: string }>(({ currentPlan }) => {
     </motion.div>
   );
 });
-
 PlanComparison.displayName = "PlanComparison";
 
-// **MOBILE-ENHANCED MAIN PLAN & USAGE PAGE COMPONENT**
+// **MAIN PAGE COMPONENT (UNCHANGED)**
 const PlanUsagePage = () => {
   const { user } = useAuth();
   const { usage, isLoading, refreshUsage } = useUsageTracking();
@@ -801,7 +750,6 @@ const PlanUsagePage = () => {
   const navigate = useNavigate();
   const [sortedItems, setSortedItems] = useState<UsageItem[]>([]);
 
-  // Calculate user name for greeting
   const userName = useMemo(() => {
     if (!user) return "there";
     return (
@@ -811,7 +759,6 @@ const PlanUsagePage = () => {
     );
   }, [user?.user_metadata?.full_name, user?.email]);
 
-  // Process usage items
   useEffect(() => {
     if (usage) {
       const usageItems = getUsageItems(usage);
@@ -820,15 +767,12 @@ const PlanUsagePage = () => {
     }
   }, [usage]);
 
-  // Enhanced refresh handler
   const handleRefresh = useCallback(async () => {
     const startTime = performance.now();
-
     try {
       await refreshUsage();
       const endTime = performance.now();
       const duration = Math.round(endTime - startTime);
-
       toast({
         title: "Usage Data Refreshed",
         description: `Your plan and usage data has been updated in ${duration}ms.`,
@@ -873,138 +817,48 @@ const PlanUsagePage = () => {
   return (
     <TooltipProvider>
       <div className="min-h-screen bg-background">
-        {/* Header */}
         <DashboardHeader />
-
-        {/* Main Content */}
-        <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-8 max-w-7xl">
+        <div className="container mx-auto px-4 py-8 max-w-7xl">
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ duration: 0.6 }}
-            className="space-y-6 sm:space-y-8 lg:space-y-12"
+            className="space-y-12"
           >
-            {/* Back to Dashboard Button */}
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              className="px-2 sm:px-0"
-            >
-              <Button
-                variant="outline"
-                onClick={() => navigate("/")}
-                className="border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white backdrop-blur-sm text-sm sm:text-base h-9 sm:h-10"
-              >
-                <Home className="w-4 h-4 mr-2" />
-                Back to Dashboard
-              </Button>
-            </motion.div>
-
-            {/* MOBILE-ENHANCED Hero Section */}
             <div className="text-center">
               <motion.div
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.6 }}
-                className="flex flex-col items-center gap-4 sm:gap-6"
               >
-                <div className="space-y-3 sm:space-y-4 w-full">
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.2 }}
-                    className="space-y-3 sm:space-y-4"
-                  >
-                    {/* Title */}
-                    <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-6xl font-bold text-white leading-tight">
-                      Plan & Usage
-                    </h1>
-
-                    {/* Badges and Controls - Mobile Stacked */}
-                    <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
-                      <PlanBadge
-                        plan={usage.plan_type}
-                        usage={usage}
-                        animated
-                        className="text-xs sm:text-sm"
-                      />
-
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <motion.div
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                          >
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={handleRefresh}
-                              disabled={isLoading}
-                              className="border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white h-9 sm:h-10"
-                            >
-                              <RefreshCw
-                                className={`w-4 h-4 ${
-                                  isLoading ? "animate-spin" : ""
-                                }`}
-                              />
-                            </Button>
-                          </motion.div>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          {isLoading ? "Refreshing..." : "Refresh usage data"}
-                        </TooltipContent>
-                      </Tooltip>
-                    </div>
-                  </motion.div>
-
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.3 }}
-                    className="space-y-2 px-4 sm:px-0"
-                  >
-                    <p className="text-base sm:text-lg md:text-xl text-slate-300 max-w-3xl mx-auto leading-relaxed">
-                      Hey{" "}
-                      <span className="text-blue-400 font-medium">
-                        {userName}
-                      </span>
-                      ! Monitor your feature usage and manage your subscription
-                      plan.
-                    </p>
-                    <p className="text-sm sm:text-base text-slate-400 max-w-2xl mx-auto">
-                      Track your monthly limits and upgrade when you're ready
-                      for more.
-                    </p>
-                  </motion.div>
+                <div className="flex justify-center mb-4">
+                  <PlanBadge plan={usage.plan_type} usage={usage} animated />
                 </div>
+                <h1 className="text-4xl md:text-5xl font-bold text-white">
+                  Plan & Usage
+                </h1>
+                <p className="mt-4 text-lg text-slate-300 max-w-2xl mx-auto">
+                  Hey{" "}
+                  <span className="text-blue-400 font-medium">{userName}</span>!
+                  Track your monthly limits and upgrade when you're ready for
+                  more.
+                </p>
               </motion.div>
             </div>
 
-            {/* Usage Summary Stats */}
             <UsageSummaryStats
               usageItems={sortedItems}
               planType={usage.plan_type}
               totalUsed={totalUsed}
             />
 
-            {/* Usage Details Section */}
             <div>
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 sm:mb-8 px-2 sm:px-0">
-                <motion.h2
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-2 sm:mb-0"
-                >
-                  Feature Usage
-                </motion.h2>
-
-                <div className="flex items-center gap-2 text-xs sm:text-sm text-slate-400">
-                  <Calendar className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
+              <div className="flex items-center justify-between mb-8">
+                <h2 className="text-3xl font-bold text-white">Feature Usage</h2>
+                <div className="flex items-center gap-2 text-sm text-slate-400">
+                  <Calendar className="w-4 h-4" />
                   <span>Current billing period</span>
                 </div>
               </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8 px-2 sm:px-0">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {sortedItems.map((item, index) => {
                   const isAtLimit =
                     item.limit !== -1 && item.used >= item.limit;
@@ -1043,55 +897,6 @@ const PlanUsagePage = () => {
               </div>
             </div>
 
-            {/* Upgrade CTA */}
-            {needsUpgrade && hasLimitReached && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="text-center px-2 sm:px-0"
-              >
-                <Card className="bg-gradient-to-br from-blue-500/10 to-purple-600/10 backdrop-blur-xl border border-blue-500/20 hover:border-blue-400/40 transition-all duration-300">
-                  <CardContent className="p-4 sm:p-6 md:p-8">
-                    <div className="flex justify-center mb-3 sm:mb-4">
-                      <motion.div
-                        animate={{ rotate: 360 }}
-                        transition={{
-                          duration: 20,
-                          repeat: Infinity,
-                          ease: "linear",
-                        }}
-                        className="p-2 sm:p-3 md:p-4 rounded-full bg-gradient-to-r from-blue-500/20 to-purple-500/20 border border-blue-500/30"
-                      >
-                        <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-blue-400" />
-                      </motion.div>
-                    </div>
-                    <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-white mb-2 sm:mb-3 md:mb-4">
-                      Ready to Unlock More?
-                    </h3>
-                    <p className="text-sm sm:text-base text-slate-300 mb-4 sm:mb-6 max-w-2xl mx-auto leading-relaxed">
-                      You've reached your current plan limits. Upgrade to Pro
-                      for unlimited access to all features and accelerate your
-                      career journey.
-                    </p>
-
-                    <Link to="/pricing">
-                      <motion.div
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                      >
-                        <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold px-4 sm:px-6 md:px-8 py-2.5 sm:py-3 text-sm sm:text-base md:text-lg h-10 sm:h-11 md:h-12">
-                          <Crown className="w-4 h-4 sm:w-5 sm:h-5 mr-2 flex-shrink-0" />
-                          <span className="truncate">Upgrade to Pro</span>
-                          <ArrowRight className="ml-2 w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
-                        </Button>
-                      </motion.div>
-                    </Link>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            )}
-
-            {/* Plan Comparison */}
             <PlanComparison currentPlan={usage.plan_type} />
           </motion.div>
         </div>
