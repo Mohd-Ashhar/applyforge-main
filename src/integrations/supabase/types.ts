@@ -107,47 +107,87 @@ export type Database = {
         };
         Relationships: [];
       };
+      // **ADDED**: Definition for the new disliked_jobs table
+      disliked_jobs: {
+        Row: {
+          id: number;
+          created_at: string;
+          user_id: string;
+          job_title: string | null;
+          company_name: string | null;
+          apply_link: string | null;
+          job_description: string | null;
+        };
+        Insert: {
+          id?: number;
+          created_at?: string;
+          user_id: string;
+          job_title?: string | null;
+          company_name?: string | null;
+          apply_link?: string | null;
+          job_description?: string | null;
+        };
+        Update: {
+          id?: number;
+          created_at?: string;
+          user_id?: string;
+          job_title?: string | null;
+          company_name?: string | null;
+          apply_link?: string | null;
+          job_description?: string | null;
+        };
+        Relationships: [];
+      };
       job_data: {
         Row: {
           apply_link: string | null;
           company_name: string | null;
+          companyLinkedinUrl: string | null;
           created_at: string;
-          experience_level: string | null;
+          experience_level: string[] | null;
+          fts: unknown | null;
           industries: string | null;
+          job_category: string | null;
           job_description: string | null;
           job_id: number;
           job_title: string | null;
-          job_type: string | null;
+          job_type: string[] | null;
           linkedin_apply_link: string | null;
-          location: string | null;
+          location: string[] | null;
           posted_at: string | null;
         };
         Insert: {
           apply_link?: string | null;
           company_name?: string | null;
+          companyLinkedinUrl?: string | null;
           created_at?: string;
-          experience_level?: string | null;
+          experience_level?: string[] | null;
+          fts?: unknown | null;
           industries?: string | null;
+          job_category?: string | null;
           job_description?: string | null;
           job_id: number;
           job_title?: string | null;
-          job_type?: string | null;
+          job_type?: string[] | null;
           linkedin_apply_link?: string | null;
-          location?: string | null;
+          location?: string[] | null;
           posted_at?: string | null;
         };
         Update: {
           apply_link?: string | null;
           company_name?: string | null;
+          companyLinkedinUrl?: string | null;
           created_at?: string;
-          experience_level?: string | null;
+          experience_level?: string[] | null;
+          fts?: unknown | null;
           industries?: string | null;
+          job_category?: string | null;
           job_description?: string | null;
           job_id?: number;
           job_title?: string | null;
-          job_type?: string | null;
+          job_type?: string[] | null;
           linkedin_apply_link?: string | null;
-          location?: string | null;
+          location?: string[] | null;
           posted_at?: string | null;
         };
         Relationships: [];
@@ -405,6 +445,46 @@ export type Database = {
         };
         Relationships: [];
       };
+      user_job_preferences: {
+        Row: {
+          id: string;
+          user_id: string;
+          created_at: string;
+          job_title: string | null;
+          locations: string[] | null;
+          job_types: string[] | null;
+          experience_levels: string[] | null;
+          subscription_plan: string | null;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          created_at?: string;
+          job_title?: string | null;
+          locations?: string[] | null;
+          job_types?: string[] | null;
+          experience_levels?: string[] | null;
+          subscription_plan?: string | null;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          created_at?: string;
+          job_title?: string | null;
+          locations?: string[] | null;
+          job_types?: string[] | null;
+          experience_levels?: string[] | null;
+          subscription_plan?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "user_job_preferences_user_id_fkey";
+            columns: ["user_id"];
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
       user_usage: {
         Row: {
           ats_checks_used: number | null;
@@ -416,6 +496,7 @@ export type Database = {
           plan_type: string | null;
           resume_tailors_used: number | null;
           user_id: string;
+          version: number;
         };
         Insert: {
           ats_checks_used?: number | null;
@@ -427,6 +508,7 @@ export type Database = {
           plan_type?: string | null;
           resume_tailors_used?: number | null;
           user_id: string;
+          version?: number;
         };
         Update: {
           ats_checks_used?: number | null;
@@ -438,6 +520,7 @@ export type Database = {
           plan_type?: string | null;
           resume_tailors_used?: number | null;
           user_id?: string;
+          version?: number;
         };
         Relationships: [];
       };
@@ -446,6 +529,15 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
+      get_jobs_prioritized: {
+        Args: {
+          p_job_title: string;
+          p_locations: string[];
+          p_experience_levels: string[];
+          p_job_types: string[];
+        };
+        Returns: Tables<"job_data">[];
+      };
       handle_successful_payment: {
         Args: {
           p_user_id: string;
@@ -587,7 +679,6 @@ export type Enums<
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
     : never = never
-  // **FIX: Replaced the incorrect variable name with the correct one.**
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals;
 }

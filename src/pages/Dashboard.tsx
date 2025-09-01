@@ -6,7 +6,8 @@ import React, {
   useCallback,
   Suspense,
 } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+// ENHANCEMENT: Added PanInfo for swipe gesture typing
+import { motion, AnimatePresence, type PanInfo } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -180,7 +181,7 @@ const AI_AGENTS = [
   },
 ];
 
-// **REFACTORED: useAppliedJobsCount hook**
+// **UNCHANGED: fetchAppliedJobsCount and custom hook**
 const fetchAppliedJobsCount = async (userId?: string): Promise<number> => {
   if (!userId) return 0;
   try {
@@ -196,10 +197,6 @@ const fetchAppliedJobsCount = async (userId?: string): Promise<number> => {
   }
 };
 
-// =================================================================
-// **FIX: Correctly type the options parameter.**
-// This new type omits properties that are already defined inside the hook.
-// =================================================================
 type AppliedJobsCountOptions = Omit<
   UseQueryOptions<number>,
   "queryKey" | "queryFn" | "enabled" | "initialData"
@@ -207,7 +204,6 @@ type AppliedJobsCountOptions = Omit<
 
 const useAppliedJobsCount = (options?: AppliedJobsCountOptions) => {
   const { user } = useAuth();
-
   const {
     data: appliedJobsCount,
     isLoading,
@@ -219,7 +215,6 @@ const useAppliedJobsCount = (options?: AppliedJobsCountOptions) => {
     initialData: 0,
     ...options,
   });
-
   return {
     appliedJobsCount: appliedJobsCount ?? 0,
     isLoading,
@@ -236,7 +231,6 @@ const useCareerState = () => {
     coverLettersCrafted: 0,
     lastAction: "OPTIMIZED_RESUME",
   });
-
   return state;
 };
 
@@ -353,7 +347,11 @@ const AIAgentCard = memo(
 );
 AIAgentCard.displayName = "AIAgentCard";
 
-// **ENHANCED: AI Agent-Oriented Live Analytics**
+// =================================================================
+// **ENHANCEMENT 1: Redesigned Live Analytics Cards**
+// This component is now refactored to use the consistent, glassmorphism
+// card design from the Plan & Usage page for a unified look and feel.
+// =================================================================
 const LiveAnalyticsCards = memo(() => {
   const {
     usage,
@@ -369,41 +367,72 @@ const LiveAnalyticsCards = memo(() => {
 
   const { toast } = useToast();
 
-  // ... (rest of the component is unchanged)
   const agentMetrics = useMemo(() => {
-    const resumeOptimized = usage?.resume_tailors_used || 0;
-    const coverLettersCrafted = usage?.cover_letters_used || 0;
-    const jobsSearched = usage?.job_searches_used || 0;
-    const oneClickTailors = usage?.one_click_tailors_used || 0;
-    const atsChecks = usage?.ats_checks_used || 0;
-
     const totalAgentActions =
-      resumeOptimized +
-      coverLettersCrafted +
-      jobsSearched +
-      oneClickTailors +
-      atsChecks;
+      (usage?.resume_tailors_used || 0) +
+      (usage?.cover_letters_used || 0) +
+      (usage?.job_searches_used || 0) +
+      (usage?.one_click_tailors_used || 0) +
+      (usage?.ats_checks_used || 0);
 
     const activeAgents = [
-      resumeOptimized > 0,
-      coverLettersCrafted > 0,
-      jobsSearched > 0,
-      oneClickTailors > 0,
-      atsChecks > 0,
+      (usage?.resume_tailors_used || 0) > 0,
+      (usage?.cover_letters_used || 0) > 0,
+      (usage?.job_searches_used || 0) > 0,
+      (usage?.one_click_tailors_used || 0) > 0,
+      (usage?.ats_checks_used || 0) > 0,
     ].filter(Boolean).length;
 
-    const totalAgentsLive =
-      usage?.plan_type === "Pro" ? 6 : usage?.plan_type === "Basic" ? 6 : 3;
+    const totalAgentsLive = AI_AGENTS.filter((a) => a.implemented).length;
 
     return {
       agentsLive: totalAgentsLive,
       agentsActive: activeAgents,
       agentActions: totalAgentActions,
-      jobApplications: appliedJobsCount,
     };
-  }, [usage, appliedJobsCount]);
+  }, [usage]);
+
+  const stats = useMemo(
+    () => [
+      {
+        IconComponent: Bot,
+        label: "Agents Live",
+        value: agentMetrics.agentsLive.toString(),
+        progress: 100,
+        description: "Total agents deployed",
+        iconColor: "text-blue-400",
+        borderColor: "border-blue-500/20",
+        gradient: "from-blue-400 to-indigo-400",
+      },
+      {
+        IconComponent: Sparkles,
+        label: "Agents Active",
+        value: `${agentMetrics.agentsActive}`,
+        progress:
+          agentMetrics.agentsLive > 0
+            ? (agentMetrics.agentsActive / agentMetrics.agentsLive) * 100
+            : 0,
+        description: "Currently working for you",
+        iconColor: "text-purple-400",
+        borderColor: "border-purple-500/20",
+        gradient: "from-purple-400 to-pink-400",
+      },
+      {
+        IconComponent: Target,
+        label: "Agent Actions",
+        value: agentMetrics.agentActions.toString(),
+        progress: Math.min(agentMetrics.agentActions, 100), // Visual cap at 100
+        description: "Actions this month",
+        iconColor: "text-emerald-400",
+        borderColor: "border-emerald-500/20",
+        gradient: "from-emerald-400 to-green-400",
+      },
+    ],
+    [agentMetrics]
+  );
 
   const handleRefresh = useCallback(async () => {
+    // ... (unchanged)
     try {
       await Promise.all([refreshUsage(), refreshCount()]);
       toast({
@@ -420,6 +449,7 @@ const LiveAnalyticsCards = memo(() => {
   }, [refreshUsage, refreshCount, toast]);
 
   if (usageLoading || jobsLoading) {
+    // ... (unchanged skeleton)
     return (
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -456,14 +486,7 @@ const LiveAnalyticsCards = memo(() => {
       className="mb-12"
     >
       <div className="flex items-center justify-between mb-6">
-        <motion.h2
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-2xl font-bold text-white"
-        >
-          Agent Analytics Live
-        </motion.h2>
-
+        <h2 className="text-2xl font-bold text-white">Agent Analytics Live</h2>
         <Tooltip>
           <TooltipTrigger asChild>
             <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
@@ -481,188 +504,55 @@ const LiveAnalyticsCards = memo(() => {
         </Tooltip>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* **AGENTS LIVE CARD** */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-        >
-          <Card className="bg-gradient-to-br from-blue-500/10 to-indigo-600/10 backdrop-blur-xl border border-blue-500/20 hover:border-blue-400/40 transition-all duration-300 group">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex-1">
-                  <p className="text-sm text-slate-400 font-medium mb-1">
-                    Agents Live
-                  </p>
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-3xl font-bold text-white">
-                      {agentMetrics.agentsLive}
-                    </span>
-                    <span className="text-sm text-slate-400">
-                      total deployed
-                    </span>
-                  </div>
-                </div>
-                <motion.div
-                  className="p-3 rounded-xl bg-blue-500/20 border border-blue-500/30"
-                  whileHover={{ scale: 1.1, rotate: 5 }}
-                >
-                  <Bot className="w-5 h-5 text-blue-400" />
-                </motion.div>
-              </div>
-              <div className="flex items-center gap-2 mb-4">
-                <motion.div
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ delay: 0.3 }}
-                  className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold bg-blue-500/20 text-blue-400 border border-blue-500/20"
-                >
-                  <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse" />
-                  <span>All systems operational</span>
-                </motion.div>
-              </div>
-              <div className="space-y-2">
-                <div className="flex justify-between text-xs text-slate-400">
-                  <span>Agent Status</span>
-                  <span>100% Uptime</span>
-                </div>
-                <motion.div
-                  initial={{ width: 0 }}
-                  animate={{ width: "100%" }}
-                  transition={{ delay: 0.5, duration: 0.8 }}
-                >
-                  <Progress value={100} className="h-2 bg-slate-700/50" />
-                </motion.div>
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        {/* **AGENTS ACTIVE CARD** */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-        >
-          <Card className="bg-gradient-to-br from-purple-500/10 to-pink-600/10 backdrop-blur-xl border border-purple-500/20 hover:border-purple-400/40 transition-all duration-300 group">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex-1">
-                  <p className="text-sm text-slate-400 font-medium mb-1">
-                    Agents Active
-                  </p>
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-3xl font-bold text-white">
-                      {agentMetrics.agentsActive}
-                    </span>
-                    <span className="text-sm text-slate-400">
-                      of {agentMetrics.agentsLive} agents
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {stats.map((stat, index) => (
+          <motion.div
+            key={stat.label}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: index * 0.1 }}
+            className="group"
+          >
+            <Card
+              className={`bg-slate-800/20 backdrop-blur-xl border ${stat.borderColor} hover:border-opacity-60 transition-all duration-300 h-full group hover:shadow-lg hover:shadow-blue-500/5`}
+            >
+              <CardContent className="p-4 flex flex-col justify-between h-full">
+                <div>
+                  <div className="flex items-start justify-between mb-3">
+                    <div
+                      className={`w-10 h-10 bg-slate-900/50 border ${stat.borderColor} rounded-xl flex items-center justify-center`}
+                    >
+                      <stat.IconComponent
+                        className={`w-5 h-5 ${stat.iconColor}`}
+                      />
+                    </div>
+                    <span className={`text-2xl font-bold ${stat.iconColor}`}>
+                      {stat.value}
                     </span>
                   </div>
+                  <h3 className="font-semibold text-white text-base mb-1">
+                    {stat.label}
+                  </h3>
+                  <p className="text-xs text-slate-400">{stat.description}</p>
                 </div>
-                <motion.div
-                  className="p-3 rounded-xl bg-purple-500/20 border border-purple-500/30"
-                  whileHover={{ scale: 1.1, rotate: 5 }}
-                >
-                  <Sparkles className="w-5 h-5 text-purple-400" />
-                </motion.div>
-              </div>
-              <div className="flex items-center gap-2 mb-4">
-                <motion.div
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ delay: 0.4 }}
-                  className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/20"
-                >
-                  ↗<span>{agentMetrics.agentsActive} working now</span>
-                </motion.div>
-              </div>
-              <div className="space-y-2">
-                <div className="flex justify-between text-xs text-slate-400">
-                  <span>Activity Rate</span>
-                  <span>
-                    {Math.round(
-                      (agentMetrics.agentsActive / agentMetrics.agentsLive) *
-                        100
-                    )}
-                    %
-                  </span>
-                </div>
-                <motion.div
-                  initial={{ width: 0 }}
-                  animate={{ width: "100%" }}
-                  transition={{ delay: 0.6, duration: 0.8 }}
-                >
-                  <Progress
-                    value={
-                      (agentMetrics.agentsActive / agentMetrics.agentsLive) *
-                      100
-                    }
-                    className="h-2 bg-slate-700/50"
-                  />
-                </motion.div>
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        {/* **AGENT ACTIONS CARD** */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-        >
-          <Card className="bg-gradient-to-br from-emerald-500/10 to-green-600/10 backdrop-blur-xl border border-emerald-500/20 hover:border-emerald-400/40 transition-all duration-300 group">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex-1">
-                  <p className="text-sm text-slate-400 font-medium mb-1">
-                    Agent Actions
-                  </p>
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-3xl font-bold text-white">
-                      {agentMetrics.agentActions}
-                    </span>
-                    <span className="text-sm text-slate-400">this month</span>
+                <div className="mt-4">
+                  <div className="h-1.5 bg-slate-700/50 rounded-full overflow-hidden">
+                    <motion.div
+                      className={`h-full bg-gradient-to-r ${stat.gradient}`}
+                      initial={{ width: 0 }}
+                      animate={{ width: `${stat.progress}%` }}
+                      transition={{
+                        delay: 0.5 + index * 0.1,
+                        duration: 0.8,
+                        ease: "easeOut",
+                      }}
+                    />
                   </div>
                 </div>
-                <motion.div
-                  className="p-3 rounded-xl bg-emerald-500/20 border border-emerald-500/30"
-                  whileHover={{ scale: 1.1, rotate: 5 }}
-                >
-                  <Target className="w-5 h-5 text-emerald-400" />
-                </motion.div>
-              </div>
-              <div className="flex items-center gap-2 mb-4">
-                <motion.div
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ delay: 0.5 }}
-                  className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/20"
-                >
-                  ↗<span>Accelerating career</span>
-                </motion.div>
-              </div>
-              <div className="space-y-2">
-                <div className="flex justify-between text-xs text-slate-400">
-                  <span>Monthly Progress</span>
-                  <span>{agentMetrics.jobApplications} jobs applied</span>
-                </div>
-                <motion.div
-                  initial={{ width: 0 }}
-                  animate={{ width: "100%" }}
-                  transition={{ delay: 0.7, duration: 0.8 }}
-                >
-                  <Progress
-                    value={Math.min(agentMetrics.agentActions * 2, 100)}
-                    className="h-2 bg-slate-700/50"
-                  />
-                </motion.div>
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        ))}
       </div>
     </motion.div>
   );
@@ -955,7 +845,7 @@ const MobileBottomNav = memo(
       { icon: Home, label: "Dashboard", path: "/dashboard" },
       { icon: Briefcase, label: "Jobs", path: "/job-finder" },
       { icon: LayoutGrid, label: "Agents", path: "/dashboard" },
-      { icon: BarChart3, label: "Analytics", path: "/analytics" },
+      { icon: BarChart3, label: "Analytics", path: "/plan-usage" },
     ];
 
     return (
@@ -983,6 +873,7 @@ const Dashboard = memo(() => {
   const { toast } = useToast();
 
   const greeting = useMemo(() => {
+    // ... (unchanged)
     const hour = new Date().getHours();
     if (hour < 12) return "Good morning";
     if (hour < 18) return "Good afternoon";
@@ -990,6 +881,7 @@ const Dashboard = memo(() => {
   }, []);
 
   const userName = useMemo(() => {
+    // ... (unchanged)
     if (!user) return "there";
     return (
       user.user_metadata?.full_name?.split(" ")?.[0] ||
@@ -999,11 +891,13 @@ const Dashboard = memo(() => {
   }, [user]);
 
   const sortedAgents = useMemo(
+    // ... (unchanged)
     () => [...AI_AGENTS].sort((a, b) => a.priority - b.priority),
     []
   );
 
   const handleAgentActivate = useCallback(
+    // ... (unchanged)
     (path?: string, implemented = false) => {
       if (!user) {
         navigate("/auth");
@@ -1027,12 +921,41 @@ const Dashboard = memo(() => {
     [user, navigate, toast]
   );
 
+  // =================================================================
+  // **ENHANCEMENT 2: Swipe Navigation Handler**
+  // This function handles the logic for navigating between pages
+  // based on the user's horizontal swipe gesture.
+  // =================================================================
+  const handleSwipeNavigation = (
+    event: MouseEvent | TouchEvent | PointerEvent,
+    info: PanInfo
+  ) => {
+    const swipeConfidenceThreshold = 10000;
+    const swipePower = Math.abs(info.offset.x) * info.velocity.x;
+
+    // Swipe Left (to next page)
+    if (swipePower < -swipeConfidenceThreshold) {
+      navigate("/plan-usage"); // Navigate to Plan & Usage page
+    }
+    // Swipe Right (to previous page)
+    else if (swipePower > swipeConfidenceThreshold) {
+      navigate("/job-finder"); // Navigate to Job Finder page
+    }
+  };
+
   return (
     <TooltipProvider>
       <div className="min-h-screen bg-background pb-20 md:pb-0">
         <DashboardHeader />
 
-        <div className="container mx-auto px-4 py-8 max-w-7xl">
+        {/* This motion.div enables the swipe gesture */}
+        <motion.div
+          drag="x"
+          dragConstraints={{ left: 0, right: 0 }}
+          dragSnapToOrigin
+          onDragEnd={handleSwipeNavigation}
+          className="container mx-auto px-4 py-8 max-w-7xl"
+        >
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -1127,7 +1050,7 @@ const Dashboard = memo(() => {
 
             <RedesignedCallToAction />
           </motion.div>
-        </div>
+        </motion.div>
 
         <MobileBottomNav />
       </div>

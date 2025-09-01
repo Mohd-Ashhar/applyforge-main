@@ -279,74 +279,6 @@ const AIStarRating = memo(
   }
 );
 
-// **AGENT INSIGHTS STATS COMPONENT**
-const InsightsCollectorStats = () => {
-  const stats = useMemo(
-    () => ({
-      totalInsights: 12847, // Mock total insights collected
-      thisMonth: 1205, // Mock this month insights
-      improvementsMade: 89, // Mock improvements implemented
-      agentLearning: 96, // Mock agent learning progress
-    }),
-    []
-  );
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.2 }}
-      className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8"
-    >
-      <Card className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl border border-slate-700/50">
-        <CardContent className="p-4 text-center">
-          <div className="flex items-center justify-center mb-2">
-            <Database className="w-5 h-5 text-amber-400" />
-          </div>
-          <div className="text-2xl font-bold text-white">
-            {stats.totalInsights.toLocaleString()}
-          </div>
-          <div className="text-xs text-slate-400">Total Insights</div>
-        </CardContent>
-      </Card>
-
-      <Card className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl border border-slate-700/50">
-        <CardContent className="p-4 text-center">
-          <div className="flex items-center justify-center mb-2">
-            <TrendingUp className="w-5 h-5 text-orange-400" />
-          </div>
-          <div className="text-2xl font-bold text-white">{stats.thisMonth}</div>
-          <div className="text-xs text-slate-400">This Month</div>
-        </CardContent>
-      </Card>
-
-      <Card className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl border border-slate-700/50">
-        <CardContent className="p-4 text-center">
-          <div className="flex items-center justify-center mb-2">
-            <Target className="w-5 h-5 text-green-400" />
-          </div>
-          <div className="text-2xl font-bold text-white">
-            {stats.improvementsMade}
-          </div>
-          <div className="text-xs text-slate-400">Improvements Made</div>
-        </CardContent>
-      </Card>
-
-      <Card className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl border border-slate-700/50">
-        <CardContent className="p-4 text-center">
-          <div className="flex items-center justify-center mb-2">
-            <Activity className="w-5 h-5 text-blue-400" />
-          </div>
-          <div className="text-2xl font-bold text-white">
-            {stats.agentLearning}%
-          </div>
-          <div className="text-xs text-slate-400">Agent Learning</div>
-        </CardContent>
-      </Card>
-    </motion.div>
-  );
-};
-
 const AIInsightsCollectorAgent: React.FC = () => {
   const [rating, setRating] = useState(0);
   const [suggestion, setSuggestion] = useState("");
@@ -355,7 +287,6 @@ const AIInsightsCollectorAgent: React.FC = () => {
   const [loadingStage, setLoadingStage] = useState(0);
   const [showResultModal, setShowResultModal] = useState(false);
   const [resultMessage, setResultMessage] = useState("");
-  const [saveAsDraft, setSaveAsDraft] = useState(false);
   const [formValidation, setFormValidation] = useState({
     rating: true,
   });
@@ -373,47 +304,6 @@ const AIInsightsCollectorAgent: React.FC = () => {
       "there"
     );
   }, [user?.user_metadata?.full_name, user?.email]);
-
-  // Auto-save draft functionality
-  useEffect(() => {
-    if (saveAsDraft && user) {
-      const draftData = { rating, suggestion, comment };
-      localStorage.setItem("feedbackDraft", JSON.stringify(draftData));
-    }
-  }, [rating, suggestion, comment, saveAsDraft, user]);
-
-  // Load draft on mount
-  useEffect(() => {
-    if (!user) return;
-
-    const draft = localStorage.getItem("feedbackDraft");
-    if (draft) {
-      try {
-        const draftData = JSON.parse(draft);
-        if (draftData.rating || draftData.suggestion || draftData.comment) {
-          toast({
-            title: "Agent Draft Found 🤖",
-            description:
-              "We found a saved draft. Click 'Load Draft' to restore it.",
-            action: (
-              <Button
-                size="sm"
-                onClick={() => {
-                  setRating(draftData.rating || 0);
-                  setSuggestion(draftData.suggestion || "");
-                  setComment(draftData.comment || "");
-                }}
-              >
-                Load Draft
-              </Button>
-            ),
-          });
-        }
-      } catch (error) {
-        console.error("Error loading draft:", error);
-      }
-    }
-  }, [toast, user]);
 
   const simulateLoadingStages = useCallback(() => {
     const stages = [0, 1, 2, 3, 4, 5];
@@ -497,23 +387,20 @@ const AIInsightsCollectorAgent: React.FC = () => {
     simulateLoadingStages();
 
     try {
-      // Get user profile data
+      // Get user profile data (optional, for enrichment)
       const { data: profile } = await supabase
         .from("profiles")
         .select("full_name, email")
         .eq("id", user.id)
         .single();
 
-      // Send feedback to webhook
-      const response = await fetch(
-        "https://n8n.applyforge.cloud/webhook-test/feedback-form",
+      // --- REPLACEMENT ---
+      // Securely call the new feedback-proxy Edge Function
+      const { data: result, error } = await supabase.functions.invoke(
+        "feedback-proxy",
         {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            user_id: user.id,
+          body: {
+            // user_id is now handled securely by the backend
             feature: "ai_insights_collector_agent",
             userName: profile?.full_name || userName,
             userEmail: profile?.email || user.email,
@@ -521,22 +408,22 @@ const AIInsightsCollectorAgent: React.FC = () => {
             suggestion: suggestion,
             comment: comment,
             timestamp: new Date().toISOString(),
-          }),
+          },
         }
       );
 
-      if (!response.ok) {
-        throw new Error("Failed to submit insights");
+      if (error) {
+        throw new Error(error.message);
       }
-
-      const result = await response.text();
+      // --- END REPLACEMENT ---
 
       // Clear draft
       localStorage.removeItem("feedbackDraft");
 
       // Show result in modal
       setResultMessage(
-        result || "Thank you for helping our AI agents learn and improve!"
+        result.message ||
+          "Thank you for helping our AI agents learn and improve!"
       );
       setShowResultModal(true);
 
@@ -626,21 +513,6 @@ const AIInsightsCollectorAgent: React.FC = () => {
             transition={{ duration: 0.5 }}
             className="space-y-8"
           >
-            {/* Back to Home Button */}
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-            >
-              <Button
-                variant="outline"
-                onClick={() => navigate("/")}
-                className="border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white backdrop-blur-sm"
-              >
-                <Home className="w-4 h-4 mr-2" />
-                Back to Dashboard
-              </Button>
-            </motion.div>
-
             {/* Hero Section - AI Agent Focused */}
             <div className="text-center space-y-6">
               <motion.div
@@ -701,55 +573,7 @@ const AIInsightsCollectorAgent: React.FC = () => {
                   </motion.div>
                 </div>
               </motion.div>
-
-              {/* Agent Capabilities */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.5 }}
-                className="grid grid-cols-1 sm:grid-cols-4 gap-6 max-w-5xl mx-auto"
-              >
-                {[
-                  {
-                    icon: Brain,
-                    title: "Smart Learning",
-                    desc: "AI learns from your feedback",
-                  },
-                  {
-                    icon: Database,
-                    title: "Insights Storage",
-                    desc: "Secure data collection",
-                  },
-                  {
-                    icon: Target,
-                    title: "Targeted Improvements",
-                    desc: "Precise system enhancements",
-                  },
-                  {
-                    icon: Activity,
-                    title: "Real-time Learning",
-                    desc: "Continuous agent evolution",
-                  },
-                ].map((capability, index) => (
-                  <motion.div
-                    key={capability.title}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.6 + index * 0.1 }}
-                    className="p-4 rounded-xl bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl border border-slate-700/50"
-                  >
-                    <capability.icon className="w-8 h-8 text-amber-400 mx-auto mb-3" />
-                    <h3 className="font-semibold text-white mb-2">
-                      {capability.title}
-                    </h3>
-                    <p className="text-sm text-slate-400">{capability.desc}</p>
-                  </motion.div>
-                ))}
-              </motion.div>
             </div>
-
-            {/* Insights Collector Stats */}
-            <InsightsCollectorStats />
 
             {/* Quick Actions */}
             <motion.div
@@ -879,12 +703,6 @@ const AIInsightsCollectorAgent: React.FC = () => {
                       >
                         <Lightbulb className="w-4 h-4 text-yellow-400" />
                         AI Improvement Suggestions
-                        <Badge
-                          variant="outline"
-                          className="text-xs border-slate-600 text-slate-400"
-                        >
-                          Optional
-                        </Badge>
                       </Label>
                       <motion.div whileFocus={{ scale: 1.01 }}>
                         <Textarea
@@ -915,12 +733,6 @@ const AIInsightsCollectorAgent: React.FC = () => {
                       >
                         <MessageSquare className="w-4 h-4 text-amber-400" />
                         AI Agent Experience
-                        <Badge
-                          variant="outline"
-                          className="text-xs border-slate-600 text-slate-400"
-                        >
-                          Optional
-                        </Badge>
                       </Label>
                       <motion.div whileFocus={{ scale: 1.01 }}>
                         <Textarea
@@ -936,29 +748,6 @@ const AIInsightsCollectorAgent: React.FC = () => {
                         <span>Share your detailed AI agent experience</span>
                         <span>{comment.length}/1000</span>
                       </div>
-                    </motion.div>
-
-                    {/* Auto-save Option */}
-                    <motion.div
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.5 }}
-                      className="flex items-center space-x-3 p-3 bg-amber-500/5 rounded-lg border border-amber-500/20"
-                    >
-                      <input
-                        type="checkbox"
-                        id="save-draft"
-                        checked={saveAsDraft}
-                        onChange={(e) => setSaveAsDraft(e.target.checked)}
-                        className="rounded"
-                      />
-                      <label
-                        htmlFor="save-draft"
-                        className="text-sm flex items-center gap-2 text-slate-300"
-                      >
-                        <Save className="w-4 h-4" />
-                        Auto-save insights as draft while typing
-                      </label>
                     </motion.div>
 
                     {/* Enhanced Submit Button */}
@@ -992,7 +781,7 @@ const AIInsightsCollectorAgent: React.FC = () => {
                         ) : (
                           <>
                             <Send className="w-4 h-4 mr-2" />
-                            Share Insights with AI Agent
+                            Share Insights
                             <ChevronRight className="w-4 h-4 ml-2" />
                           </>
                         )}

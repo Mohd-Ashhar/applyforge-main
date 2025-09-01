@@ -1,17 +1,9 @@
-import React, {
-  useState,
-  useEffect,
-  useRef,
-  useMemo,
-  useCallback,
-  memo,
-} from "react";
+import React, { useState, useEffect, useMemo, useCallback, memo } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
 import {
   Tooltip,
@@ -27,71 +19,53 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { useToast } from "@/hooks/use-toast";
 import {
-  Upload,
-  X,
-  FileCheck,
-  Loader2,
-  Rocket,
+  ArrowLeft,
+  MessageSquare,
+  Star,
+  Send,
   CheckCircle,
-  Link as LinkIcon,
-  Mail,
-  FileText,
+  Heart,
   Sparkles,
+  Info,
+  Save,
+  RefreshCw,
   Shield,
   Clock,
-  Zap,
-  Info,
-  AlertCircle,
-  RefreshCw,
-  Save,
-  Target,
-  Globe,
-  Users,
   Award,
-  ArrowRight,
-  Play,
-  Pause,
-  Eye,
-  Lock,
-  Brain,
+  Users,
+  Lightbulb,
+  MessageCircle,
+  ThumbsUp,
+  Zap,
   Bot,
+  Brain,
+  TrendingUp,
+  Activity,
+  Target,
   Home,
   ChevronRight,
   Crown,
   Settings,
-  Activity,
+  Compass,
+  Database,
   type LucideIcon,
 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import DashboardHeader from "@/components/DashboardHeader";
 import UserAvatar from "@/components/header/UserAvatar";
 
-interface FileData {
-  filename: string;
-  content: string;
-  mimeType: string;
-  size: number;
-}
-
-interface FormData {
-  jobUrl: string;
-  email: string;
-  resume: File | null;
-  coverLetter: File | null;
-  emailUpdates: boolean;
-}
-
-// **ENHANCED AI AGENT LOADING EXPERIENCE - GREEN/EMERALD THEME**
-const ApplicationAgentLoadingOverlay = ({
+// **ENHANCED AI INSIGHTS COLLECTOR LOADING OVERLAY - AMBER/ORANGE THEME**
+const InsightsCollectorLoadingOverlay = ({
   show,
   stage = 0,
 }: {
@@ -99,13 +73,12 @@ const ApplicationAgentLoadingOverlay = ({
   stage?: number;
 }) => {
   const agentMessages = [
-    "🤖 Initializing Application Automation Agent...",
-    "🔍 Analyzing job posting requirements...",
-    "📄 Extracting data from your resume...",
-    "✍️ Personalizing application content...",
-    "📝 Auto-filling application forms...",
-    "🚀 Submitting your application...",
-    "✅ Finalizing submission details...",
+    "🤖 Activating AI Insights Collector Agent...",
+    "🧠 Processing your valuable feedback...",
+    "📊 Analyzing insights for improvements...",
+    "💾 Storing feedback in AI learning database...",
+    "🔄 Updating agent improvement algorithms...",
+    "✨ Finalizing insights collection process...",
   ];
 
   return (
@@ -118,7 +91,7 @@ const ApplicationAgentLoadingOverlay = ({
           transition={{ duration: 0.3 }}
           className="fixed inset-0 z-[999] flex flex-col items-center justify-center backdrop-blur-lg bg-background/90"
         >
-          {/* Agent Avatar with Application Animation */}
+          {/* Agent Avatar with Learning Animation */}
           <motion.div
             className="relative mb-8"
             initial={{ scale: 0.8, opacity: 0 }}
@@ -126,7 +99,7 @@ const ApplicationAgentLoadingOverlay = ({
             transition={{ duration: 0.6 }}
           >
             <motion.div
-              className="w-24 h-24 sm:w-32 sm:h-32 rounded-full bg-gradient-to-br from-emerald-500/20 via-green-500/15 to-teal-500/20 border border-emerald-500/20 flex items-center justify-center backdrop-blur-xl"
+              className="w-24 h-24 sm:w-32 sm:h-32 rounded-full bg-gradient-to-br from-amber-500/20 via-orange-500/15 to-yellow-500/20 border border-amber-500/20 flex items-center justify-center backdrop-blur-xl"
               animate={{
                 scale: [1, 1.2, 1],
                 rotate: [0, 180, 360],
@@ -137,11 +110,11 @@ const ApplicationAgentLoadingOverlay = ({
                 ease: "easeInOut",
               }}
             >
-              <Rocket className="w-12 h-12 sm:w-16 sm:h-16 text-emerald-400" />
+              <Brain className="w-12 h-12 sm:w-16 sm:h-16 text-amber-400" />
 
-              {/* Application rings */}
+              {/* Learning particles */}
               <motion.div
-                className="absolute inset-0 rounded-full border-2 border-emerald-400/30"
+                className="absolute inset-0 rounded-full border-2 border-amber-400/30"
                 animate={{
                   scale: [1, 1.5, 2],
                   opacity: [0.8, 0.3, 0],
@@ -163,20 +136,20 @@ const ApplicationAgentLoadingOverlay = ({
             className="text-center space-y-4 max-w-md"
           >
             <h3 className="text-xl sm:text-2xl font-bold text-white">
-              Application Automation Agent
+              AI Insights Collector Agent
             </h3>
-            <p className="text-base sm:text-lg text-emerald-400 font-medium">
+            <p className="text-base sm:text-lg text-amber-400 font-medium">
               {agentMessages[stage] || agentMessages[0]}
             </p>
 
             <div className="space-y-3">
               <Progress
-                value={(stage + 1) * 14.28}
+                value={(stage + 1) * 16.67}
                 className="w-80 max-w-full h-3 bg-slate-700/50"
               />
               <p className="text-sm text-slate-400">
-                {Math.round((stage + 1) * 14.28)}% Complete • Applying with AI
-                precision
+                {Math.round((stage + 1) * 16.67)}% Complete • Learning from your
+                insights
               </p>
             </div>
           </motion.div>
@@ -188,16 +161,16 @@ const ApplicationAgentLoadingOverlay = ({
             transition={{ delay: 0.8 }}
             className="mt-8 flex items-center gap-2 text-xs text-slate-400 bg-slate-800/30 px-4 py-2 rounded-full backdrop-blur-sm border border-slate-700/50"
           >
-            <Shield className="w-4 h-4 text-emerald-400" />
-            <span>Your application is being processed securely</span>
+            <Shield className="w-4 h-4 text-amber-400" />
+            <span>Your insights are being processed securely</span>
           </motion.div>
 
-          {/* Floating particles */}
+          {/* Floating learning particles */}
           <div className="absolute inset-0 overflow-hidden pointer-events-none">
             {[...Array(6)].map((_, i) => (
               <motion.div
                 key={i}
-                className="absolute w-2 h-2 bg-emerald-400/30 rounded-full"
+                className="absolute w-2 h-2 bg-amber-400/30 rounded-full"
                 animate={{
                   x: [0, 100, -100, 0],
                   y: [0, -100, 100, 0],
@@ -222,319 +195,105 @@ const ApplicationAgentLoadingOverlay = ({
   );
 };
 
-// **ENHANCED FILE UPLOAD COMPONENT - GREEN THEME**
-const AgentFileUpload = memo(
+// **ENHANCED AI STAR RATING COMPONENT**
+const AIStarRating = memo(
   ({
-    type,
-    file,
-    onFileUpload,
-    onRemove,
-    uploadProgress,
-    error,
-    required = false,
+    rating,
+    onRatingChange,
+    size = "default",
   }: {
-    type: "resume" | "coverLetter";
-    file: File | null;
-    onFileUpload: (file: File, type: "resume" | "coverLetter") => void;
-    onRemove: (type: "resume" | "coverLetter") => void;
-    uploadProgress: number;
-    error?: string;
-    required?: boolean;
+    rating: number;
+    onRatingChange: (rating: number) => void;
+    size?: string;
   }) => {
-    const [dragOver, setDragOver] = useState(false);
-    const fileInputRef = useRef<HTMLInputElement>(null);
+    const [hoverRating, setHoverRating] = useState(0);
 
-    const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
-      e.preventDefault();
-      setDragOver(true);
-    };
+    const starSize = size === "large" ? "w-8 h-8" : "w-6 h-6";
+    const containerPadding = size === "large" ? "p-2" : "p-1";
 
-    const handleDragLeave = () => setDragOver(false);
-
-    const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
-      e.preventDefault();
-      setDragOver(false);
-
-      const droppedFile = e.dataTransfer.files?.[0];
-      if (droppedFile) {
-        onFileUpload(droppedFile, type);
+    const getRatingColor = (star: number) => {
+      const activeRating = hoverRating || rating;
+      if (star <= activeRating) {
+        if (activeRating <= 2) return "text-red-400";
+        if (activeRating <= 3) return "text-orange-400";
+        if (activeRating <= 4) return "text-yellow-400";
+        return "text-amber-400";
       }
+      return "text-slate-600";
     };
 
-    const formatFileSize = (bytes: number) => {
-      return bytes < 1024 * 1024
-        ? `${(bytes / 1024).toFixed(1)} KB`
-        : `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+    const getRatingText = () => {
+      const activeRating = hoverRating || rating;
+      const texts = [
+        "",
+        "Needs Improvement",
+        "Fair Experience",
+        "Good Service",
+        "Very Good",
+        "Excellent AI!",
+      ];
+      return texts[activeRating] || "";
     };
-
-    const getFileIcon = () => {
-      if (!file) return Upload;
-      if (file.type === "application/pdf") return FileText;
-      return FileCheck;
-    };
-
-    const FileIcon = getFileIcon();
 
     return (
       <div className="space-y-2">
-        <Label className="text-base font-medium flex items-center gap-2">
-          {type === "resume" ? "Resume" : "Cover Letter"}
-          {required && <span className="text-destructive">*</span>}
-          <Tooltip>
-            <TooltipTrigger>
-              <Info className="w-4 h-4 text-slate-400" />
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Upload PDF, DOC, or DOCX files up to 5MB</p>
-            </TooltipContent>
-          </Tooltip>
-        </Label>
+        <div className="flex items-center gap-1 justify-center">
+          {[1, 2, 3, 4, 5].map((star) => (
+            <motion.button
+              key={star}
+              type="button"
+              onClick={() => onRatingChange(star)}
+              onMouseEnter={() => setHoverRating(star)}
+              onMouseLeave={() => setHoverRating(0)}
+              className={`${containerPadding} hover:scale-110 transition-all duration-200 touch-manipulation min-h-[44px] min-w-[44px] flex items-center justify-center ${getRatingColor(
+                star
+              )}`}
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <Star className={`${starSize} fill-current`} />
+            </motion.button>
+          ))}
+        </div>
 
-        {!file ? (
-          <motion.div
-            className={`
-            relative border-2 border-dashed rounded-xl cursor-pointer transition-all duration-300
-            ${
-              dragOver
-                ? "border-emerald-400 bg-emerald-500/5 scale-105"
-                : "border-slate-600 hover:border-emerald-400/60 hover:bg-emerald-500/5"
-            }
-            ${error ? "border-red-400 bg-red-500/5" : ""}
-          `}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-            onClick={() => fileInputRef.current?.click()}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-          >
-            <div className="flex flex-col items-center justify-center p-8">
-              <motion.div
-                animate={{ y: dragOver ? -5 : 0 }}
-                transition={{ duration: 0.2 }}
-              >
-                <FileIcon className="w-8 h-8 mb-3 text-slate-400" />
-              </motion.div>
-
-              <p className="text-sm text-slate-400 text-center">
-                <span className="font-semibold">Click to upload {type}</span> or
-                drag and drop
-              </p>
-              <p className="text-xs text-slate-500 mt-1">
-                PDF, DOC, DOCX up to 5MB
-              </p>
-            </div>
-
-            <input
-              ref={fileInputRef}
-              type="file"
-              className="hidden"
-              accept=".pdf,.doc,.docx"
-              onChange={(e) => {
-                const selectedFile = e.target.files?.[0];
-                if (selectedFile) onFileUpload(selectedFile, type);
-              }}
-            />
-
-            {dragOver && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="absolute inset-0 bg-emerald-500/10 border-2 border-emerald-400 rounded-xl flex items-center justify-center"
-              >
-                <p className="text-emerald-400 font-medium">
-                  Drop your {type} here!
-                </p>
-              </motion.div>
-            )}
-          </motion.div>
-        ) : (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="p-4 border rounded-xl bg-gradient-to-r from-emerald-500/5 to-green-500/5 border-emerald-500/20"
-          >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <div className="p-2 rounded-lg bg-emerald-500/20 border border-emerald-500/30">
-                  <FileCheck className="w-4 h-4 text-emerald-400" />
-                </div>
-                <div>
-                  <p className="font-medium text-emerald-400">{file.name}</p>
-                  <p className="text-xs text-emerald-300">
-                    {formatFileSize(file.size)}
-                  </p>
-                </div>
-              </div>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => onRemove(type)}
-                className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
-              >
-                <X className="w-4 h-4" />
-              </Button>
-            </div>
-
-            {uploadProgress > 0 && uploadProgress < 100 && (
-              <div className="mt-3">
-                <Progress value={uploadProgress} className="w-full h-2" />
-                <p className="text-xs text-slate-400 mt-1">
-                  {uploadProgress}% uploaded
-                </p>
-              </div>
-            )}
-          </motion.div>
-        )}
-
-        {error && (
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="text-sm text-destructive flex items-center gap-1"
-          >
-            <AlertCircle className="w-4 h-4" />
-            {error}
-          </motion.p>
-        )}
+        <AnimatePresence mode="wait">
+          {(hoverRating || rating) > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="flex items-center justify-center gap-2"
+            >
+              <span className="text-sm font-medium text-white">
+                {hoverRating || rating} star
+                {(hoverRating || rating) !== 1 ? "s" : ""}
+              </span>
+              <Badge className="bg-amber-500/20 text-amber-400 border-amber-500/30 text-xs">
+                {getRatingText()}
+              </Badge>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     );
   }
 );
 
-// **AGENT SUCCESS COMPONENT**
-const ApplicationSuccessView = memo(
-  ({
-    applicationId,
-    jobPreview,
-    onNewApplication,
-  }: {
-    applicationId: string;
-    jobPreview: { title?: string; company?: string } | null;
-    onNewApplication: () => void;
-  }) => (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="text-center space-y-8"
-    >
-      {/* Agent Completion Header */}
-      <div className="space-y-4">
-        <motion.div
-          initial={{ scale: 0 }}
-          animate={{ scale: 1 }}
-          transition={{ delay: 0.2, type: "spring" }}
-          className="mx-auto w-20 h-20 bg-gradient-to-br from-emerald-500/20 via-green-500/15 to-teal-500/20 rounded-full flex items-center justify-center border border-emerald-500/20 backdrop-blur-xl"
-        >
-          <Rocket className="w-10 h-10 text-emerald-400" />
-        </motion.div>
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">
-            Application Submitted Successfully! 🚀
-          </h1>
-          <p className="text-slate-300 text-lg">
-            Your Application Automation Agent has successfully submitted your
-            job application
-          </p>
-        </div>
-      </div>
+const AIInsightsCollectorAgent: React.FC = () => {
+  const [rating, setRating] = useState(0);
+  const [suggestion, setSuggestion] = useState("");
+  const [comment, setComment] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [loadingStage, setLoadingStage] = useState(0);
+  const [showResultModal, setShowResultModal] = useState(false);
+  const [resultMessage, setResultMessage] = useState("");
+  const [formValidation, setFormValidation] = useState({
+    rating: true,
+  });
 
-      {/* Results Card */}
-      <Card className="bg-gradient-to-br from-emerald-500/5 to-green-600/10 backdrop-blur-xl border border-emerald-500/20 hover:border-emerald-400/40 transition-all duration-300">
-        <CardContent className="pt-6">
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label className="text-sm font-medium text-slate-400">
-                  Application Tracking ID
-                </Label>
-                <p className="text-lg font-mono bg-emerald-500/10 border border-emerald-500/20 p-3 rounded-lg text-emerald-400">
-                  {applicationId}
-                </p>
-              </div>
-              <div>
-                <Label className="text-sm font-medium text-slate-400">
-                  Processing Time
-                </Label>
-                <p className="text-slate-300 text-lg p-3">30-60 seconds</p>
-              </div>
-            </div>
-
-            {jobPreview && (
-              <div className="mt-4 p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-lg">
-                <Label className="text-sm font-medium text-emerald-400">
-                  Applied Position
-                </Label>
-                <p className="text-emerald-300">
-                  {jobPreview.title} at {jobPreview.company}
-                </p>
-              </div>
-            )}
-
-            <div className="flex flex-wrap gap-2 justify-center mt-4">
-              <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30">
-                <Bot className="w-3 h-3 mr-1" />
-                AI Applied
-              </Badge>
-              <Badge className="bg-green-500/20 text-green-400 border-green-500/30">
-                <CheckCircle className="w-3 h-3 mr-1" />
-                Submitted Successfully
-              </Badge>
-              <Badge className="bg-teal-500/20 text-teal-400 border-teal-500/30">
-                <Clock className="w-3 h-3 mr-1" />
-                Fast Processing
-              </Badge>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Next Steps */}
-      <div className="space-y-4">
-        <Button
-          onClick={onNewApplication}
-          className="bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white px-8"
-          size="lg"
-        >
-          <Rocket className="w-4 h-4 mr-2" />
-          Apply to Another Job
-        </Button>
-      </div>
-    </motion.div>
-  )
-);
-
-const ApplicationAutomationAgent = () => {
   const { toast } = useToast();
   const { user } = useAuth();
   const navigate = useNavigate();
-
-  const [formData, setFormData] = useState<FormData>({
-    jobUrl: "",
-    email: "",
-    resume: null,
-    coverLetter: null,
-    emailUpdates: true,
-  });
-
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [loadingStage, setLoadingStage] = useState(0);
-  const [uploadProgress, setUploadProgress] = useState<{
-    resume: number;
-    coverLetter: number;
-  }>({
-    resume: 0,
-    coverLetter: 0,
-  });
-  const [submitted, setSubmitted] = useState(false);
-  const [applicationId, setApplicationId] = useState("");
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [jobPreview, setJobPreview] = useState<{
-    title?: string;
-    company?: string;
-  } | null>(null);
-  const [saveAsDraft, setSaveAsDraft] = useState(false);
 
   // Calculate user name for personalized greeting
   const userName = useMemo(() => {
@@ -546,237 +305,80 @@ const ApplicationAutomationAgent = () => {
     );
   }, [user?.user_metadata?.full_name, user?.email]);
 
-  // Auto-save draft functionality
-  useEffect(() => {
-    if (saveAsDraft) {
-      const draftData = {
-        jobUrl: formData.jobUrl,
-        email: formData.email,
-        emailUpdates: formData.emailUpdates,
-      };
-      localStorage.setItem("autoApplyDraft", JSON.stringify(draftData));
-    }
-  }, [formData.jobUrl, formData.email, formData.emailUpdates, saveAsDraft]);
-
-  // Load draft on mount
-  useEffect(() => {
-    const draft = localStorage.getItem("autoApplyDraft");
-    if (draft) {
-      try {
-        const draftData = JSON.parse(draft);
-        if (draftData.jobUrl || draftData.email) {
-          toast({
-            title: "Draft Found",
-            description:
-              "We found a saved draft. Click 'Load Draft' to restore it.",
-            action: (
-              <Button
-                size="sm"
-                onClick={() => {
-                  setFormData((prev) => ({
-                    ...prev,
-                    jobUrl: draftData.jobUrl || "",
-                    email: draftData.email || "",
-                    emailUpdates: draftData.emailUpdates ?? true,
-                  }));
-                }}
-              >
-                Load Draft
-              </Button>
-            ),
-          });
-        }
-      } catch (error) {
-        console.error("Error loading draft:", error);
-      }
-    }
-  }, [toast]);
-
   const simulateLoadingStages = useCallback(() => {
-    const stages = [0, 1, 2, 3, 4, 5, 6];
+    const stages = [0, 1, 2, 3, 4, 5];
     stages.forEach((stage, index) => {
-      setTimeout(() => setLoadingStage(stage), index * 2000);
+      setTimeout(() => setLoadingStage(stage), index * 1000);
     });
   }, []);
 
-  const loadSampleData = useCallback(() => {
-    setFormData({
-      ...formData,
-      jobUrl: "https://linkedin.com/jobs/view/3456789123",
-      email: "john.doe@email.com",
-    });
-
-    // Simulate job detection
-    setTimeout(() => {
-      setJobPreview({
-        title: "Senior Software Engineer",
-        company: "Microsoft",
-      });
-    }, 1000);
+  const loadSampleFeedback = useCallback(() => {
+    setRating(5);
+    setSuggestion(
+      "I'd love to see more AI-powered features for resume optimization and perhaps integration with LinkedIn for automatic profile updates. The agents are amazing!"
+    );
+    setComment(
+      "Your AI agents have been incredibly helpful in my job search! The AI Resume Arsenal and Application Automation Agent saved me hours of work. The interface is intuitive and the results are professional. Keep up the great work with the AI agents!"
+    );
 
     toast({
-      title: "Agent Example Loaded! 🚀",
-      description:
-        "Form filled with example data. Upload your resume to continue!",
+      title: "Agent Example Loaded! 🤖",
+      description: "Form filled with example insights for your agent.",
     });
-  }, [formData, toast]);
+  }, [toast]);
 
-  const handleJobUrlChange = async (url: string) => {
-    setFormData((prev) => ({ ...prev, jobUrl: url }));
+  const handleClearForm = useCallback(() => {
+    setRating(0);
+    setSuggestion("");
+    setComment("");
+    setFormValidation({ rating: true });
+    localStorage.removeItem("feedbackDraft");
 
-    if (url && isValidUrl(url)) {
-      try {
-        const urlObj = new URL(url);
-        if (
-          urlObj.hostname.includes("linkedin") ||
-          urlObj.hostname.includes("indeed") ||
-          urlObj.hostname.includes("glassdoor")
-        ) {
-          setJobPreview({ title: "Detecting...", company: "..." });
-
-          setTimeout(() => {
-            setJobPreview({
-              title: "Software Engineer",
-              company: "Tech Company Inc.",
-            });
-          }, 1500);
-        }
-      } catch (e) {
-        setJobPreview(null);
-      }
-    } else {
-      setJobPreview(null);
-    }
-  };
-
-  const validateFile = (file: File): string | null => {
-    const allowedTypes = [
-      "application/pdf",
-      "application/msword",
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    ];
-    const maxSize = 5 * 1024 * 1024; // 5MB
-
-    if (!allowedTypes.includes(file.type)) {
-      return "Please upload only PDF, DOC, or DOCX files";
-    }
-    if (file.size > maxSize) {
-      return "File size must be less than 5MB";
-    }
-    return null;
-  };
-
-  const convertFileToBase64 = (file: File): Promise<FileData> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        const result = reader.result as string;
-        const base64String = result.split(",")[1];
-        resolve({
-          filename: file.name,
-          content: base64String,
-          mimeType: file.type,
-          size: file.size,
-        });
-      };
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
+    toast({
+      title: "Agent Reset ✨",
+      description: "All fields have been reset for new insights collection.",
     });
+  }, [toast]);
+
+  const validateForm = () => {
+    const newValidation = {
+      rating: rating > 0,
+    };
+
+    setFormValidation(newValidation);
+    return Object.values(newValidation).every(Boolean);
   };
 
-  const handleFileUpload = useCallback(
-    (file: File, type: "resume" | "coverLetter") => {
-      const error = validateFile(file);
-      if (error) {
-        setErrors((prev) => ({ ...prev, [type]: error }));
-        toast({
-          title: "File Upload Error",
-          description: error,
-          variant: "destructive",
-        });
-        return;
-      }
-
-      setErrors((prev) => ({ ...prev, [type]: "" }));
-      setFormData((prev) => ({ ...prev, [type]: file }));
-
-      let progress = 0;
-      const interval = setInterval(() => {
-        progress += Math.random() * 15 + 5;
-        if (progress > 100) progress = 100;
-
-        setUploadProgress((prev) => ({ ...prev, [type]: progress }));
-
-        if (progress >= 100) {
-          clearInterval(interval);
-          toast({
-            title: "Upload Complete ✅",
-            description: `${
-              type === "resume" ? "Resume" : "Cover letter"
-            } uploaded successfully to your agent!`,
-          });
-        }
-      }, 150);
-    },
-    [toast]
-  );
-
-  const removeFile = useCallback((type: "resume" | "coverLetter") => {
-    setFormData((prev) => ({ ...prev, [type]: null }));
-    setUploadProgress((prev) => ({ ...prev, [type]: 0 }));
-    setErrors((prev) => ({ ...prev, [type]: "" }));
-  }, []);
-
-  const validateForm = (): boolean => {
-    const newErrors: Record<string, string> = {};
-
-    if (!formData.jobUrl.trim()) newErrors.jobUrl = "Job URL is required";
-    else if (!isValidUrl(formData.jobUrl))
-      newErrors.jobUrl = "Please enter a valid URL";
-
-    if (!formData.email.trim()) newErrors.email = "Email is required";
-    else if (!isValidEmail(formData.email))
-      newErrors.email = "Please enter a valid email";
-
-    if (!formData.resume) newErrors.resume = "Resume is required";
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+  const calculateProgress = () => {
+    const fields = [rating > 0, suggestion.trim(), comment.trim()];
+    const completed = fields.filter(Boolean).length;
+    return Math.round((completed / 3) * 100);
   };
 
-  const isValidUrl = (url: string): boolean => {
-    try {
-      new URL(url);
-      return true;
-    } catch {
-      return false;
-    }
-  };
-
-  const isValidEmail = (email: string): boolean => {
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  const handleRatingClick = (selectedRating: number) => {
+    setRating(selectedRating);
+    setFormValidation((prev) => ({ ...prev, rating: true }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!validateForm()) {
-      toast({
-        title: "Agent Validation Error",
-        description: "Please fix the errors in the form",
-        variant: "destructive",
-      });
-      return;
-    }
-
     if (!user) {
       toast({
         title: "Authentication Required 🔐",
-        description:
-          "Please log in to activate your Application Automation Agent.",
+        description: "Please log in to provide insights to your AI agents.",
         variant: "destructive",
       });
       navigate("/auth");
+      return;
+    }
+
+    if (!validateForm()) {
+      toast({
+        title: "Agent Validation Error",
+        description: "Please select a rating before submitting your insights.",
+        variant: "destructive",
+      });
       return;
     }
 
@@ -785,80 +387,70 @@ const ApplicationAutomationAgent = () => {
     simulateLoadingStages();
 
     try {
-      const resumeData = formData.resume
-        ? await convertFileToBase64(formData.resume)
-        : null;
-      const coverLetterData = formData.coverLetter
-        ? await convertFileToBase64(formData.coverLetter)
-        : null;
+      // Get user profile data
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("full_name, email")
+        .eq("id", user.id)
+        .single();
 
-      const submissionData = {
-        user_id: user.id,
-        feature: "application_automation_agent",
-        jobUrl: formData.jobUrl,
-        userEmail: formData.email,
-        files: {
-          resume: resumeData,
-          coverLetter: coverLetterData,
-        },
-        options: {
-          emailUpdates: formData.emailUpdates,
-        },
-        timestamp: new Date().toISOString(),
-      };
-
+      // Send feedback to webhook
       const response = await fetch(
-        "https://n8n.applyforge.cloud/webhook-test/Auto-Apply-Agent",
+        "https://n8n.applyforge.cloud/webhook-test/feedback-form",
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify(submissionData),
+          body: JSON.stringify({
+            user_id: user.id,
+            feature: "ai_insights_collector_agent",
+            userName: profile?.full_name || userName,
+            userEmail: profile?.email || user.email,
+            rating: rating,
+            suggestion: suggestion,
+            comment: comment,
+            timestamp: new Date().toISOString(),
+          }),
         }
       );
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        throw new Error("Failed to submit insights");
       }
 
-      const result = await response.json();
+      const result = await response.text();
 
-      if (result.allowed === false) {
-        toast({
-          title: "Agent Limit Reached 🤖",
-          description:
-            "You've reached your Application Automation Agent limit. Upgrade to activate unlimited applications!",
-          variant: "destructive",
-          action: (
-            <Button
-              size="sm"
-              onClick={() => navigate("/pricing")}
-              className="bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700"
-            >
-              <Crown className="w-4 h-4 mr-1" />
-              Upgrade Plan
-            </Button>
-          ),
-        });
-        return;
-      }
+      // Clear draft
+      localStorage.removeItem("feedbackDraft");
 
-      setApplicationId(result.applicationId || `AA${Date.now()}`);
-      localStorage.removeItem("autoApplyDraft");
-      setSubmitted(true);
+      // Show result in modal
+      setResultMessage(
+        result || "Thank you for helping our AI agents learn and improve!"
+      );
+      setShowResultModal(true);
+
+      // Reset form
+      setRating(0);
+      setSuggestion("");
+      setComment("");
 
       toast({
-        title: "🎉 Agent Application Success!",
+        title: "🎉 Agent Learning Success!",
         description:
-          "Your Application Automation Agent has successfully submitted your job application.",
+          "Your insights have been collected and will improve our AI agents.",
       });
+
+      // Auto-close modal and redirect after 10 seconds
+      setTimeout(() => {
+        setShowResultModal(false);
+        navigate("/dashboard");
+      }, 10000);
     } catch (error) {
-      console.error("Submission error:", error);
+      console.error("Error submitting insights:", error);
       toast({
-        title: "Agent Error 🤖",
-        description:
-          "Your Application Automation Agent encountered an issue. Please try again.",
+        title: "Agent Error",
+        description: "Failed to submit insights. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -866,47 +458,6 @@ const ApplicationAutomationAgent = () => {
       setLoadingStage(0);
     }
   };
-
-  const calculateProgress = (): number => {
-    const fields = [formData.jobUrl, formData.email, formData.resume];
-    const filled = fields.filter(
-      (field) => field && field.toString().trim()
-    ).length;
-    return Math.round((filled / fields.length) * 100);
-  };
-
-  const handleClearForm = useCallback(() => {
-    setFormData({
-      jobUrl: "",
-      email: "",
-      resume: null,
-      coverLetter: null,
-      emailUpdates: true,
-    });
-    setErrors({});
-    setJobPreview(null);
-    setUploadProgress({ resume: 0, coverLetter: 0 });
-    localStorage.removeItem("autoApplyDraft");
-
-    toast({
-      title: "Agent Reset ✨",
-      description: "All fields have been reset for your next application.",
-    });
-  }, [toast]);
-
-  const handleNewApplication = useCallback(() => {
-    setSubmitted(false);
-    setFormData({
-      jobUrl: "",
-      email: "",
-      resume: null,
-      coverLetter: null,
-      emailUpdates: true,
-    });
-    setErrors({});
-    setJobPreview(null);
-    setUploadProgress({ resume: 0, coverLetter: 0 });
-  }, []);
 
   if (!user) {
     return (
@@ -922,19 +473,20 @@ const ApplicationAutomationAgent = () => {
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
                   transition={{ delay: 0.2 }}
-                  className="mx-auto w-16 h-16 bg-gradient-to-br from-emerald-500/20 to-green-500/20 rounded-full flex items-center justify-center mb-4 border border-emerald-500/20"
+                  className="mx-auto w-16 h-16 bg-gradient-to-br from-amber-500/20 to-orange-500/20 rounded-full flex items-center justify-center mb-4 border border-amber-500/20"
                 >
-                  <Rocket className="w-8 h-8 text-emerald-400" />
+                  <Brain className="w-8 h-8 text-amber-400" />
                 </motion.div>
                 <h3 className="text-lg font-semibold mb-2 text-white">
                   Authentication Required
                 </h3>
                 <p className="text-slate-400 mb-6">
-                  Please log in to activate your Application Automation Agent.
+                  Please log in to share insights with your AI Insights
+                  Collector Agent.
                 </p>
                 <Button
                   onClick={() => navigate("/auth")}
-                  className="w-full bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white"
+                  className="w-full bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white"
                 >
                   Login to Continue
                 </Button>
@@ -946,27 +498,10 @@ const ApplicationAutomationAgent = () => {
     );
   }
 
-  if (submitted) {
-    return (
-      <TooltipProvider>
-        <div className="min-h-screen bg-background">
-          <DashboardHeader />
-          <div className="container mx-auto px-4 py-8 max-w-4xl">
-            <ApplicationSuccessView
-              applicationId={applicationId}
-              jobPreview={jobPreview}
-              onNewApplication={handleNewApplication}
-            />
-          </div>
-        </div>
-      </TooltipProvider>
-    );
-  }
-
   return (
     <TooltipProvider>
       <div className="min-h-screen bg-background">
-        <ApplicationAgentLoadingOverlay
+        <InsightsCollectorLoadingOverlay
           show={isSubmitting}
           stage={loadingStage}
         />
@@ -981,21 +516,6 @@ const ApplicationAutomationAgent = () => {
             transition={{ duration: 0.5 }}
             className="space-y-8"
           >
-            {/* Back to Home Button */}
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-            >
-              <Button
-                variant="outline"
-                onClick={() => navigate("/")}
-                className="border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white backdrop-blur-sm"
-              >
-                <Home className="w-4 h-4 mr-2" />
-                Back to Dashboard
-              </Button>
-            </motion.div>
-
             {/* Hero Section - AI Agent Focused */}
             <div className="text-center space-y-6">
               <motion.div
@@ -1009,15 +529,15 @@ const ApplicationAutomationAgent = () => {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.2 }}
-                    className="mx-auto w-20 h-20 bg-gradient-to-br from-emerald-500/20 via-green-500/15 to-teal-500/20 rounded-full flex items-center justify-center border border-emerald-500/20 backdrop-blur-xl"
+                    className="mx-auto w-20 h-20 bg-gradient-to-br from-amber-500/20 via-orange-500/15 to-yellow-500/20 rounded-full flex items-center justify-center border border-amber-500/20 backdrop-blur-xl"
                   >
-                    <Rocket className="w-10 h-10 text-emerald-400" />
+                    <Brain className="w-10 h-10 text-amber-400" />
                   </motion.div>
 
                   <div className="flex items-center justify-center gap-2">
-                    <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30">
+                    <Badge className="bg-amber-500/20 text-amber-400 border-amber-500/30">
                       <Sparkles className="w-3 h-3 mr-1" />
-                      AI Beta
+                      AI Learning
                     </Badge>
                   </div>
 
@@ -1027,8 +547,8 @@ const ApplicationAutomationAgent = () => {
                     transition={{ delay: 0.3 }}
                     className="text-3xl sm:text-4xl lg:text-6xl font-bold text-white leading-tight"
                   >
-                    Application Automation{" "}
-                    <span className="bg-gradient-to-r from-emerald-400 via-green-400 to-teal-400 bg-clip-text text-transparent">
+                    AI Insights Collector{" "}
+                    <span className="bg-gradient-to-r from-amber-400 via-orange-400 to-yellow-400 bg-clip-text text-transparent">
                       Agent
                     </span>
                   </motion.h1>
@@ -1041,49 +561,50 @@ const ApplicationAutomationAgent = () => {
                   >
                     <p className="text-xl sm:text-2xl text-slate-300 max-w-3xl mx-auto leading-relaxed">
                       Hey{" "}
-                      <span className="text-emerald-400 font-semibold">
+                      <span className="text-amber-400 font-semibold">
                         {userName}
                       </span>
                       ! 👋
                       <br />
-                      Your intelligent application agent is ready to apply to
-                      jobs automatically
+                      Your intelligent agent is ready to collect insights and
+                      improve our AI system
                     </p>
                     <p className="text-base text-slate-400 max-w-2xl mx-auto">
-                      Upload your resume, paste job URL, and watch your agent
-                      apply in seconds with AI-powered automation
+                      Share your experience to help our AI agents learn, adapt,
+                      and serve you better
                     </p>
                   </motion.div>
                 </div>
               </motion.div>
 
               {/* Agent Capabilities */}
-              <motion.div
+              {/* <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.5 }}
-                className="grid grid-cols-1 sm:grid-cols-4 gap-6 max-w-5xl mx-auto"
+                className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-6 max-w-5xl mx-auto"
+                // grid grid-cols-1 sm:grid-cols-4 gap-6 max-w-5xl mx-auto
               >
                 {[
                   {
-                    icon: Rocket,
-                    title: "Instant Application",
-                    desc: "Submit in under 2 minutes",
-                  },
-                  {
                     icon: Brain,
-                    title: "AI Data Extraction",
-                    desc: "Auto-fills from your resume",
+                    title: "Smart Learning",
+                    desc: "AI learns from your feedback",
                   },
                   {
-                    icon: Shield,
-                    title: "100% Secure",
-                    desc: "Your data stays private",
+                    icon: Database,
+                    title: "Insights Storage",
+                    desc: "Secure data collection",
                   },
                   {
                     icon: Target,
-                    title: "High Success Rate",
-                    desc: "99% application success",
+                    title: "Targeted Improvements",
+                    desc: "Precise system enhancements",
+                  },
+                  {
+                    icon: Activity,
+                    title: "Real-time Learning",
+                    desc: "Continuous agent evolution",
                   },
                 ].map((capability, index) => (
                   <motion.div
@@ -1093,14 +614,14 @@ const ApplicationAutomationAgent = () => {
                     transition={{ delay: 0.6 + index * 0.1 }}
                     className="p-4 rounded-xl bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl border border-slate-700/50"
                   >
-                    <capability.icon className="w-8 h-8 text-emerald-400 mx-auto mb-3" />
+                    <capability.icon className="w-8 h-8 text-amber-400 mx-auto mb-3" />
                     <h3 className="font-semibold text-white mb-2">
                       {capability.title}
                     </h3>
                     <p className="text-sm text-slate-400">{capability.desc}</p>
                   </motion.div>
                 ))}
-              </motion.div>
+              </motion.div> */}
             </div>
 
             {/* Quick Actions */}
@@ -1115,15 +636,15 @@ const ApplicationAutomationAgent = () => {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={loadSampleData}
+                    onClick={loadSampleFeedback}
                     className="border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white"
                   >
-                    <Play className="w-4 h-4 mr-2" />
-                    Try Demo
+                    <Sparkles className="w-4 h-4 mr-2" />
+                    Try Example
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>
-                  Load sample data to see how your agent works
+                  Load sample insights to see how your agent works
                 </TooltipContent>
               </Tooltip>
 
@@ -1138,390 +659,257 @@ const ApplicationAutomationAgent = () => {
               </Button>
             </motion.div>
 
-            {/* Agent Progress Steps */}
+            {/* Progress Indicator */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.8 }}
-              className="mb-8"
+              className="mb-6"
             >
-              <div className="flex items-center justify-center space-x-8 mb-6">
-                {[
-                  { step: 1, icon: LinkIcon, label: "Job URL" },
-                  { step: 2, icon: Mail, label: "Contact" },
-                  { step: 3, icon: FileText, label: "Documents" },
-                ].map(({ step, icon: Icon, label }) => (
-                  <div key={step} className="flex flex-col items-center">
-                    <motion.div
-                      whileHover={{ scale: 1.1 }}
-                      className={`w-12 h-12 rounded-full flex items-center justify-center text-sm font-medium transition-all ${
-                        calculateProgress() >= (step / 3) * 100
-                          ? "bg-emerald-500 text-white shadow-lg"
-                          : "bg-slate-700 text-slate-400"
-                      }`}
-                    >
-                      <Icon className="w-5 h-5" />
-                    </motion.div>
-                    <span className="text-xs text-slate-400 mt-2">{label}</span>
-                  </div>
-                ))}
+              <div className="text-center mb-2">
+                <span className="text-sm text-slate-400">
+                  Agent Collection Progress: {calculateProgress()}%
+                </span>
               </div>
-
-              <div className="text-center">
-                <Progress
-                  value={calculateProgress()}
-                  className="w-full max-w-md mx-auto h-3 bg-slate-700/50"
-                />
-                <p className="text-sm text-slate-400 mt-2">
-                  {calculateProgress()}% complete
-                </p>
-              </div>
+              <Progress
+                value={calculateProgress()}
+                className="w-full h-3 bg-slate-700/50"
+              />
             </motion.div>
 
-            <form onSubmit={handleSubmit} className="space-y-8">
-              {/* Step 1: Enhanced Job URL */}
-              <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.9 }}
-              >
-                <Card className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl border border-slate-700/50 hover:border-emerald-500/30 transition-all duration-300">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <LinkIcon className="h-5 w-5 text-emerald-400" />
-                      Step 1: Job Information
-                      <Tooltip>
-                        <TooltipTrigger>
-                          <Info className="w-4 h-4 text-slate-400" />
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>
-                            Works with LinkedIn, Indeed, Glassdoor, and most job
-                            boards
-                          </p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </CardTitle>
-                    <CardDescription>
-                      Works with LinkedIn, Indeed, Glassdoor, and most job
-                      boards
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      <motion.div whileFocus={{ scale: 1.01 }}>
-                        <Label
-                          htmlFor="jobUrl"
-                          className="flex items-center gap-2"
-                        >
-                          Job URL *
-                          <Badge
-                            variant="outline"
-                            className="text-xs border-slate-600 text-slate-400"
-                          >
-                            <Globe className="w-3 h-3 mr-1" />
-                            Any Job Site
-                          </Badge>
-                        </Label>
-                        <Input
-                          id="jobUrl"
-                          type="url"
-                          placeholder="https://linkedin.com/jobs/view/123456789"
-                          value={formData.jobUrl}
-                          onChange={(e) => handleJobUrlChange(e.target.value)}
-                          className={`mt-2 bg-slate-800/50 border-slate-600 text-white placeholder-slate-400 focus:border-emerald-400 ${
-                            errors.jobUrl ? "border-destructive" : ""
-                          }`}
-                        />
-                        {errors.jobUrl && (
-                          <motion.p
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            className="text-sm text-destructive mt-1 flex items-center gap-1"
-                          >
-                            <AlertCircle className="w-4 h-4" />
-                            {errors.jobUrl}
-                          </motion.p>
-                        )}
-                      </motion.div>
-
-                      {jobPreview && (
-                        <motion.div
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          className="p-4 bg-gradient-to-r from-emerald-500/10 to-green-500/10 border border-emerald-500/20 rounded-lg"
-                        >
-                          <div className="flex items-center gap-3">
-                            <div className="p-2 rounded-lg bg-emerald-500/20 border border-emerald-500/30">
-                              <Target className="w-4 h-4 text-emerald-400" />
-                            </div>
-                            <div>
-                              <p className="font-medium text-emerald-400">
-                                Job Detected Successfully!
-                              </p>
-                              <p className="text-sm text-emerald-300">
-                                {jobPreview.title} at {jobPreview.company}
-                              </p>
-                            </div>
-                          </div>
-                        </motion.div>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-
-              {/* Step 2: Enhanced Contact Info */}
-              <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 1.0 }}
-              >
-                <Card className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl border border-slate-700/50 hover:border-emerald-500/30 transition-all duration-300">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Mail className="h-5 w-5 text-green-400" />
-                      Step 2: Contact Information
-                    </CardTitle>
-                    <CardDescription>
-                      For application updates and confirmations
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <motion.div whileFocus={{ scale: 1.01 }}>
-                      <Label
-                        htmlFor="email"
-                        className="flex items-center gap-2"
-                      >
-                        Email Address *
-                        <Badge
-                          variant="outline"
-                          className="text-xs border-slate-600 text-slate-400"
-                        >
-                          <Lock className="w-3 h-3 mr-1" />
-                          Private & Secure
-                        </Badge>
+            {/* Enhanced Feedback Form */}
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.9 }}
+            >
+              <Card className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl border border-slate-700/50 hover:border-amber-500/30 transition-all duration-300">
+                <CardHeader className="pb-4 sm:pb-6">
+                  <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                    <MessageCircle className="h-4 w-4 sm:h-5 sm:w-5 text-amber-400" />
+                    Share Your AI Experience
+                  </CardTitle>
+                  <CardDescription className="text-slate-400">
+                    Your insights help our AI agents learn and provide better
+                    assistance
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <form
+                    onSubmit={handleSubmit}
+                    className="space-y-4 sm:space-y-6"
+                  >
+                    {/* Enhanced Rating Section */}
+                    <motion.div
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.2 }}
+                    >
+                      <Label className="text-sm sm:text-base flex items-center gap-2">
+                        AI Agent Rating *
+                        <Tooltip>
+                          <TooltipTrigger>
+                            <Info className="w-4 h-4 text-slate-400" />
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>
+                              Rate your overall experience with our AI agents
+                            </p>
+                          </TooltipContent>
+                        </Tooltip>
                       </Label>
-                      <Input
-                        id="email"
-                        type="email"
-                        placeholder="your.email@example.com"
-                        value={formData.email}
-                        onChange={(e) =>
-                          setFormData((prev) => ({
-                            ...prev,
-                            email: e.target.value,
-                          }))
-                        }
-                        className={`mt-2 bg-slate-800/50 border-slate-600 text-white placeholder-slate-400 focus:border-emerald-400 ${
-                          errors.email ? "border-destructive" : ""
-                        }`}
-                      />
-                      {errors.email && (
+
+                      <div className="mt-3">
+                        <AIStarRating
+                          rating={rating}
+                          onRatingChange={handleRatingClick}
+                          size="large"
+                        />
+                      </div>
+
+                      {!formValidation.rating && (
                         <motion.p
                           initial={{ opacity: 0 }}
                           animate={{ opacity: 1 }}
-                          className="text-sm text-destructive mt-1 flex items-center gap-1"
+                          className="text-sm text-destructive mt-2 flex items-center gap-1"
                         >
-                          <AlertCircle className="w-4 h-4" />
-                          {errors.email}
+                          <Star className="w-4 h-4" />
+                          Please select a rating for our AI agents
                         </motion.p>
                       )}
                     </motion.div>
-                  </CardContent>
-                </Card>
-              </motion.div>
 
-              {/* Step 3: Enhanced Documents */}
-              <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 1.1 }}
-              >
-                <Card className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl border border-slate-700/50 hover:border-emerald-500/30 transition-all duration-300">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <FileText className="h-5 w-5 text-teal-400" />
-                      Step 3: Documents
-                    </CardTitle>
-                    <CardDescription>
-                      Upload your resume and optional cover letter (PDF, DOC,
-                      DOCX - Max 5MB each)
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
-                    <AgentFileUpload
-                      type="resume"
-                      file={formData.resume}
-                      onFileUpload={handleFileUpload}
-                      onRemove={removeFile}
-                      uploadProgress={uploadProgress.resume}
-                      error={errors.resume}
-                      required={true}
-                    />
-
-                    <AgentFileUpload
-                      type="coverLetter"
-                      file={formData.coverLetter}
-                      onFileUpload={handleFileUpload}
-                      onRemove={removeFile}
-                      uploadProgress={uploadProgress.coverLetter}
-                      error={errors.coverLetter}
-                      required={false}
-                    />
-                  </CardContent>
-                </Card>
-              </motion.div>
-
-              {/* Enhanced Options */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 1.2 }}
-              >
-                <Card className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl border border-slate-700/50">
-                  <CardContent className="pt-6 space-y-4">
-                    <div className="flex items-center space-x-3">
-                      <Checkbox
-                        id="emailUpdates"
-                        checked={formData.emailUpdates}
-                        onCheckedChange={(checked) =>
-                          setFormData((prev) => ({
-                            ...prev,
-                            emailUpdates: checked as boolean,
-                          }))
-                        }
-                      />
+                    {/* Enhanced Suggestions */}
+                    <motion.div
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.3 }}
+                      className="space-y-2"
+                    >
                       <Label
-                        htmlFor="emailUpdates"
-                        className="text-sm flex items-center gap-2 text-slate-300"
+                        htmlFor="suggestion"
+                        className="text-sm sm:text-base flex items-center gap-2"
                       >
-                        <Mail className="w-4 h-4" />
-                        Send me email updates about application status
+                        <Lightbulb className="w-4 h-4 text-yellow-400" />
+                        AI Improvement Suggestions
                       </Label>
-                    </div>
+                      <motion.div whileFocus={{ scale: 1.01 }}>
+                        <Textarea
+                          id="suggestion"
+                          value={suggestion}
+                          onChange={(e) => setSuggestion(e.target.value)}
+                          placeholder="What AI features or improvements would you like to see? Any specific agent capabilities that would help your job search?"
+                          className="mt-1 min-h-[80px] sm:min-h-[100px] text-sm sm:text-base bg-slate-800/50 border-slate-600 text-white placeholder-slate-400 resize-none focus:border-amber-400"
+                          maxLength={500}
+                        />
+                      </motion.div>
+                      <div className="flex justify-between text-xs text-slate-400">
+                        <span>Share your ideas for AI agent improvements</span>
+                        <span>{suggestion.length}/500</span>
+                      </div>
+                    </motion.div>
 
-                    <div className="flex items-center space-x-3">
-                      <Checkbox
-                        id="save-draft"
-                        checked={saveAsDraft}
-                        onCheckedChange={(checked) =>
-                          setSaveAsDraft(checked as boolean)
-                        }
-                      />
+                    {/* Enhanced Comments */}
+                    <motion.div
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.4 }}
+                      className="space-y-2"
+                    >
                       <Label
-                        htmlFor="save-draft"
-                        className="text-sm flex items-center gap-2 text-slate-300"
+                        htmlFor="comment"
+                        className="text-sm sm:text-base flex items-center gap-2"
                       >
-                        <Save className="w-4 h-4" />
-                        Auto-save form as draft
+                        <MessageSquare className="w-4 h-4 text-amber-400" />
+                        AI Agent Experience
                       </Label>
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
+                      <motion.div whileFocus={{ scale: 1.01 }}>
+                        <Textarea
+                          id="comment"
+                          value={comment}
+                          onChange={(e) => setComment(e.target.value)}
+                          placeholder="Tell us about your experience with our AI agents. Which agents did you find most helpful? What challenges did you face? How did our AI tools help your job search?"
+                          className="mt-1 min-h-[100px] sm:min-h-[120px] text-sm sm:text-base bg-slate-800/50 border-slate-600 text-white placeholder-slate-400 resize-none focus:border-amber-400"
+                          maxLength={1000}
+                        />
+                      </motion.div>
+                      <div className="flex justify-between text-xs text-slate-400">
+                        <span>Share your detailed AI agent experience</span>
+                        <span>{comment.length}/1000</span>
+                      </div>
+                    </motion.div>
 
-              {/* Enhanced Submit Button */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 1.3 }}
-                className="flex justify-center pt-6"
-              >
-                <motion.div
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                >
-                  <Button
-                    type="submit"
-                    size="lg"
-                    disabled={isSubmitting}
-                    className="w-full sm:w-auto min-w-[300px] bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white h-14 text-lg font-semibold shadow-lg"
-                  >
-                    {isSubmitting ? (
-                      <>
-                        <motion.div
-                          animate={{ rotate: 360 }}
-                          transition={{
-                            duration: 1,
-                            repeat: Infinity,
-                            ease: "linear",
-                          }}
-                          className="mr-2"
-                        >
-                          <Bot className="w-5 h-5" />
-                        </motion.div>
-                        Agent Applying for You...
-                      </>
-                    ) : (
-                      <>
-                        <Rocket className="w-5 h-5 mr-2" />
-                        Activate Application Agent
-                        <ChevronRight className="w-4 h-4 ml-2" />
-                      </>
-                    )}
-                  </Button>
-                </motion.div>
-              </motion.div>
+                    {/* Enhanced Submit Button */}
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.6 }}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                    >
+                      <Button
+                        type="submit"
+                        disabled={isSubmitting || rating === 0}
+                        className="w-full bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 min-h-[44px] text-sm sm:text-base shadow-lg text-white"
+                      >
+                        {isSubmitting ? (
+                          <>
+                            <motion.div
+                              animate={{ rotate: 360 }}
+                              transition={{
+                                duration: 1,
+                                repeat: Infinity,
+                                ease: "linear",
+                              }}
+                              className="mr-2"
+                            >
+                              <Brain className="w-4 h-4" />
+                            </motion.div>
+                            Agent Learning from Insights...
+                          </>
+                        ) : (
+                          <>
+                            <Send className="w-4 h-4 mr-2" />
+                            Share Insights
+                            <ChevronRight className="w-4 h-4 ml-2" />
+                          </>
+                        )}
+                      </Button>
+                    </motion.div>
 
-              {!isSubmitting && (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 1.4 }}
-                  className="text-center space-y-2"
-                >
-                  <p className="text-sm text-slate-400">
-                    No signup required • Average processing time: 45 seconds
-                  </p>
-                  <div className="flex items-center justify-center gap-4 text-xs text-slate-500">
-                    <div className="flex items-center gap-1">
-                      <Shield className="w-3 h-3 text-emerald-400" />
-                      <span>SSL Encrypted</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Clock className="w-3 h-3 text-green-400" />
-                      <span>Fast Processing</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Award className="w-3 h-3 text-teal-400" />
-                      <span>99% Success Rate</span>
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-            </form>
-
-            {/* Enhanced Trust Signals */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 1.5 }}
-              className="mt-12 text-center"
-            >
-              <p className="text-sm text-slate-400 mb-4">
-                Join 10,000+ professionals who got hired using our AI agent
-              </p>
-              <div className="flex items-center justify-center space-x-6 text-xs text-slate-500">
-                <div className="flex items-center gap-1">
-                  <Shield className="w-4 h-4 text-emerald-400" />
-                  <span>Secure & Private</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <Users className="w-4 h-4 text-green-400" />
-                  <span>GDPR Compliant</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <Zap className="w-4 h-4 text-teal-400" />
-                  <span>99.9% Uptime</span>
-                </div>
-              </div>
+                    {/* Trust Indicators */}
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: 0.7 }}
+                      className="bg-slate-800/30 rounded-lg p-4 mt-4"
+                    >
+                      <div className="flex items-center justify-center gap-6 text-sm text-slate-400">
+                        <div className="flex items-center gap-2">
+                          <Shield className="w-4 h-4 text-amber-400" />
+                          <span>AI Learning</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Clock className="w-4 h-4 text-green-400" />
+                          <span>Quick Process</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Zap className="w-4 h-4 text-blue-400" />
+                          <span>Real Impact</span>
+                        </div>
+                      </div>
+                    </motion.div>
+                  </form>
+                </CardContent>
+              </Card>
             </motion.div>
           </motion.div>
         </div>
+
+        {/* Enhanced Result Modal */}
+        <Dialog open={showResultModal} onOpenChange={setShowResultModal}>
+          <DialogContent className="sm:max-w-md bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl border border-slate-700/50">
+            <DialogHeader>
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ type: "spring", delay: 0.2 }}
+                className="mx-auto w-16 h-16 bg-gradient-to-br from-amber-500/20 to-orange-500/20 rounded-full flex items-center justify-center mb-4 border border-amber-500/20"
+              >
+                <CheckCircle className="w-8 h-8 text-amber-400" />
+              </motion.div>
+              <DialogTitle className="text-center text-amber-400 text-base sm:text-lg">
+                AI Agent Learning Complete! 🤖
+              </DialogTitle>
+              <DialogDescription className="text-center pt-4 text-slate-300">
+                {resultMessage}
+              </DialogDescription>
+            </DialogHeader>
+
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 }}
+              className="text-center space-y-4 mt-4"
+            >
+              <div className="bg-amber-500/10 border border-amber-500/20 p-4 rounded-lg">
+                <p className="text-sm text-amber-300">
+                  Your insights help our AI agents learn, adapt, and provide
+                  better assistance to job seekers like you.
+                </p>
+              </div>
+
+              <div className="text-xs sm:text-sm text-slate-400">
+                <Clock className="w-4 h-4 inline mr-1" />
+                Returning to dashboard in 10 seconds...
+              </div>
+            </motion.div>
+          </DialogContent>
+        </Dialog>
       </div>
     </TooltipProvider>
   );
 };
 
-export default ApplicationAutomationAgent;
+export default AIInsightsCollectorAgent;
+

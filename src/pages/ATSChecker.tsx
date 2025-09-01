@@ -96,7 +96,7 @@ import UserAvatar from "@/components/header/UserAvatar";
 const atsCheckerSchema = z.object({
   jobDescription: z
     .string()
-    .min(100, "Job description must be at least 100 characters"),
+    .min(50, "Job description must be at least 50 characters"),
 });
 
 type ATSCheckerForm = z.infer<typeof atsCheckerSchema>;
@@ -895,31 +895,29 @@ Preferred Qualifications:
         reader.readAsDataURL(selectedFile);
       });
 
-      const response = await fetch(
-        "https://n8n.applyforge.cloud/webhook-test/ats-checker",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            user_id: user.id,
-            feature: "ats_screening_agent",
-            resume: base64Resume,
-            jobDescription: formData.jobDescription,
-            industry: industry,
-            fileType: selectedFile.type === "application/pdf" ? "pdf" : "docx",
-          }),
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error(
-          `Agent analysis failed: ${response.status} ${response.statusText}`
+      const { data: responseData, error: functionError } =
+        await supabase.functions.invoke(
+          "ats-checker-proxy", // The name of your edge function
+          {
+            body: {
+              // user_id is now handled securely by the backend
+              feature: "ats_screening_agent",
+              resume: base64Resume,
+              jobDescription: formData.jobDescription,
+              industry: industry,
+              fileType:
+                selectedFile.type === "application/pdf" ? "pdf" : "docx",
+            },
+          }
         );
+
+      if (functionError) {
+        // This will catch network errors or function-level errors (like 5xx)
+        throw new Error(`Agent analysis failed: ${functionError.message}`);
       }
 
-      const responseData = await response.json();
+      // ✅ THE REDUNDANT LINE IS NOW REMOVED.
+      // The code will now correctly use the responseData from the invoke call above.
 
       if (responseData.allowed === false) {
         toast({
@@ -993,21 +991,6 @@ Preferred Qualifications:
             transition={{ duration: 0.6 }}
             className="space-y-6 sm:space-y-8"
           >
-            {/* Back to Home Button */}
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-            >
-              <Button
-                variant="outline"
-                onClick={() => navigate("/")}
-                className="border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white backdrop-blur-sm text-sm sm:text-base"
-              >
-                <Home className="w-4 h-4 mr-2" />
-                Back to Dashboard
-              </Button>
-            </motion.div>
-
             {/* Hero Section - AI Agent Focused */}
             <div className="text-center space-y-4 sm:space-y-6">
               <motion.div
@@ -1260,9 +1243,9 @@ Preferred Qualifications:
                                   >
                                     {wordCount} words
                                   </span>
-                                  {wordCount < 100 && (
+                                  {wordCount < 50 && (
                                     <span className="text-red-400 text-xs whitespace-nowrap">
-                                      (min 100)
+                                      (min 50)
                                     </span>
                                   )}
                                 </div>
@@ -1311,7 +1294,7 @@ Preferred Qualifications:
                               <>
                                 <Shield className="w-5 h-5 sm:w-6 sm:h-6 mr-2 sm:mr-3 flex-shrink-0" />
                                 <span className="truncate">
-                                  Activate ATS Screening Agent
+                                  Analyze My Resume
                                 </span>
                                 <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 ml-2 flex-shrink-0" />
                               </>

@@ -75,7 +75,7 @@ const UserAvatar = memo<UserAvatarProps>(
       const displayName = user?.user_metadata?.display_name || "";
 
       // Smarter name extraction
-      const name = fullName || displayName || email.split("@")[0] || "User";
+      const name = fullName || displayName || email.split("@") || "User";
       const nameParts = name.split(" ");
       const firstName = nameParts[0] || "User";
       const lastName = nameParts[1] || "";

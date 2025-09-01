@@ -585,18 +585,6 @@ const Pricing: React.FC = () => {
       <span className="pointer-events-none absolute left-1/2 top-1/2 w-96 h-96 bg-pink-500/5 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2" />
 
       <div className="container mx-auto px-4 sm:px-6 lg:px-10 py-8 relative z-10">
-        <div className="mb-8">
-          <Link to="/">
-            <Button
-              variant="outline"
-              className="flex items-center gap-2 bg-white/5 border-white/20 hover:bg-white/10"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Back to Home
-            </Button>
-          </Link>
-        </div>
-
         <motion.header
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}

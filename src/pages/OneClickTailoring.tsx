@@ -32,7 +32,6 @@ import {
   Loader2,
   AlertCircle,
   Search,
-  RefreshCw,
   Clock,
   Users,
   Target,
@@ -295,77 +294,6 @@ const LoadingSkeleton = memo(() => (
 ));
 
 LoadingSkeleton.displayName = "LoadingSkeleton";
-
-const AgentStats = memo(
-  ({
-    totalJobs,
-    thisWeek,
-    activeJobs,
-    companies,
-  }: {
-    totalJobs: number;
-    thisWeek: number;
-    activeJobs: number;
-    companies: number;
-  }) => (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.2 }}
-      className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-8"
-    >
-      <Card className="bg-gradient-to-br from-rose-500/5 via-red-500/5 to-orange-500/10 backdrop-blur-xl border border-slate-700/50">
-        <CardContent className="p-3 sm:p-4 text-center">
-          <div className="flex items-center justify-center mb-2">
-            <Briefcase className="w-4 h-4 sm:w-5 sm:h-5 text-rose-400" />
-          </div>
-          <div className="text-lg sm:text-2xl font-bold text-white">
-            {totalJobs}
-          </div>
-          <div className="text-xs text-slate-400">Ready to Tailor</div>
-        </CardContent>
-      </Card>
-
-      <Card className="bg-gradient-to-br from-rose-500/5 via-red-500/5 to-orange-500/10 backdrop-blur-xl border border-slate-700/50">
-        <CardContent className="p-3 sm:p-4 text-center">
-          <div className="flex items-center justify-center mb-2">
-            <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-green-400" />
-          </div>
-          <div className="text-lg sm:text-2xl font-bold text-white">
-            {thisWeek}
-          </div>
-          <div className="text-xs text-slate-400">Saved This Week</div>
-        </CardContent>
-      </Card>
-
-      <Card className="bg-gradient-to-br from-rose-500/5 via-red-500/5 to-orange-500/10 backdrop-blur-xl border border-slate-700/50">
-        <CardContent className="p-3 sm:p-4 text-center">
-          <div className="flex items-center justify-center mb-2">
-            <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-blue-400" />
-          </div>
-          <div className="text-lg sm:text-2xl font-bold text-white">
-            {activeJobs}
-          </div>
-          <div className="text-xs text-slate-400">Active Jobs</div>
-        </CardContent>
-      </Card>
-
-      <Card className="bg-gradient-to-br from-rose-500/5 via-red-500/5 to-orange-500/10 backdrop-blur-xl border border-slate-700/50">
-        <CardContent className="p-3 sm:p-4 text-center">
-          <div className="flex items-center justify-center mb-2">
-            <Building className="w-4 h-4 sm:w-5 sm:h-5 text-purple-400" />
-          </div>
-          <div className="text-lg sm:text-2xl font-bold text-white">
-            {companies}
-          </div>
-          <div className="text-xs text-slate-400">Companies</div>
-        </CardContent>
-      </Card>
-    </motion.div>
-  )
-);
-
-AgentStats.displayName = "AgentStats";
 
 const TailoringJobCard = memo(
   ({
@@ -1106,7 +1034,7 @@ const InstantTailoringAgent = () => {
           )}`;
 
           const formData = new FormData();
-          formData.append("user_id", user.id);
+
           formData.append("feature", "instant_tailoring_agent");
           formData.append("jobRole", job.job_title);
           formData.append("industry", job.industries || "General");
@@ -1121,11 +1049,19 @@ const InstantTailoringAgent = () => {
           );
           formData.append("resume", file);
 
+          const session = (await supabase.auth.getSession()).data.session;
+          if (!session) throw new Error("User not authenticated");
+
           const response = await fetch(
-            "https://n8n.applyforge.cloud/webhook-test/instant-tailor-resume",
+            `${
+              import.meta.env.VITE_SUPABASE_URL
+            }/functions/v1/instant-resume-proxy`,
             {
               method: "POST",
               body: formData,
+              headers: {
+                Authorization: `Bearer ${session.access_token}`,
+              },
             }
           );
 
@@ -1316,7 +1252,7 @@ const InstantTailoringAgent = () => {
           )}_CoverLetter`;
 
           const formData = new FormData();
-          formData.append("user_id", user.id);
+
           formData.append("feature", "instant_generation_agent");
           formData.append(
             "jobDescription",
@@ -1328,14 +1264,21 @@ const InstantTailoringAgent = () => {
           formData.append("positionTitle", job.job_title);
           formData.append("resume", file);
 
+          const session = (await supabase.auth.getSession()).data.session;
+          if (!session) throw new Error("User not authenticated");
+
           const response = await fetch(
-            "https://n8n.applyforge.cloud/webhook-test/instant-cover-letter",
+            `${
+              import.meta.env.VITE_SUPABASE_URL
+            }/functions/v1/instant-cover-letter-proxy`,
             {
               method: "POST",
               body: formData,
+              headers: {
+                Authorization: `Bearer ${session.access_token}`,
+              },
             }
           );
-
           if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
           }
@@ -1487,20 +1430,6 @@ const InstantTailoringAgent = () => {
             transition={{ duration: 0.5 }}
             className="space-y-6 sm:space-y-8"
           >
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-            >
-              <Button
-                variant="outline"
-                onClick={() => navigate("/")}
-                className="border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white backdrop-blur-sm text-sm sm:text-base"
-              >
-                <Home className="w-4 h-4 mr-2" />
-                Back to Dashboard
-              </Button>
-            </motion.div>
-
             <div className="text-center space-y-4 sm:space-y-6">
               <motion.div
                 initial={{ opacity: 0, scale: 0.9 }}
@@ -1515,7 +1444,7 @@ const InstantTailoringAgent = () => {
                     transition={{ delay: 0.2 }}
                     className="mx-auto w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-rose-500/20 via-red-500/15 to-orange-500/20 rounded-full flex items-center justify-center border border-rose-500/20 backdrop-blur-xl"
                   >
-                    <Wand2 className="w-8 h-8 sm:w-10 sm:h-10 text-rose-400" />
+                    <Zap className="w-8 h-8 sm:w-10 sm:h-10 text-rose-400" />
                   </motion.div>
 
                   <div className="flex items-center justify-center gap-2">
@@ -1579,7 +1508,7 @@ const InstantTailoringAgent = () => {
                     desc: "Personalized letter generation",
                   },
                   {
-                    icon: Zap,
+                    icon: Bot,
                     title: "One-Click Process",
                     desc: "Complete automation",
                   },
@@ -1605,13 +1534,6 @@ const InstantTailoringAgent = () => {
                 ))}
               </motion.div>
             </div>
-
-            <AgentStats
-              totalJobs={stats.total}
-              thisWeek={stats.thisWeek}
-              activeJobs={stats.activeJobs}
-              companies={stats.companies}
-            />
 
             {savedJobs.length > 0 && (
               <motion.div
@@ -1656,19 +1578,6 @@ const InstantTailoringAgent = () => {
                         : "Title"}
                     </span>
                   </Button>
-
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="outline"
-                        onClick={fetchSavedJobs}
-                        className="px-3 border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white h-10 sm:h-11"
-                      >
-                        <RefreshCw className="w-4 h-4" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>Refresh saved jobs</TooltipContent>
-                  </Tooltip>
                 </div>
               </motion.div>
             )}

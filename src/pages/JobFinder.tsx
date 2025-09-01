@@ -74,20 +74,19 @@ import { Badge } from "@/components/ui/badge";
 import { useUsageTracking } from "@/hooks/useUsageTracking";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import RadarLocationInput from "@/components/RadarLocationInput"; // **UPDATED IMPORT**
+import RadarLocationInput from "@/components/RadarLocationInput";
 import DashboardHeader from "@/components/DashboardHeader";
 import UserAvatar from "@/components/header/UserAvatar";
 
-// **MOBILE-ENHANCED AI AGENT LOADING EXPERIENCE - ORANGE/AMBER THEME**
 const DiscoveryAgentLoadingOverlay = memo(
   ({ show, stage = 0 }: { show: boolean; stage?: number }) => {
     const agentMessages = [
-      "ðŸ”  Connecting to global job databases...",
-      "ðŸ§  Analyzing your search criteria...",
-      "âš¡ Discovering matching opportunities...",
-      "ðŸŽ¯ Filtering results based on preferences...",
-      "ðŸ“Š Ranking best opportunities for you...",
-      "âœ¨ Preparing personalized job recommendations...",
+      "🔌 Connecting to global job databases...",
+      "🧠 Analyzing your search criteria...",
+      "⚡ Discovering matching opportunities...",
+      "🎯 Filtering results based on preferences...",
+      "📊 Ranking best opportunities for you...",
+      "✨ Preparing personalized job recommendations...",
     ];
 
     return (
@@ -98,9 +97,8 @@ const DiscoveryAgentLoadingOverlay = memo(
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.3 }}
-            className="fixed inset-0 z- flex flex-col items-center justify-center backdrop-blur-lg bg-background/90 p-4"
+            className="fixed inset-0 z-50 flex flex-col items-center justify-center backdrop-blur-lg bg-background/90 p-4"
           >
-            {/* Agent Avatar with Discovery Animation */}
             <motion.div
               className="relative mb-6 sm:mb-8"
               initial={{ scale: 0.8, opacity: 0 }}
@@ -120,8 +118,6 @@ const DiscoveryAgentLoadingOverlay = memo(
                 }}
               >
                 <Radar className="w-8 h-8 sm:w-10 sm:h-10 md:w-16 md:h-16 text-orange-400" />
-
-                {/* Discovery rings */}
                 <motion.div
                   className="absolute inset-0 rounded-full border-2 border-orange-400/30"
                   animate={{
@@ -136,8 +132,6 @@ const DiscoveryAgentLoadingOverlay = memo(
                 />
               </motion.div>
             </motion.div>
-
-            {/* Agent Status */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -148,22 +142,20 @@ const DiscoveryAgentLoadingOverlay = memo(
                 Job Discovery Agent
               </h3>
               <p className="text-sm sm:text-base md:text-lg text-orange-400 font-medium leading-relaxed">
-                {agentMessages[stage] || agentMessages}
+                {agentMessages[stage] || agentMessages[0]}
               </p>
 
               <div className="space-y-2 sm:space-y-3">
                 <Progress
                   value={(stage + 1) * 16.67}
-                  className="w-full max-w-80 h-2 sm:h-3 bg-slate-700/50 mx-auto"
+                  className="w-full max-w-xs h-2 sm:h-3 bg-slate-700/50 mx-auto"
                 />
                 <p className="text-xs sm:text-sm text-slate-400">
-                  {Math.round((stage + 1) * 16.67)}% Complete â€¢ Discovering
-                  with AI precision
+                  {Math.round((stage + 1) * 16.67)}% Complete • Discovering with
+                  AI precision
                 </p>
               </div>
             </motion.div>
-
-            {/* Security Badge */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -175,41 +167,14 @@ const DiscoveryAgentLoadingOverlay = memo(
                 Searching across multiple trusted job sources
               </span>
             </motion.div>
-
-            {/* Floating particles */}
-            <div className="absolute inset-0 overflow-hidden pointer-events-none">
-              {[...Array(6)].map((_, i) => (
-                <motion.div
-                  key={i}
-                  className="absolute w-1 h-1 sm:w-2 sm:h-2 bg-orange-400/30 rounded-full"
-                  animate={{
-                    x: [0, 100, -100, 0],
-                    y: [0, -100, 100, 0],
-                    opacity: [0, 1, 0],
-                  }}
-                  transition={{
-                    duration: 8,
-                    repeat: Infinity,
-                    delay: i * 1.3,
-                    ease: "easeInOut",
-                  }}
-                  style={{
-                    left: `${20 + i * 10}%`,
-                    top: `${30 + i * 8}%`,
-                  }}
-                />
-              ))}
-            </div>
           </motion.div>
         )}
       </AnimatePresence>
     );
   }
 );
-
 DiscoveryAgentLoadingOverlay.displayName = "DiscoveryAgentLoadingOverlay";
 
-// **MOBILE-ENHANCED MULTI-SELECT DROPDOWN - ORANGE THEME**
 const MultiSelectDropdown = memo(
   ({
     options,
@@ -230,14 +195,11 @@ const MultiSelectDropdown = memo(
 
     const handleToggle = useCallback(
       (value: string) => {
-        const isSelected = selectedValues.includes(value);
-        let newSelection: string[];
-        if (isSelected) {
-          newSelection = selectedValues.filter((item) => item !== value);
-        } else {
-          newSelection = [...selectedValues, value];
-        }
-        onSelectionChange(newSelection);
+        onSelectionChange(
+          selectedValues.includes(value)
+            ? selectedValues.filter((item) => item !== value)
+            : [...selectedValues, value]
+        );
       },
       [selectedValues, onSelectionChange]
     );
@@ -245,10 +207,9 @@ const MultiSelectDropdown = memo(
     const removeItem = useCallback(
       (valueToRemove: string, e: React.MouseEvent) => {
         e.stopPropagation();
-        const newSelection = selectedValues.filter(
-          (item) => item !== valueToRemove
+        onSelectionChange(
+          selectedValues.filter((item) => item !== valueToRemove)
         );
-        onSelectionChange(newSelection);
       },
       [selectedValues, onSelectionChange]
     );
@@ -281,7 +242,6 @@ const MultiSelectDropdown = memo(
                       className="inline-flex items-center bg-orange-500/20 text-orange-400 border border-orange-500/30 px-2 py-1 rounded-lg text-xs font-medium whitespace-nowrap flex-shrink-0"
                       initial={{ opacity: 0, scale: 0.8 }}
                       animate={{ opacity: 1, scale: 1 }}
-                      transition={{ duration: 0.2 }}
                     >
                       <span className="truncate max-w-[100px] sm:max-w-none">
                         {label}
@@ -309,7 +269,6 @@ const MultiSelectDropdown = memo(
                   key={option.value}
                   className="flex items-center space-x-3 px-4 py-3 hover:bg-accent cursor-pointer"
                   onClick={() => handleToggle(option.value)}
-                  whileHover={{ backgroundColor: "rgba(var(--accent))" }}
                 >
                   <Checkbox
                     checked={selectedValues.includes(option.value)}
@@ -326,10 +285,8 @@ const MultiSelectDropdown = memo(
     );
   }
 );
-
 MultiSelectDropdown.displayName = "MultiSelectDropdown";
 
-// **MAIN MOBILE-ENHANCED JOB DISCOVERY AGENT COMPONENT**
 const JobDiscoveryAgent: React.FC = () => {
   const [jobTitle, setJobTitle] = useState("");
   const [selectedLocations, setSelectedLocations] = useState<any[]>([]);
@@ -337,34 +294,29 @@ const JobDiscoveryAgent: React.FC = () => {
   const [experienceLevel, setExperienceLevel] = useState<string[]>([]);
   const [isDiscovering, setIsDiscovering] = useState(false);
   const [loadingStage, setLoadingStage] = useState(0);
-  const [formValidation, setFormValidation] = useState({
-    jobTitle: true,
-  });
+  const [formValidation, setFormValidation] = useState({ jobTitle: true });
 
   const { toast } = useToast();
   const navigate = useNavigate();
   const { user } = useAuth();
   const { refreshUsage } = useUsageTracking();
 
-  // Calculate user name for personalized greeting
-  const userName = useMemo(() => {
-    if (!user) return "there";
-    return (
-      user.user_metadata?.full_name?.split(" ")[0] ||
-      user.email?.split("@")[0] ||
-      "there"
-    );
-  }, [user?.user_metadata?.full_name, user?.email]);
+  const userName = useMemo(
+    () =>
+      user
+        ? user.user_metadata?.full_name?.split(" ")[0] ||
+          user.email?.split("@")[0] ||
+          "there"
+        : "there",
+    [user]
+  );
 
-  // Options
   const jobTypeOptions = useMemo(
     () => [
       { value: "Full-time", label: "Full-time" },
       { value: "Part-time", label: "Part-time" },
       { value: "Contract", label: "Contract" },
       { value: "Internship", label: "Internship" },
-      { value: "Temporary", label: "Temporary" },
-      { value: "Volunteer", label: "Volunteer" },
     ],
     []
   );
@@ -376,7 +328,6 @@ const JobDiscoveryAgent: React.FC = () => {
       { value: "Associate", label: "Associate" },
       { value: "Mid-Senior level", label: "Mid-Senior level" },
       { value: "Director", label: "Director" },
-      { value: "Executive", label: "Executive" },
     ],
     []
   );
@@ -388,29 +339,17 @@ const JobDiscoveryAgent: React.FC = () => {
     });
   }, []);
 
-  // Helper function with proper error handling
   const getCurrentUserVersion = async (userId: string) => {
     try {
       const { data, error } = await supabase
         .from("user_usage")
-        .select("*")
+        .select("version")
         .eq("user_id", userId)
         .single();
-
-      if (error) {
-        if (error.code === "PGRST116") {
-          return 0;
-        }
-        return 0;
-      }
-
-      if (data && "version" in data && typeof data.version === "number") {
-        return data.version;
-      }
-
-      return 0;
+      if (error && error.code !== "PGRST116") throw error;
+      return data?.version || 0;
     } catch (error) {
-      console.error("Error in getCurrentUserVersion:", error);
+      console.error("Error getting user version:", error);
       return 0;
     }
   };
@@ -419,11 +358,7 @@ const JobDiscoveryAgent: React.FC = () => {
     setJobTitle("Senior Software Engineer");
     setJobTypes(["Full-time"]);
     setExperienceLevel(["Mid-Senior level"]);
-    toast({
-      title: "Example Loaded! ðŸš€",
-      description:
-        "Agent training data loaded. Ready to discover opportunities!",
-    });
+    toast({ title: "Example Loaded! 🚀" });
   }, [toast]);
 
   const handleResetAgent = useCallback(() => {
@@ -432,69 +367,26 @@ const JobDiscoveryAgent: React.FC = () => {
     setJobTypes([]);
     setExperienceLevel([]);
     setFormValidation({ jobTitle: true });
-
-    toast({
-      title: "Agent Reset âœ¨",
-      description: "Ready for your next job discovery!",
-    });
+    toast({ title: "Agent Reset ✨" });
   }, [toast]);
 
   const validateForm = useCallback(() => {
-    const newValidation = {
-      jobTitle: jobTitle.trim().length > 0,
-    };
-
-    setFormValidation(newValidation);
-    return Object.values(newValidation).every(Boolean);
+    const isValid = jobTitle.trim().length > 0;
+    setFormValidation({ jobTitle: isValid });
+    return isValid;
   }, [jobTitle]);
 
-  // NEW: Webhook endpoints and helpers (non-breaking additions)
-  const PRIMARY_WEBHOOK =
-    "https://n8n.applyforge.cloud/webhook-test/job-search-db";
-  const FALLBACK_WEBHOOK =
-    "https://n8n.applyforge.cloud/webhook-test/job-search-API";
-
-  const callWebhook = async (url: string, payload: any) => {
-    const response = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(errorText || `Failed to discover jobs via ${url}`);
-    }
-    return response.json();
-  };
-
-  const countResults = (data: any): number => {
-    if (!data) return 0;
-    if (Array.isArray(data)) return data.length;
-    if (Array.isArray(data.results)) return data.results.length;
-    if (Array.isArray(data.data)) return data.data.length;
-    // If schema is unknown or object without recognizable array, treat as zero for fallback purposes
-    return 0;
-  };
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!validateForm()) {
-      toast({
-        title: "Job Title Required ðŸ“„",
-        description:
-          "Please enter a job title for the agent to discover opportunities.",
-        variant: "destructive",
-      });
+      toast({ title: "Job Title Required 📝", variant: "destructive" });
       return;
     }
 
     if (!user) {
-      toast({
-        title: "Authentication Required ðŸ” ",
-        description: "Please log in to activate your Job Discovery Agent.",
-        variant: "destructive",
-      });
+      toast({ title: "Authentication Required 🔐", variant: "destructive" });
       navigate("/auth");
       return;
     }
@@ -504,9 +396,9 @@ const JobDiscoveryAgent: React.FC = () => {
     simulateLoadingStages();
 
     try {
+      // Step 1: Increment usage (existing secure logic)
       const currentVersion = await getCurrentUserVersion(user.id);
-
-      const { data: usageData, error: usageError } = await supabase.rpc(
+      const { error: usageError } = await supabase.rpc(
         "increment_usage_secure",
         {
           p_target_user_id: user.id,
@@ -527,15 +419,10 @@ const JobDiscoveryAgent: React.FC = () => {
         if (usageError.message.includes("Usage limit exceeded")) {
           toast({
             title: "Agent Limit Reached",
-            description:
-              "You've reached your Job Discovery Agent limit. Upgrade to activate unlimited job discovery!",
+            description: "Upgrade to activate unlimited job discovery!",
             variant: "destructive",
             action: (
-              <Button
-                size="sm"
-                onClick={() => navigate("/pricing")}
-                className="bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-700 hover:to-amber-700"
-              >
+              <Button size="sm" onClick={() => navigate("/pricing")}>
                 <Crown className="w-4 h-4 mr-1" />
                 Upgrade Plan
               </Button>
@@ -543,98 +430,88 @@ const JobDiscoveryAgent: React.FC = () => {
           });
           return;
         }
-
-        if (usageError.message.includes("version_conflict")) {
-          toast({
-            title: "Agent Sync Issue ðŸ”„",
-            description: "Your agent data was updated. Please try again.",
-            variant: "destructive",
-          });
-          return;
-        }
-
-        console.error("Usage increment error:", usageError);
-        toast({
-          title: "Agent Activation Failed¸ ",
-          description:
-            "Unable to activate your Job Discovery Agent. Please try again.",
-          variant: "destructive",
-        });
-        return;
+        throw new Error(usageError.message);
       }
 
+      // Step 2: Save user preferences to the new table
+      const userPlan = user.user_metadata?.plan || "free";
+      const preferencePayload = {
+        user_id: user.id,
+        job_title: jobTitle.trim(),
+        locations: selectedLocations.map((loc) => loc.name),
+        job_types: jobTypes,
+        experience_levels: experienceLevel,
+        subscription_plan: userPlan,
+      };
+      await supabase.from("user_job_preferences").insert(preferencePayload);
+
+      // Format arrays into PostgreSQL-compatible strings
+      const formatArray = (arr: string[]) =>
+        arr.length > 0 ? `{${arr.join(",")}}` : null;
+
+      // Step 3: Call the RPC function
+      const rpcParams = {
+        p_job_title: jobTitle.trim(),
+        p_locations: formatArray(selectedLocations.map((loc) => loc.name)),
+        p_experience_levels: formatArray(experienceLevel),
+        p_job_types: formatArray(jobTypes),
+      };
+
+      const { data: rpcData, error: rpcError } = await supabase.rpc(
+        "get_jobs_prioritized",
+        rpcParams
+      );
+
+      if (rpcError) throw new Error(rpcError.message);
+
+      let finalData = rpcData;
       const searchParams = {
         jobTitle: jobTitle.trim(),
         locations: selectedLocations.map((loc) => loc.name),
-        location:
-          selectedLocations.length > 0
-            ? selectedLocations.map((loc) => loc.name).join(", ")
-            : undefined,
         jobTypes,
-        jobType: jobTypes.length > 0 ? jobTypes.join(", ") : undefined,
         experienceLevel,
-        experienceLevels:
-          experienceLevel.length > 0 ? experienceLevel.join(", ") : undefined,
       };
 
-      const cleanParams = Object.fromEntries(
-        Object.entries(searchParams).filter(
-          ([_, v]) => v !== undefined && v !== ""
-        )
-      );
-
-      const payload = {
-        user_id: user?.id,
-        feature: "job_discovery_agent",
-        ...cleanParams,
-      };
-
-      // PRIMARY: DB webhook
-      const primaryData = await callWebhook(PRIMARY_WEBHOOK, payload);
-
-      if (primaryData?.allowed === false) {
+      // Step 4: Conditional Fallback to the secure Edge Function
+      if (!rpcData || rpcData.length === 0) {
         toast({
-          title: "Agent Access Denied ðŸš«",
+          title: "Expanding Search Radius... 📡",
           description:
-            primaryData?.message ||
-            "Unable to access Job Discovery Agent with your current plan.",
-          variant: "destructive",
+            "No instant matches found. Activating deep discovery agent!",
         });
-        return;
-      }
 
-      const primaryCount = countResults(primaryData);
+        const fallbackPayload = {
+          // user_id is now handled by the secure backend function
+          feature: "job_discovery_agent_fallback",
+          ...searchParams,
+        };
 
-      let finalData = primaryData;
+        // --- REPLACEMENT ---
+        // Securely invoke your new Edge Function
+        const { data: fallbackData, error: functionError } =
+          await supabase.functions.invoke("job-finder-proxy", {
+            body: fallbackPayload,
+          });
 
-      // FALLBACK: Only if zero results from primary
-      if (primaryCount === 0) {
-        const fallbackData = await callWebhook(FALLBACK_WEBHOOK, payload);
+        if (functionError) {
+          throw new Error(functionError.message);
+        }
+        // --- END REPLACEMENT ---
 
         if (fallbackData?.allowed === false) {
-          toast({
-            title: "Agent Access Denied ðŸš«",
-            description:
-              fallbackData?.message ||
-              "Unable to access Job Discovery Agent with your current plan.",
-            variant: "destructive",
-          });
+          toast({ title: "Agent Access Denied 🚫", variant: "destructive" });
           return;
         }
-
-        finalData = fallbackData;
+        finalData = fallbackData?.results ?? fallbackData;
       }
 
-      const jobResults = finalData?.results ?? finalData;
-
+      // Step 5: Process and navigate with results
       refreshUsage();
-      sessionStorage.setItem("jobSearchResults", JSON.stringify(jobResults));
-      sessionStorage.setItem("jobSearchParams", JSON.stringify(cleanParams));
-
+      sessionStorage.setItem("jobSearchResults", JSON.stringify(finalData));
+      sessionStorage.setItem("jobSearchParams", JSON.stringify(searchParams));
       navigate("/job-results");
     } catch (error) {
       console.error("Agent discovery error:", error);
-
       toast({
         title: "Agent Error",
         description:
@@ -666,21 +543,6 @@ const JobDiscoveryAgent: React.FC = () => {
             transition={{ duration: 0.6 }}
             className="space-y-6 sm:space-y-8"
           >
-            {/* Back to Home Button */}
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-            >
-              <Button
-                variant="outline"
-                onClick={() => navigate("/")}
-                className="border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white backdrop-blur-sm text-sm sm:text-base"
-              >
-                <Home className="w-4 h-4 mr-2" />
-                Back to Dashboard
-              </Button>
-            </motion.div>
-
             {/* Hero Section - AI Agent Focused */}
             <div className="text-center space-y-4 sm:space-y-6">
               <motion.div
@@ -1024,9 +886,7 @@ const JobDiscoveryAgent: React.FC = () => {
                         ) : (
                           <>
                             <Radar className="w-5 h-5 sm:w-6 sm:h-6 mr-2 sm:mr-3 flex-shrink-0" />
-                            <span className="truncate">
-                              Activate Job Discovery Agent
-                            </span>
+                            <span className="truncate">Start Discovery</span>
                             <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 ml-2 flex-shrink-0" />
                           </>
                         )}

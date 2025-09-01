@@ -50,42 +50,31 @@ export interface PaymentNotificationPayload {
 export const createRazorpaySubscription = async (
   payload: CreateOrderPayload
 ): Promise<RazorpaySubscriptionResponse> => {
-  const response = await fetch(
-    "https://n8n.applyforge.cloud/webhook-test/create-razorpay-subscription",
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(payload),
-    }
+  const { data, error } = await supabase.functions.invoke(
+    "create-payment-subscription",
+    { body: payload }
   );
 
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    console.error("Failed to create Razorpay subscription:", errorData);
+  if (error) {
+    console.error("Failed to create Razorpay subscription:", error);
     throw new Error(
       "Failed to create Razorpay subscription. Please try again."
     );
   }
 
-  return response.json();
+  return data;
 };
+
 
 export const triggerPaymentNotification = async (
   payload: PaymentNotificationPayload
 ) => {
-  // ... (function is unchanged)
   try {
-    await fetch("https://n8n.applyforge.cloud/webhook-test/payment-sucess", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(payload),
-    });
+    // This call is now secure and authenticated
+    await supabase.functions.invoke("payment-notification", { body: payload });
   } catch (error) {
-    console.error("Failed to trigger payment notification webhook:", error);
+    // The error is already logged in the Edge Function, but we can log it here too
+    console.error("Failed to trigger payment notification function:", error);
   }
 };
 

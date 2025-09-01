@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback, memo } from "react";
 import { useNavigate } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
+// ENHANCEMENT: Added PanInfo for swipe gesture typing
+import { motion, AnimatePresence, type PanInfo } from "framer-motion";
 import {
   Card,
   CardContent,
@@ -60,7 +61,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import DashboardHeader from "@/components/DashboardHeader";
 import UserAvatar from "@/components/header/UserAvatar";
 
-// **UNCHANGED**
 interface CoverLetter {
   id: string;
   company_name: string;
@@ -71,7 +71,6 @@ interface CoverLetter {
   file_type: string;
 }
 
-// **ENHANCED & FIXED: SKELETON WITH ALTERNATIVE ANIMATION SYNTAX**
 const LoadingSkeleton = memo(() => (
   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
     {[1, 2, 3, 4, 5, 6].map((index) => (
@@ -150,7 +149,6 @@ const LoadingSkeleton = memo(() => (
 ));
 LoadingSkeleton.displayName = "LoadingSkeleton";
 
-// **REFACTORED: COVER LETTER CARD DESIGN IS NOW CONSISTENT**
 const AICoverLetterCard = memo(
   ({
     letter,
@@ -285,147 +283,116 @@ const AICoverLetterCard = memo(
 );
 AICoverLetterCard.displayName = "AICoverLetterCard";
 
-// **REFACTORED: STATS OVERVIEW NOW MATCHES LiveAnalyticsCards DESIGN**
 const AgentLibraryStats = memo(
   ({ coverLetterCount }: { coverLetterCount: number }) => {
-    const stats = useMemo(
-      () => [
+    const stats = useMemo(() => {
+      const personalizationRate = coverLetterCount > 0 ? 95 : 0;
+      const successRate = coverLetterCount > 0 ? 97 : 0;
+      return [
         {
+          IconComponent: Mail,
           label: "AI Cover Letters",
-          value: coverLetterCount,
-          progress: Math.min(coverLetterCount * 4, 100),
+          value: coverLetterCount.toString(),
+          progress: Math.min(coverLetterCount * 5, 100),
           description: "Crafted by agents",
-          icon: Mail,
-          color: "purple",
+          iconColor: "text-purple-400",
+          borderColor: "border-purple-500/20",
+          gradient: "from-purple-400 to-pink-400",
         },
         {
+          IconComponent: Bot,
           label: "Agent Crafted",
-          value: coverLetterCount,
+          value: "100%",
           progress: 100,
-          description: "100% AI generation",
-          icon: Bot,
-          color: "pink",
+          description: "Fully AI generation",
+          iconColor: "text-pink-400",
+          borderColor: "border-pink-500/20",
+          gradient: "from-pink-400 to-rose-400",
         },
         {
-          label: "Highly Personalized",
-          value: coverLetterCount > 0 ? 95 : 0,
-          unit: "%",
-          progress: coverLetterCount > 0 ? 95 : 0,
-          description: "Avg. personalization",
-          icon: Target,
-          color: "blue",
+          IconComponent: Target,
+          label: "Personalization",
+          value: `${personalizationRate}%`,
+          progress: personalizationRate,
+          description: "Avg. job match rate",
+          iconColor: "text-blue-400",
+          borderColor: "border-blue-500/20",
+          gradient: "from-blue-400 to-indigo-400",
         },
         {
+          IconComponent: Award,
           label: "Success Rate",
-          value: coverLetterCount > 0 ? 97 : 0,
-          unit: "%",
-          progress: coverLetterCount > 0 ? 97 : 0,
+          value: `${successRate}%`,
+          progress: successRate,
           description: "Estimated impact",
-          icon: Award,
-          color: "orange",
+          iconColor: "text-orange-400",
+          borderColor: "border-orange-500/20",
+          gradient: "from-orange-400 to-amber-400",
         },
-      ],
-      [coverLetterCount]
-    );
-
-    const colorClasses = {
-      purple: {
-        bg: "bg-gradient-to-br from-purple-500/10 to-pink-600/10",
-        border: "border-purple-500/20 hover:border-purple-400/40",
-        iconBg: "bg-purple-500/20 border-purple-500/30",
-        iconColor: "text-purple-400",
-        progress: "from-purple-500 to-pink-500",
-      },
-      pink: {
-        bg: "bg-gradient-to-br from-pink-500/10 to-rose-600/10",
-        border: "border-pink-500/20 hover:border-pink-400/40",
-        iconBg: "bg-pink-500/20 border-pink-500/30",
-        iconColor: "text-pink-400",
-        progress: "from-pink-500 to-rose-500",
-      },
-      blue: {
-        bg: "bg-gradient-to-br from-blue-500/10 to-indigo-600/10",
-        border: "border-blue-500/20 hover:border-blue-400/40",
-        iconBg: "bg-blue-500/20 border-blue-500/30",
-        iconColor: "text-blue-400",
-        progress: "from-blue-500 to-indigo-500",
-      },
-      orange: {
-        bg: "bg-gradient-to-br from-orange-500/10 to-amber-600/10",
-        border: "border-orange-500/20 hover:border-orange-400/40",
-        iconBg: "bg-orange-500/20 border-orange-500/30",
-        iconColor: "text-orange-400",
-        progress: "from-orange-500 to-amber-500",
-      },
-    };
+      ];
+    }, [coverLetterCount]);
 
     return (
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
-        className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8"
+        className="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-8"
       >
-        {stats.map((stat, index) => {
-          const colors = colorClasses[stat.color as keyof typeof colorClasses];
-          const StatIcon = stat.icon;
-          return (
-            <motion.div
-              key={stat.label}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 + index * 0.1 }}
+        {stats.map((stat, index) => (
+          <motion.div
+            key={stat.label}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: index * 0.1 }}
+            className="group"
+          >
+            <Card
+              className={`bg-slate-800/20 backdrop-blur-xl border ${stat.borderColor} hover:border-opacity-60 transition-all duration-300 h-full group hover:shadow-lg hover:shadow-purple-500/5`}
             >
-              <Card
-                className={`${colors.bg} backdrop-blur-xl border ${colors.border} transition-all duration-300 group`}
-              >
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex-1">
-                      <p className="text-sm text-slate-400 font-medium mb-1">
-                        {stat.label}
-                      </p>
-                      <span className="text-3xl font-bold text-white">
-                        {stat.value}
-                        {stat.unit}
-                      </span>
-                    </div>
-                    <motion.div
-                      className={`p-3 rounded-xl ${colors.iconBg}`}
-                      whileHover={{ scale: 1.1, rotate: 5 }}
+              <CardContent className="p-4 flex flex-col justify-between h-full">
+                <div>
+                  <div className="flex items-start justify-between mb-3">
+                    <div
+                      className={`w-10 h-10 bg-slate-900/50 border ${stat.borderColor} rounded-xl flex items-center justify-center`}
                     >
-                      <StatIcon className={`w-5 h-5 ${colors.iconColor}`} />
-                    </motion.div>
-                  </div>
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-xs text-slate-400">
-                      <span>{stat.description}</span>
-                    </div>
-                    <div className="relative h-2 bg-slate-700/50 rounded-full overflow-hidden">
-                      <motion.div
-                        className={`h-full bg-gradient-to-r ${colors.progress}`}
-                        initial={{ width: 0 }}
-                        animate={{ width: `${stat.progress}%` }}
-                        transition={{
-                          delay: 0.5,
-                          duration: 0.8,
-                          ease: "easeOut",
-                        }}
+                      <stat.IconComponent
+                        className={`w-5 h-5 ${stat.iconColor}`}
                       />
                     </div>
+                    <span className={`text-2xl font-bold ${stat.iconColor}`}>
+                      {stat.value}
+                    </span>
                   </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-          );
-        })}
+                  <h3 className="font-semibold text-white text-base mb-1">
+                    {stat.label}
+                  </h3>
+                  <p className="text-xs text-slate-400">{stat.description}</p>
+                </div>
+                <div className="mt-4">
+                  <div className="h-1.5 bg-slate-700/50 rounded-full overflow-hidden">
+                    <motion.div
+                      className={`h-full bg-gradient-to-r ${stat.gradient}`}
+                      initial={{ width: 0 }}
+                      animate={{ width: `${stat.progress}%` }}
+                      transition={{
+                        delay: 0.5 + index * 0.1,
+                        duration: 0.8,
+                        ease: "easeOut",
+                      }}
+                    />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        ))}
       </motion.div>
     );
   }
 );
 AgentLibraryStats.displayName = "AgentLibraryStats";
 
-// **UNCHANGED: Main Component Logic**
 const AICoverLetterLibrary: React.FC = () => {
   const [coverLetters, setCoverLetters] = useState<CoverLetter[]>([]);
   const [loading, setLoading] = useState(true);
@@ -446,7 +413,6 @@ const AICoverLetterLibrary: React.FC = () => {
   }, [user]);
 
   const fetchCoverLetters = useCallback(async () => {
-    // ... (unchanged logic)
     setLoading(true);
     try {
       const { data, error } = await supabase
@@ -476,7 +442,6 @@ const AICoverLetterLibrary: React.FC = () => {
 
   const handleDownload = useCallback(
     (url: string, fileName: string) => {
-      // ... (unchanged logic)
       const link = document.createElement("a");
       link.href = url;
       link.download = fileName;
@@ -494,7 +459,6 @@ const AICoverLetterLibrary: React.FC = () => {
 
   const handleShare = useCallback(
     (letter: CoverLetter) => {
-      // ... (unchanged logic)
       navigator.clipboard.writeText(letter.cover_letter_url);
       toast({
         title: "Link Copied ✅",
@@ -506,7 +470,6 @@ const AICoverLetterLibrary: React.FC = () => {
 
   const handleDelete = useCallback(
     async (id: string, companyName: string) => {
-      // ... (unchanged logic)
       if (!user) return;
       setDeletingIds((prev) => new Set(prev).add(id));
       try {
@@ -570,8 +533,24 @@ const AICoverLetterLibrary: React.FC = () => {
     [filteredCoverLetters, sortBy]
   );
 
+  const handleSwipeNavigation = (
+    event: MouseEvent | TouchEvent | PointerEvent,
+    info: PanInfo
+  ) => {
+    const swipeConfidenceThreshold = 10000;
+    const swipePower = Math.abs(info.offset.x) * info.velocity.x;
+
+    // Swipe Left (forward)
+    if (swipePower < -swipeConfidenceThreshold) {
+      navigate("/plan-usage");
+    }
+    // Swipe Right (backward)
+    else if (swipePower > swipeConfidenceThreshold) {
+      navigate("/tailored-resumes");
+    }
+  };
+
   if (!user) {
-    // ... (unchanged auth check)
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <Card className="w-full max-w-md bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl border border-slate-700/50 shadow-xl">
@@ -595,12 +574,18 @@ const AICoverLetterLibrary: React.FC = () => {
     );
   }
 
-  // **ENHANCED: Page Layout and Hero Section**
   return (
     <TooltipProvider>
       <div className="min-h-screen bg-background">
         <DashboardHeader />
-        <div className="container mx-auto px-4 py-8 max-w-7xl">
+        {/* This motion.div enables the swipe gesture */}
+        <motion.div
+          drag="x"
+          dragConstraints={{ left: 0, right: 0 }}
+          dragSnapToOrigin
+          onDragEnd={handleSwipeNavigation}
+          className="container mx-auto px-4 py-8 max-w-7xl"
+        >
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -752,7 +737,7 @@ const AICoverLetterLibrary: React.FC = () => {
               )}
             </AnimatePresence>
           </motion.div>
-        </div>
+        </motion.div>
       </div>
     </TooltipProvider>
   );

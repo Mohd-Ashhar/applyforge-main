@@ -12,7 +12,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Progress } from "@/components/ui/progress";
 import {
   Tooltip,
   TooltipContent,
@@ -22,49 +21,30 @@ import {
 import {
   MapPin,
   Briefcase,
-  Clock,
   Building,
   ExternalLink,
-  ArrowLeft,
   Search,
   FileText,
-  Save,
   Upload,
-  Check,
   Home,
-  Filter,
-  RefreshCw,
   Eye,
   Share2,
   Loader2,
   Target,
   TrendingUp,
-  Award,
-  Users,
   Sparkles,
   CheckCircle,
   Heart,
-  Zap,
-  Globe,
-  MoreVertical,
   Star,
-  Bookmark,
   Bot,
-  Brain,
   Radar,
-  Compass,
-  Shield,
-  Activity,
-  ChevronRight,
   Crown,
-  Settings,
-  Database,
+  Trash2,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import DashboardHeader from "@/components/DashboardHeader";
-import UserAvatar from "@/components/header/UserAvatar";
 import { useUsageTracking } from "@/hooks/useUsageTracking";
 
 interface JobResult {
@@ -72,8 +52,8 @@ interface JobResult {
   job_title: string;
   company_name: string;
   companyLinkedinUrl: string;
-  location: string;
-  posted_at: string;
+  location: string | string[]; // **MODIFIED**: Allow location to be a string or array of strings for robust searching
+  created_at: string;
   apply_link: string;
   job_description: string;
   experience_level: string;
@@ -83,13 +63,11 @@ interface JobResult {
   uniqueId: string;
 }
 
-// **NEW**: Defines the status of generated documents for a job, with URLs
 interface GenerationStatus {
   resumeUrl?: string;
   coverLetterUrl?: string;
 }
 
-// **ENHANCED LOADING SKELETON - ROSE/RED THEME**
 const DiscoveryAgentLoadingSkeleton = memo(() => (
   <div className="space-y-6">
     {[1, 2, 3, 4, 5].map((index) => (
@@ -127,13 +105,11 @@ const DiscoveryAgentLoadingSkeleton = memo(() => (
               transition={{ duration: 1.5, repeat: Infinity, delay: 0.6 }}
             />
           </div>
-
           <motion.div
             className="h-16 sm:h-20 w-full bg-slate-700/50 rounded"
             animate={{ opacity: [0.5, 1, 0.5] }}
             transition={{ duration: 1.5, repeat: Infinity, delay: 0.8 }}
           />
-
           <div className="flex gap-2">
             {[1, 2, 3, 4].map((btnIndex) => (
               <motion.div
@@ -153,10 +129,8 @@ const DiscoveryAgentLoadingSkeleton = memo(() => (
     ))}
   </div>
 ));
-
 DiscoveryAgentLoadingSkeleton.displayName = "DiscoveryAgentLoadingSkeleton";
 
-// **FULLY REFACTORED DISCOVERED JOB CARD - FIXED MOBILE LAYOUT**
 const DiscoveredJobCard = memo<{
   job: JobResult;
   index: number;
@@ -165,14 +139,15 @@ const DiscoveredJobCard = memo<{
   onGenerateCoverLetter: (job: JobResult) => void;
   onAppliedChange: (job: JobResult, checked: boolean) => void;
   onShare: (job: JobResult) => void;
+  onDislikeJob: (job: JobResult) => void;
   savedJobs: Set<string>;
   savingJobs: Set<string>;
   processingResume: Set<string>;
   processingCoverLetter: Set<string>;
   appliedJobs: Set<string>;
   applyingJobs: Set<string>;
+  dislikingJobs: Set<string>;
   user: any;
-  // **ADDED**: Props for generation status and view handler
   generationStatus: GenerationStatus;
   onViewOrDownload: (url: string, fileName: string) => void;
 }>(
@@ -184,28 +159,38 @@ const DiscoveredJobCard = memo<{
     onGenerateCoverLetter,
     onAppliedChange,
     onShare,
+    onDislikeJob,
     savedJobs,
     savingJobs,
     processingResume,
     processingCoverLetter,
     appliedJobs,
     applyingJobs,
+    dislikingJobs,
     user,
-    // **ADDED**: Destructure new props
     generationStatus,
     onViewOrDownload,
   }) => {
     const [isHovered, setIsHovered] = useState(false);
 
     const formatPostedDate = useCallback((dateString: string) => {
+      if (!dateString) return "Date unavailable";
       const date = new Date(dateString);
+      if (isNaN(date.getTime())) return "Invalid date";
       const now = new Date();
-      const diffTime = Math.abs(now.getTime() - date.getTime());
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-      if (diffDays === 1) return "Discovered today";
-      if (diffDays <= 7) return `Discovered ${diffDays} days ago`;
-      return `Discovered ${Math.floor(diffDays / 7)} weeks ago`;
+      const diffSeconds = Math.round((now.getTime() - date.getTime()) / 1000);
+      if (diffSeconds < 60) return "Posted just now";
+      const diffMinutes = Math.round(diffSeconds / 60);
+      if (diffMinutes < 60) return `Posted ${diffMinutes}m ago`;
+      const diffHours = Math.round(diffMinutes / 60);
+      if (diffHours < 24) return `Posted ${diffHours}h ago`;
+      const diffDays = Math.round(diffHours / 24);
+      if (diffDays < 7) {
+        if (diffDays === 0) return `Posted ${diffHours}h ago`;
+        return `Posted ${diffDays}d ago`;
+      }
+      const diffWeeks = Math.round(diffDays / 7);
+      return `Posted ${diffWeeks}w ago`;
     }, []);
 
     const getCompanyInitials = useCallback((companyName: string) => {
@@ -226,12 +211,21 @@ const DiscoveredJobCard = memo<{
       []
     );
 
+    // **FIXED**: Make location display robust
+    const displayLocation = useMemo(() => {
+      if (!job.location) return "Location Not Available";
+      return Array.isArray(job.location)
+        ? job.location.join(", ")
+        : job.location;
+    }, [job.location]);
+
     const isSaved = savedJobs.has(job.uniqueId);
     const isSaving = savingJobs.has(job.uniqueId);
     const isProcessingResume = processingResume.has(job.uniqueId);
     const isProcessingCoverLetter = processingCoverLetter.has(job.uniqueId);
     const isApplied = appliedJobs.has(job.uniqueId);
     const isApplying = applyingJobs.has(job.uniqueId);
+    const isDisliking = dislikingJobs.has(job.uniqueId);
 
     const finalApplyLink = job.apply_link || job.linkedin_apply_link;
 
@@ -259,12 +253,10 @@ const DiscoveredJobCard = memo<{
                     {getCompanyInitials(job.company_name || "UN")}
                   </span>
                 </motion.div>
-
                 <div className="flex-1 min-w-0 overflow-hidden">
                   <CardTitle className="text-sm sm:text-base md:text-lg font-semibold text-white group-hover:text-rose-400 transition-colors leading-tight mb-1 break-words line-clamp-2">
                     {job.job_title || "Job Title Not Available"}
                   </CardTitle>
-
                   <div className="flex items-center gap-2 min-w-0">
                     <Building className="w-3 h-3 sm:w-4 sm:h-4 text-slate-400 flex-shrink-0" />
                     <span className="text-xs sm:text-sm text-slate-400 font-medium truncate">
@@ -293,8 +285,25 @@ const DiscoveredJobCard = memo<{
                     )}
                   </div>
                 </div>
-
                 <div className="hidden md:flex items-center gap-2 flex-shrink-0">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        onClick={() => onDislikeJob(job)}
+                        disabled={isDisliking}
+                        size="sm"
+                        variant="ghost"
+                        className="opacity-0 group-hover:opacity-100 transition-opacity p-2 text-slate-400 hover:text-red-500"
+                      >
+                        {isDisliking ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="w-4 h-4" />
+                        )}
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Not interested</TooltipContent>
+                  </Tooltip>
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button
@@ -310,18 +319,16 @@ const DiscoveredJobCard = memo<{
                   </Tooltip>
                 </div>
               </div>
-
               <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 sm:items-center sm:justify-between">
                 <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 min-w-0">
                   <Badge className="bg-rose-500/20 text-rose-400 border-rose-500/30 text-xs whitespace-nowrap flex-shrink-0">
-                    {formatPostedDate(job.posted_at)}
+                    {formatPostedDate(job.created_at)}
                   </Badge>
                   <Badge className="bg-red-500/20 text-red-400 border-red-500/30 text-xs whitespace-nowrap flex-shrink-0">
                     <Radar className="w-3 h-3 mr-1 flex-shrink-0" />
                     AI Discovered
                   </Badge>
                 </div>
-
                 {user && (
                   <div className="flex items-center space-x-2 flex-shrink-0 self-start sm:self-center">
                     <Checkbox
@@ -344,16 +351,14 @@ const DiscoveredJobCard = memo<{
               </div>
             </div>
           </CardHeader>
-
           <CardContent className="pt-0 space-y-3 sm:space-y-4">
             <div className="grid grid-cols-1 gap-2 sm:gap-3">
               <div className="flex items-center gap-2 text-xs sm:text-sm">
                 <MapPin className="w-3 h-3 sm:w-4 sm:h-4 text-slate-400 flex-shrink-0" />
                 <span className="text-slate-300 truncate">
-                  {job.location || "Location Not Available"}
+                  {displayLocation}
                 </span>
               </div>
-
               <div className="flex items-center gap-2 text-xs sm:text-sm">
                 <Target className="w-3 h-3 sm:w-4 sm:h-4 text-slate-400 flex-shrink-0" />
                 <span className="text-slate-300 truncate">
@@ -361,7 +366,6 @@ const DiscoveredJobCard = memo<{
                 </span>
               </div>
             </div>
-
             <div className="flex flex-wrap gap-1 sm:gap-1.5">
               {job.job_type && (
                 <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30 text-xs whitespace-nowrap flex-shrink-0">
@@ -386,7 +390,6 @@ const DiscoveredJobCard = memo<{
                 </Badge>
               )}
             </div>
-
             {job.job_description && (
               <div className="space-y-2">
                 <h4 className="font-medium text-xs sm:text-sm flex items-center gap-2">
@@ -407,7 +410,6 @@ const DiscoveredJobCard = memo<{
                 </div>
               </div>
             )}
-
             <div className="flex flex-wrap gap-1 sm:gap-1.5">
               <Badge className="bg-rose-500/20 text-rose-400 border-rose-500/30 text-xs whitespace-nowrap flex-shrink-0">
                 <Bot className="w-3 h-3 mr-1 flex-shrink-0" />
@@ -422,9 +424,7 @@ const DiscoveredJobCard = memo<{
                 Top Match
               </Badge>
             </div>
-
             <div className="pt-2">
-              {/* Desktop Layout */}
               <div className="hidden md:flex flex-wrap gap-2">
                 <motion.div
                   whileHover={{ scale: 1.02 }}
@@ -443,17 +443,16 @@ const DiscoveredJobCard = memo<{
                     {isSaved ? (
                       <>
                         <Heart className="w-4 h-4 mr-2 fill-current" />
-                        Tracked
+                        Saved
                       </>
                     ) : (
                       <>
                         <Heart className="w-4 h-4 mr-2" />
-                        {isSaving ? "Tracking..." : "Track"}
+                        {isSaving ? "Saving..." : "Save"}
                       </>
                     )}
                   </Button>
                 </motion.div>
-                {/* **MODIFIED**: Conditional rendering for Resume button */}
                 <Tooltip>
                   <TooltipTrigger asChild>
                     {generationStatus.resumeUrl ? (
@@ -494,7 +493,6 @@ const DiscoveredJobCard = memo<{
                       : "Upload resume to tailor for this discovery"}
                   </TooltipContent>
                 </Tooltip>
-                {/* **MODIFIED**: Conditional rendering for Cover Letter button */}
                 <Tooltip>
                   <TooltipTrigger asChild>
                     {generationStatus.coverLetterUrl ? (
@@ -535,7 +533,6 @@ const DiscoveredJobCard = memo<{
                       : "Generate cover letter for this discovery"}
                   </TooltipContent>
                 </Tooltip>
-
                 <motion.div
                   className="flex-1"
                   whileHover={{ scale: 1.02 }}
@@ -558,8 +555,6 @@ const DiscoveredJobCard = memo<{
                   </Button>
                 </motion.div>
               </div>
-
-              {/* Mobile Layout */}
               <div className="md:hidden space-y-2">
                 <div className="grid grid-cols-2 gap-2">
                   <motion.div
@@ -579,30 +574,44 @@ const DiscoveredJobCard = memo<{
                       {isSaved ? (
                         <>
                           <Heart className="w-3 h-3 mr-1 fill-current flex-shrink-0" />
-                          <span className="truncate">Tracked</span>
+                          <span className="truncate">Saved</span>
                         </>
                       ) : (
                         <>
                           <Heart className="w-3 h-3 mr-1 flex-shrink-0" />
                           <span className="truncate">
-                            {isSaving ? "Tracking..." : "Track"}
+                            {isSaving ? "Saving..." : "Save"}
                           </span>
                         </>
                       )}
                     </Button>
                   </motion.div>
-
-                  <Button
-                    onClick={() => onShare(job)}
-                    size="sm"
-                    variant="outline"
-                    className="w-full border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white text-xs h-9"
-                  >
-                    <Share2 className="w-3 h-3 mr-1 flex-shrink-0" />
-                    <span className="truncate">Share</span>
-                  </Button>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button
+                      onClick={() => onShare(job)}
+                      size="sm"
+                      variant="outline"
+                      className="w-full border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white text-xs h-9"
+                    >
+                      <Share2 className="w-3 h-3 mr-1 flex-shrink-0" />
+                      <span className="truncate">Share</span>
+                    </Button>
+                    <Button
+                      onClick={() => onDislikeJob(job)}
+                      disabled={isDisliking}
+                      size="sm"
+                      variant="outline"
+                      className="w-full border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-red-500 text-xs h-9"
+                    >
+                      {isDisliking ? (
+                        <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                      ) : (
+                        <Trash2 className="w-3 h-3 mr-1 flex-shrink-0" />
+                      )}
+                      <span className="truncate">Remove</span>
+                    </Button>
+                  </div>
                 </div>
-                {/* **MODIFIED**: Conditional rendering for mobile AI tools */}
                 <div className="grid grid-cols-2 gap-2">
                   {generationStatus.resumeUrl ? (
                     <Button
@@ -635,7 +644,6 @@ const DiscoveredJobCard = memo<{
                       <span className="truncate">Resume</span>
                     </Button>
                   )}
-
                   {generationStatus.coverLetterUrl ? (
                     <Button
                       onClick={() =>
@@ -668,7 +676,6 @@ const DiscoveredJobCard = memo<{
                     </Button>
                   )}
                 </div>
-
                 <motion.div
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
@@ -697,10 +704,8 @@ const DiscoveredJobCard = memo<{
     );
   }
 );
-
 DiscoveredJobCard.displayName = "DiscoveredJobCard";
 
-// **AGENT DISCOVERY STATS COMPONENT**
 const DiscoveryAgentStats = memo(({ jobCount }: { jobCount: number }) => {
   const stats = useMemo(
     () => ({
@@ -730,7 +735,6 @@ const DiscoveryAgentStats = memo(({ jobCount }: { jobCount: number }) => {
           <div className="text-xs text-slate-400">Opportunities Discovered</div>
         </CardContent>
       </Card>
-
       <Card className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl border border-slate-700/50">
         <CardContent className="p-3 sm:p-4 text-center">
           <div className="flex items-center justify-center mb-2">
@@ -742,7 +746,6 @@ const DiscoveryAgentStats = memo(({ jobCount }: { jobCount: number }) => {
           <div className="text-xs text-slate-400">AI Matched</div>
         </CardContent>
       </Card>
-
       <Card className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl border border-slate-700/50">
         <CardContent className="p-3 sm:p-4 text-center">
           <div className="flex items-center justify-center mb-2">
@@ -754,7 +757,6 @@ const DiscoveryAgentStats = memo(({ jobCount }: { jobCount: number }) => {
           <div className="text-xs text-slate-400">Quality Score</div>
         </CardContent>
       </Card>
-
       <Card className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl border border-slate-700/50">
         <CardContent className="p-3 sm:p-4 text-center">
           <div className="flex items-center justify-center mb-2">
@@ -769,7 +771,6 @@ const DiscoveryAgentStats = memo(({ jobCount }: { jobCount: number }) => {
     </motion.div>
   );
 });
-
 DiscoveryAgentStats.displayName = "DiscoveryAgentStats";
 
 const AIJobDiscoveryAgentResults: React.FC = () => {
@@ -785,12 +786,11 @@ const AIJobDiscoveryAgentResults: React.FC = () => {
   >(new Set());
   const [appliedJobs, setAppliedJobs] = useState<Set<string>>(new Set());
   const [applyingJobs, setApplyingJobs] = useState<Set<string>>(new Set());
-  // **ADDED**: State to track which documents have been generated
+  const [dislikingJobs, setDislikingJobs] = useState<Set<string>>(new Set());
   const [generationStatus, setGenerationStatus] = useState<
     Record<string, GenerationStatus>
   >({});
   const [searchTerm, setSearchTerm] = useState("");
-  const [sortBy, setSortBy] = useState<"date" | "company" | "title">("date");
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
@@ -807,38 +807,123 @@ const AIJobDiscoveryAgentResults: React.FC = () => {
   }, [user?.user_metadata?.full_name, user?.email]);
 
   useEffect(() => {
-    const results = sessionStorage.getItem("jobSearchResults");
-    if (results) {
-      try {
-        const parsedResults = JSON.parse(results);
-        const jobsArray = Array.isArray(parsedResults)
-          ? parsedResults
-          : [parsedResults];
-        const jobsWithIds = jobsArray.map((job, index) => ({
-          ...job,
-          uniqueId:
-            job.uniqueId ||
-            `${job.title}-${job.companyName}-${index}-${Date.now()}`,
-        }));
-        setJobResults(jobsWithIds);
-      } catch (error) {
-        console.error("Error parsing job results:", error);
-        setJobResults([]);
-      }
-    } else {
-      navigate("/job-discovery");
-    }
-    setLoading(false);
-  }, [navigate]);
+    const loadAndSyncJobs = async () => {
+      setLoading(true);
+      const results = sessionStorage.getItem("jobSearchResults");
+      let initialJobs: JobResult[] = [];
 
-  // **REFACTORED FUNCTION**
+      if (results) {
+        try {
+          const parsedResults = JSON.parse(results);
+          const jobsArray = Array.isArray(parsedResults)
+            ? parsedResults
+            : [parsedResults];
+          initialJobs = jobsArray.map((job, index) => ({
+            ...job,
+            uniqueId:
+              job.uniqueId ||
+              `${job.job_title}-${job.company_name}-${index}-${Date.now()}`,
+          }));
+        } catch (error) {
+          console.error(
+            "Error parsing job results from session storage:",
+            error
+          );
+          initialJobs = [];
+        }
+      }
+
+      if (initialJobs.length === 0 && !results) {
+        navigate("/job-discovery");
+        setLoading(false);
+        return;
+      }
+
+      if (!user || initialJobs.length === 0) {
+        setJobResults(initialJobs);
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const applyUrls = initialJobs
+          .map((job) => job.apply_link || job.linkedin_apply_link)
+          .filter(Boolean);
+
+        if (applyUrls.length === 0) {
+          setJobResults(initialJobs);
+          return;
+        }
+
+        const [savedRes, appliedRes, dislikedRes] = await Promise.all([
+          supabase
+            .from("saved_jobs")
+            .select("apply_url")
+            .eq("user_id", user.id)
+            .in("apply_url", applyUrls),
+          supabase
+            .from("applied_jobs")
+            .select("apply_url")
+            .eq("user_id", user.id)
+            .in("apply_url", applyUrls),
+          supabase
+            .from("disliked_jobs")
+            .select("apply_link")
+            .eq("user_id", user.id)
+            .in("apply_link", applyUrls),
+        ]);
+
+        if (savedRes.error) throw savedRes.error;
+        if (appliedRes.error) throw appliedRes.error;
+        if (dislikedRes.error) throw dislikedRes.error;
+
+        const savedUrls = new Set(savedRes.data.map((j) => j.apply_url));
+        const newSavedJobs = new Set<string>();
+        initialJobs.forEach((job) => {
+          const finalApplyLink = job.apply_link || job.linkedin_apply_link;
+          if (savedUrls.has(finalApplyLink)) {
+            newSavedJobs.add(job.uniqueId);
+          }
+        });
+        setSavedJobs(newSavedJobs);
+
+        const appliedUrls = new Set(appliedRes.data.map((j) => j.apply_url));
+        const dislikedUrls = new Set(dislikedRes.data.map((j) => j.apply_link));
+
+        const filteredJobs = initialJobs.filter((job) => {
+          const finalApplyLink = job.apply_link || job.linkedin_apply_link;
+          return (
+            !appliedUrls.has(finalApplyLink) &&
+            !dislikedUrls.has(finalApplyLink)
+          );
+        });
+
+        setJobResults(filteredJobs);
+        sessionStorage.setItem(
+          "jobSearchResults",
+          JSON.stringify(filteredJobs)
+        );
+      } catch (error) {
+        console.error("Error syncing job states:", error);
+        toast({
+          title: "Agent Sync Error",
+          description: "Could not sync your jobs. Displaying all results.",
+          variant: "destructive",
+        });
+        setJobResults(initialJobs);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadAndSyncJobs();
+  }, [user, navigate, toast]);
+
   const checkGenerationStatus = useCallback(
     async (jobs: JobResult[]) => {
       if (!user || jobs.length === 0) return;
 
       try {
-        // Step 1: Fetch ALL tailored resumes and cover letters for the user.
-        // This avoids creating an excessively long URL.
         const [resumesRes, coverLettersRes] = await Promise.all([
           supabase
             .from("tailored_resumes")
@@ -853,7 +938,6 @@ const AIJobDiscoveryAgentResults: React.FC = () => {
         if (resumesRes.error) throw resumesRes.error;
         if (coverLettersRes.error) throw coverLettersRes.error;
 
-        // Step 2: Create efficient lookup maps from the fetched data.
         const resumeMap = new Map<string, string>();
         resumesRes.data?.forEach((resume) => {
           if (resume.job_description && resume.resume_data) {
@@ -868,7 +952,6 @@ const AIJobDiscoveryAgentResults: React.FC = () => {
           }
         });
 
-        // Step 3: Match jobs with the fetched documents on the client-side.
         const newStatus: Record<string, GenerationStatus> = {};
         jobs.forEach((job) => {
           if (job.job_description) {
@@ -913,13 +996,15 @@ const AIJobDiscoveryAgentResults: React.FC = () => {
           user_id: user.id,
           job_title: job.job_title || "Unknown",
           company_name: job.company_name || "Unknown",
-          location: job.location || "Unknown",
+          location: Array.isArray(job.location)
+            ? job.location.join(", ")
+            : job.location || "Unknown", // Handle array
           experience_level: job.experience_level || "Not specified",
           job_type: job.job_type || "Not specified",
           work_type: "Not specified",
           apply_link: job.apply_link || "",
           company_linkedin_url: job.companyLinkedinUrl || null,
-          posted_at: job.posted_at || new Date().toISOString(),
+          posted_at: job.created_at || new Date().toISOString(), // This should be posted_at from types.ts
           job_description: job.job_description || null,
           seniority_level: job.experience_level || null,
           employment_type: job.job_type || null,
@@ -927,9 +1012,21 @@ const AIJobDiscoveryAgentResults: React.FC = () => {
           industries: job.industries || null,
         }));
 
+        // The column in job_search_results is created_at for the timestamp of insertion,
+        // and posted_at for when the job was originally posted.
+        // Let's correct the mapping based on the types.
+        const correctedData = jobSearchData.map((item) => {
+          const { posted_at, ...rest } = item;
+          return {
+            ...rest,
+            posted_at: item.posted_at, // The date the job was posted
+            // created_at is handled by the DB default
+          };
+        });
+
         const { error } = await supabase
           .from("job_search_results")
-          .insert(jobSearchData);
+          .insert(correctedData);
 
         if (error) {
           console.error("Error saving job search results:", error);
@@ -967,18 +1064,13 @@ const AIJobDiscoveryAgentResults: React.FC = () => {
         .select("*")
         .eq("user_id", userId)
         .single();
-
       if (error) {
-        if (error.code === "PGRST116") {
-          return 0;
-        }
+        if (error.code === "PGRST116") return 0;
         return 0;
       }
-
       if (data && "version" in data && typeof data.version === "number") {
         return data.version;
       }
-
       return 0;
     } catch (error) {
       console.error("Error in getCurrentUserVersion:", error);
@@ -1027,7 +1119,7 @@ const AIJobDiscoveryAgentResults: React.FC = () => {
             .from("saved_jobs")
             .delete()
             .eq("user_id", user.id)
-            .eq("apply_url", job.apply_link);
+            .eq("apply_url", job.apply_link || job.linkedin_apply_link);
 
           if (error) throw error;
 
@@ -1036,10 +1128,9 @@ const AIJobDiscoveryAgentResults: React.FC = () => {
             newSet.delete(job.uniqueId);
             return newSet;
           });
-
           toast({
-            title: "Agent Tracking Stopped ✅",
-            description: "Opportunity removed from your tracker.",
+            title: "Agent Saving Stopped ✅",
+            description: "Opportunity removed from your job library.",
           });
         } catch (error) {
           console.error("Error removing saved job:", error);
@@ -1063,10 +1154,12 @@ const AIJobDiscoveryAgentResults: React.FC = () => {
           user_id: user.id,
           job_title: job.job_title || "",
           company_name: job.company_name || "",
-          job_location: job.location || "",
+          job_location: Array.isArray(job.location)
+            ? job.location.join(", ")
+            : job.location || "",
           company_linkedin_url: job.companyLinkedinUrl || null,
-          posted_at: job.posted_at || "",
-          apply_url: job.apply_link || "",
+          posted_at: job.created_at || "",
+          apply_url: job.apply_link || job.linkedin_apply_link || "",
           job_description: job.job_description || null,
           seniority_level: job.experience_level || null,
           employment_type: job.job_type || null,
@@ -1080,8 +1173,8 @@ const AIJobDiscoveryAgentResults: React.FC = () => {
           if (error.code === "23505") {
             setSavedJobs((prev) => new Set(prev).add(job.uniqueId));
             toast({
-              title: "Already Tracking ✅",
-              description: "This opportunity is already in your tracker.",
+              title: "Already Saved ✅",
+              description: "This opportunity is already in your job library.",
             });
           } else {
             throw error;
@@ -1089,8 +1182,8 @@ const AIJobDiscoveryAgentResults: React.FC = () => {
         } else {
           setSavedJobs((prev) => new Set(prev).add(job.uniqueId));
           toast({
-            title: "Agent Now Tracking! 🎯",
-            description: "Opportunity added to your AI tracker.",
+            title: "Agent Now Saving! 🎯",
+            description: "Opportunity added to your AI Job Library.",
           });
         }
       } catch (error) {
@@ -1148,7 +1241,6 @@ const AIJobDiscoveryAgentResults: React.FC = () => {
         setProcessingResume((prev) => new Set(prev).add(job.uniqueId));
 
         try {
-          // ... (usage check logic remains the same)
           const currentVersion = await getCurrentUserVersion(user.id);
           const { error: usageError } = await supabase.rpc(
             "increment_usage_secure",
@@ -1203,9 +1295,8 @@ const AIJobDiscoveryAgentResults: React.FC = () => {
             return;
           }
 
-          // REFACTORED: Use FormData to send the binary file
           const formData = new FormData();
-          formData.append("user_id", user.id);
+
           formData.append("feature", "instant_tailoring_agent");
           formData.append("jobRole", job.job_title || "");
           formData.append("jobDescription", job.job_description || "");
@@ -1216,11 +1307,19 @@ const AIJobDiscoveryAgentResults: React.FC = () => {
           );
           formData.append("resume", file);
 
+          const session = (await supabase.auth.getSession()).data.session;
+          if (!session) throw new Error("User not authenticated");
+
           const response = await fetch(
-            "https://n8n.applyforge.cloud/webhook-test/instant-tailor-resume",
+            `${
+              import.meta.env.VITE_SUPABASE_URL
+            }/functions/v1/instant-resume-proxy`,
             {
               method: "POST",
-              body: formData, // Send FormData directly
+              body: formData,
+              headers: {
+                Authorization: `Bearer ${session.access_token}`,
+              },
             }
           );
 
@@ -1244,7 +1343,6 @@ const AIJobDiscoveryAgentResults: React.FC = () => {
             if (error) {
               console.error("Error saving tailored resume:", error);
             }
-            // **MODIFIED**: Use the reusable handler
             handleViewOrDownload(
               tailoredResumeUrl,
               `${user.email?.split("@")[0] || "User"}-${job.job_title}.pdf`
@@ -1256,7 +1354,6 @@ const AIJobDiscoveryAgentResults: React.FC = () => {
                 "Your AI-tailored resume has been generated and downloaded!",
             });
 
-            // **ADDED**: Update generation status on success
             setGenerationStatus((prev) => ({
               ...prev,
               [job.uniqueId]: {
@@ -1322,7 +1419,6 @@ const AIJobDiscoveryAgentResults: React.FC = () => {
         setProcessingCoverLetter((prev) => new Set(prev).add(job.uniqueId));
 
         try {
-          // ... (usage check logic remains the same)
           const currentVersion = await getCurrentUserVersion(user.id);
           const { error: usageError } = await supabase.rpc(
             "increment_usage_secure",
@@ -1377,9 +1473,8 @@ const AIJobDiscoveryAgentResults: React.FC = () => {
             return;
           }
 
-          // REFACTORED: Use FormData to send the binary file
           const formData = new FormData();
-          formData.append("user_id", user.id);
+
           formData.append("feature", "discovery_agent_cover_letters");
           formData.append("jobDescription", job.job_description || "");
           formData.append("companyName", job.company_name || "");
@@ -1391,11 +1486,19 @@ const AIJobDiscoveryAgentResults: React.FC = () => {
           );
           formData.append("resume", file);
 
+          const session = (await supabase.auth.getSession()).data.session;
+          if (!session) throw new Error("User not authenticated");
+
           const response = await fetch(
-            "https://n8n.applyforge.cloud/webhook-test/instant-cover-letter",
+            `${
+              import.meta.env.VITE_SUPABASE_URL
+            }/functions/v1/instant-cover-letter-proxy`,
             {
               method: "POST",
               body: formData,
+              headers: {
+                Authorization: `Bearer ${session.access_token}`,
+              },
             }
           );
 
@@ -1419,7 +1522,6 @@ const AIJobDiscoveryAgentResults: React.FC = () => {
             if (error) {
               console.error("Error saving cover letter:", error);
             }
-            // **MODIFIED**: Use the reusable handler
             handleViewOrDownload(
               coverLetterUrl,
               `cover-letter-${job.company_name}-${job.job_title}.pdf`
@@ -1431,7 +1533,6 @@ const AIJobDiscoveryAgentResults: React.FC = () => {
                 "Your personalized cover letter has been generated and downloaded!",
             });
 
-            // **ADDED**: Update generation status on success
             setGenerationStatus((prev) => ({
               ...prev,
               [job.uniqueId]: {
@@ -1480,10 +1581,12 @@ const AIJobDiscoveryAgentResults: React.FC = () => {
             user_id: user.id,
             job_title: job.job_title || "Unknown Job",
             company_name: job.company_name || "Unknown Company",
-            job_location: job.location || "Location Not Available",
+            job_location: Array.isArray(job.location)
+              ? job.location.join(", ")
+              : job.location || "Location Not Available",
             company_linkedin_url: job.companyLinkedinUrl || null,
-            posted_at: job.posted_at || new Date().toISOString().slice(0, 10),
-            apply_url: job.apply_link || "",
+            posted_at: job.created_at || new Date().toISOString().slice(0, 10),
+            apply_url: job.apply_link || job.linkedin_apply_link || "",
             job_description: job.job_description || null,
             seniority_level: job.experience_level || null,
             employment_type: job.job_type || null,
@@ -1495,13 +1598,18 @@ const AIJobDiscoveryAgentResults: React.FC = () => {
             .from("applied_jobs")
             .insert(appliedJobData);
 
-          if (error) {
-            throw error;
-          }
+          if (error) throw error;
 
-          setJobResults((prevResults) =>
-            prevResults.filter((j) => j.uniqueId !== job.uniqueId)
-          );
+          setJobResults((prevResults) => {
+            const updatedResults = prevResults.filter(
+              (j) => j.uniqueId !== job.uniqueId
+            );
+            sessionStorage.setItem(
+              "jobSearchResults",
+              JSON.stringify(updatedResults)
+            );
+            return updatedResults;
+          });
 
           setSavedJobs((prev) => {
             const newSet = new Set(prev);
@@ -1520,7 +1628,6 @@ const AIJobDiscoveryAgentResults: React.FC = () => {
             description: "Failed to save applied job. Please try again.",
             variant: "destructive",
           });
-
           setAppliedJobs((prev) => {
             const newSet = new Set(prev);
             newSet.delete(job.uniqueId);
@@ -1536,6 +1643,56 @@ const AIJobDiscoveryAgentResults: React.FC = () => {
       }
     },
     [user, toast]
+  );
+
+  const handleDislikeJob = useCallback(
+    async (job: JobResult) => {
+      if (!user) {
+        toast({
+          title: "Authentication Required",
+          description: "Please log in to manage your job discoveries.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      setDislikingJobs((prev) => new Set(prev).add(job.uniqueId));
+
+      const updatedResults = jobResults.filter(
+        (j) => j.uniqueId !== job.uniqueId
+      );
+      setJobResults(updatedResults);
+      sessionStorage.setItem(
+        "jobSearchResults",
+        JSON.stringify(updatedResults)
+      );
+
+      toast({
+        title: "Discovery Removed 👋",
+        description:
+          "We'll improve future recommendations based on your feedback.",
+      });
+
+      try {
+        const { error } = await supabase.from("disliked_jobs").insert({
+          user_id: user.id,
+          job_title: job.job_title,
+          company_name: job.company_name,
+          apply_link: job.apply_link || job.linkedin_apply_link,
+          job_description: job.job_description,
+        });
+        if (error) throw error;
+      } catch (error) {
+        console.error("Error logging disliked job:", error);
+      } finally {
+        setDislikingJobs((prev) => {
+          const newSet = new Set(prev);
+          newSet.delete(job.uniqueId);
+          return newSet;
+        });
+      }
+    },
+    [user, jobResults, toast]
   );
 
   const handleShare = useCallback(
@@ -1557,38 +1714,34 @@ const AIJobDiscoveryAgentResults: React.FC = () => {
     [toast]
   );
 
+  // **FIXED**: Search logic is now more robust, especially for location data.
   const filteredJobs = useMemo(
     () =>
-      jobResults.filter(
-        (job) =>
-          (job.job_title ?? "")
-            .toLowerCase()
-            .includes(searchTerm.toLowerCase()) ||
-          (job.company_name ?? "")
-            .toLowerCase()
-            .includes(searchTerm.toLowerCase()) ||
-          (job.location ?? "").toLowerCase().includes(searchTerm.toLowerCase())
-      ),
+      jobResults.filter((job) => {
+        const lowercasedSearchTerm = searchTerm.toLowerCase();
+        const titleMatch = (job.job_title ?? "")
+          .toLowerCase()
+          .includes(lowercasedSearchTerm);
+        const companyMatch = (job.company_name ?? "")
+          .toLowerCase()
+          .includes(lowercasedSearchTerm);
+
+        // Handle both string and array for location
+        const locationString = Array.isArray(job.location)
+          ? job.location.join(", ")
+          : job.location ?? "";
+        const locationMatch = locationString
+          .toLowerCase()
+          .includes(lowercasedSearchTerm);
+
+        return titleMatch || companyMatch || locationMatch;
+      }),
     [jobResults, searchTerm]
   );
 
-  const sortedJobs = useMemo(
-    () =>
-      [...filteredJobs].sort((a, b) => {
-        switch (sortBy) {
-          case "company":
-            return (a.company_name ?? "").localeCompare(b.company_name ?? "");
-          case "title":
-            return (a.job_title ?? "").localeCompare(b.job_title ?? "");
-          case "date":
-          default:
-            return (
-              new Date(b.posted_at).getTime() - new Date(a.posted_at).getTime()
-            );
-        }
-      }),
-    [filteredJobs, sortBy]
-  );
+  // **REMOVED**: Sorting logic is no longer needed.
+  // The displayed jobs will be the filtered jobs in their default order.
+  const displayedJobs = filteredJobs;
 
   if (loading) {
     return (
@@ -1609,7 +1762,6 @@ const AIJobDiscoveryAgentResults: React.FC = () => {
     <TooltipProvider>
       <div className="min-h-screen bg-background">
         <DashboardHeader />
-
         <div className="container mx-auto px-4 py-6 sm:py-8">
           <div className="max-w-6xl mx-auto">
             <motion.div
@@ -1618,21 +1770,6 @@ const AIJobDiscoveryAgentResults: React.FC = () => {
               transition={{ duration: 0.5 }}
               className="space-y-6 sm:space-y-8"
             >
-              <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                className="flex flex-col sm:flex-row gap-2 mb-4 sm:mb-6"
-              >
-                <Button
-                  variant="outline"
-                  onClick={() => navigate("/")}
-                  className="border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white backdrop-blur-sm justify-start text-sm sm:text-base"
-                >
-                  <Home className="w-4 h-4 mr-2" />
-                  Back to Dashboard
-                </Button>
-              </motion.div>
-
               <div className="text-center space-y-4 sm:space-y-6">
                 <motion.div
                   initial={{ opacity: 0, scale: 0.9 }}
@@ -1649,14 +1786,12 @@ const AIJobDiscoveryAgentResults: React.FC = () => {
                     >
                       <Radar className="w-8 h-8 sm:w-10 sm:h-10 text-rose-400" />
                     </motion.div>
-
                     <div className="flex items-center justify-center gap-2">
                       <Badge className="bg-rose-500/20 text-rose-400 border-rose-500/30 text-xs sm:text-sm">
                         <Sparkles className="w-3 h-3 mr-1" />
                         AI Discovery
                       </Badge>
                     </div>
-
                     <motion.h1
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -1668,7 +1803,6 @@ const AIJobDiscoveryAgentResults: React.FC = () => {
                         Results
                       </span>
                     </motion.h1>
-
                     <motion.div
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -1695,7 +1829,6 @@ const AIJobDiscoveryAgentResults: React.FC = () => {
                     </motion.div>
                   </div>
                 </motion.div>
-
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -1742,11 +1875,25 @@ const AIJobDiscoveryAgentResults: React.FC = () => {
                   ))}
                 </motion.div>
               </div>
-
               <DiscoveryAgentStats jobCount={jobResults.length} />
 
+              {/* **MODIFIED**: Sorting controls removed */}
+              {jobResults.length > 0 && (
+                <div className="flex flex-col sm:flex-row justify-between items-center gap-4 p-4 bg-slate-800/30 rounded-lg border border-slate-700/50">
+                  <div className="relative w-full flex-1">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                    <input
+                      type="text"
+                      placeholder="Search by title, company, or location..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="w-full bg-slate-800/50 border border-slate-700 rounded-md py-2 pl-10 pr-4 text-sm text-white placeholder-slate-400 focus:ring-2 focus:ring-rose-500 focus:border-rose-500 outline-none transition"
+                    />
+                  </div>
+                </div>
+              )}
               <AnimatePresence mode="wait">
-                {sortedJobs.length === 0 ? (
+                {displayedJobs.length === 0 ? (
                   <motion.div
                     key="empty"
                     initial={{ opacity: 0, y: 20 }}
@@ -1764,19 +1911,16 @@ const AIJobDiscoveryAgentResults: React.FC = () => {
                         >
                           <Radar className="w-8 h-8 sm:w-10 sm:h-10 text-slate-400" />
                         </motion.div>
-
                         <h3 className="text-xl sm:text-2xl font-semibold mb-2 sm:mb-3 text-white">
                           {searchTerm
                             ? "No Matching Discoveries"
-                            : "All Opportunities Applied!"}
+                            : "All Opportunities Cleared!"}
                         </h3>
-
                         <p className="text-slate-400 mb-4 sm:mb-6 text-sm sm:text-base">
                           {searchTerm
                             ? `No opportunities found matching "${searchTerm}". Try a different search term.`
-                            : "Amazing! You've applied to all discovered positions. Let your AI agent find more opportunities."}
+                            : "Great job! You've reviewed all discovered positions. Let your AI agent find more."}
                         </p>
-
                         <div className="flex flex-col sm:flex-row gap-3 justify-center">
                           {searchTerm ? (
                             <Button
@@ -1808,7 +1952,7 @@ const AIJobDiscoveryAgentResults: React.FC = () => {
                     className="space-y-4 sm:space-y-6"
                   >
                     <AnimatePresence>
-                      {sortedJobs.map((job, index) => (
+                      {displayedJobs.map((job, index) => (
                         <DiscoveredJobCard
                           key={job.uniqueId}
                           job={job}
@@ -1818,14 +1962,15 @@ const AIJobDiscoveryAgentResults: React.FC = () => {
                           onGenerateCoverLetter={handleGenerateCoverLetter}
                           onAppliedChange={handleAppliedChange}
                           onShare={handleShare}
+                          onDislikeJob={handleDislikeJob}
                           savedJobs={savedJobs}
                           savingJobs={savingJobs}
                           processingResume={processingResume}
                           processingCoverLetter={processingCoverLetter}
                           appliedJobs={appliedJobs}
                           applyingJobs={applyingJobs}
+                          dislikingJobs={dislikingJobs}
                           user={user}
-                          // **ADDED**: Pass down the new state and handlers
                           generationStatus={
                             generationStatus[job.uniqueId] || {}
                           }
@@ -1836,8 +1981,7 @@ const AIJobDiscoveryAgentResults: React.FC = () => {
                   </motion.div>
                 )}
               </AnimatePresence>
-
-              {sortedJobs.length > 0 && (
+              {displayedJobs.length > 0 && (
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}

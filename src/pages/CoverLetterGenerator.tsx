@@ -956,7 +956,7 @@ Requirements:
 
       // Send request to webhook
       const formRequestData = new FormData();
-      formRequestData.append("user_id", user.id);
+
       formRequestData.append("feature", "cover_letter_crafting_agent");
       formRequestData.append("jobDescription", formData.jobDescription);
       formRequestData.append("companyName", formData.companyName);
@@ -971,11 +971,22 @@ Requirements:
       // --- CHANGE: Add selected template to webhook data ---
       formRequestData.append("coverLetterTemplate", selectedTemplate);
 
+      // Get the user's session token for authentication
+      const session = (await supabase.auth.getSession()).data.session;
+      if (!session) {
+        throw new Error("User not authenticated");
+      }
+
+      // Securely call your new Edge Function instead of n8n directly
       const response = await fetch(
-        "https://n8n.applyforge.cloud/webhook-test/generate-cover-letter",
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/cover-letter-proxy`,
         {
           method: "POST",
           body: formRequestData,
+          headers: {
+            // Add the Authorization header to authenticate the request
+            Authorization: `Bearer ${session.access_token}`,
+          },
         }
       );
 
@@ -1094,21 +1105,6 @@ Requirements:
             transition={{ duration: 0.6 }}
             className="space-y-6 sm:space-y-8"
           >
-            {/* Back to Home Button */}
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-            >
-              <Button
-                variant="outline"
-                onClick={() => navigate("/")}
-                className="border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white backdrop-blur-sm text-sm sm:text-base"
-              >
-                <Home className="w-4 h-4 mr-2" />
-                Back to Dashboard
-              </Button>
-            </motion.div>
-
             {/* Hero Section - AI Agent Focused with CONSISTENT COLORS */}
             <div className="text-center space-y-4 sm:space-y-6">
               <motion.div
@@ -1548,7 +1544,7 @@ Requirements:
                               <>
                                 <PenTool className="w-5 h-5 sm:w-6 sm:h-6 mr-2 sm:mr-3 flex-shrink-0" />
                                 <span className="truncate">
-                                  Activate Cover Letter Crafting Agent
+                                  Craft My Cover Letter
                                 </span>
                                 <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 ml-2 flex-shrink-0" />
                               </>

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback, memo } from "react";
 import { useNavigate } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
+// ENHANCEMENT: Added PanInfo for swipe gesture typing
+import { motion, AnimatePresence, type PanInfo } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -68,7 +69,7 @@ interface TailoredResume {
   title: string | null;
 }
 
-// **ENHANCED: SKELETON NOW MATCHES NEW CARD DESIGN**
+// **UNCHANGED: SKELETON**
 const LoadingSkeleton = memo(() => (
   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
     {[1, 2, 3, 4, 5, 6].map((index) => (
@@ -123,7 +124,7 @@ const LoadingSkeleton = memo(() => (
 ));
 LoadingSkeleton.displayName = "LoadingSkeleton";
 
-// **REFACTORED: RESUME CARD DESIGN IS NOW CONSISTENT WITH AIAgentCard**
+// **UNCHANGED: RESUME CARD**
 const AIResumeCard = memo(
   ({
     resume,
@@ -172,10 +173,9 @@ const AIResumeCard = memo(
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3, delay: index * 0.1 }}
-        whileHover={{ y: -8, scale: 1.02 }} // ENHANCED: More dynamic hover effect
+        whileHover={{ y: -8, scale: 1.02 }}
         className="group h-full"
       >
-        {/* ENHANCED: Card now uses bg-gradient and consistent border styles */}
         <Card className="bg-gradient-to-br from-blue-500/5 via-indigo-500/5 to-purple-500/10 backdrop-blur-xl border border-blue-500/20 hover:border-blue-400/40 transition-all duration-300 hover:shadow-2xl hover:shadow-blue-500/20 overflow-hidden h-full flex flex-col">
           <CardContent className="p-6 h-full flex flex-col">
             <div className="flex items-center gap-4 mb-4">
@@ -277,139 +277,115 @@ const AIResumeCard = memo(
 );
 AIResumeCard.displayName = "AIResumeCard";
 
-// **REFACTORED: STATS OVERVIEW NOW MATCHES LiveAnalyticsCards DESIGN**
+// =================================================================
+// **ENHANCEMENT 1: Redesigned Agent Stats Overview**
+// This component now uses the consistent glassmorphism card design
+// for a unified look and feel with the Dashboard analytics.
+// =================================================================
 const AgentStatsOverview = memo(({ resumeCount }: { resumeCount: number }) => {
   const stats = useMemo(() => {
     const successRate = resumeCount > 0 ? 98 : 0;
+    const avgMatch = resumeCount > 0 ? 95 : 0;
+
     return [
       {
+        IconComponent: Brain,
         label: "AI Resumes",
-        value: resumeCount,
-        progress: Math.min(resumeCount * 4, 100), // Conceptual progress
+        value: resumeCount.toString(),
+        progress: Math.min(resumeCount * 5, 100),
         description: "In your arsenal",
-        icon: Brain,
-        color: "blue",
+        iconColor: "text-blue-400",
+        borderColor: "border-blue-500/20",
+        gradient: "from-blue-400 to-indigo-400",
       },
       {
+        IconComponent: Shield,
         label: "ATS Friendly",
-        value: resumeCount,
+        value: "100%",
         progress: 100,
-        description: "100% compatibility",
-        icon: Target,
-        color: "green",
+        description: "Guaranteed compatibility",
+        iconColor: "text-emerald-400",
+        borderColor: "border-emerald-500/20",
+        gradient: "from-emerald-400 to-green-400",
       },
       {
+        IconComponent: TrendingUp,
         label: "Avg. Match",
-        value: resumeCount > 0 ? 95 : 0,
-        unit: "%",
-        progress: resumeCount > 0 ? 95 : 0,
+        value: `${avgMatch}%`,
+        progress: avgMatch,
         description: "To job descriptions",
-        icon: TrendingUp,
-        color: "purple",
+        iconColor: "text-purple-400",
+        borderColor: "border-purple-500/20",
+        gradient: "from-purple-400 to-pink-400",
       },
       {
-        label: "Success",
-        value: successRate,
-        unit: "%",
+        IconComponent: Award,
+        label: "Success Rate",
+        value: `${successRate}%`,
         progress: successRate,
-        description: "Estimated success",
-        icon: Award,
-        color: "orange",
+        description: "Estimated interview chance",
+        iconColor: "text-orange-400",
+        borderColor: "border-orange-500/20",
+        gradient: "from-orange-400 to-amber-400",
       },
     ];
   }, [resumeCount]);
-
-  const colorClasses = {
-    blue: {
-      bg: "bg-gradient-to-br from-blue-500/10 to-indigo-600/10",
-      border: "border-blue-500/20 hover:border-blue-400/40",
-      iconBg: "bg-blue-500/20 border-blue-500/30",
-      iconColor: "text-blue-400",
-      progress: "from-blue-500 to-indigo-500",
-    },
-    green: {
-      bg: "bg-gradient-to-br from-emerald-500/10 to-green-600/10",
-      border: "border-emerald-500/20 hover:border-emerald-400/40",
-      iconBg: "bg-emerald-500/20 border-emerald-500/30",
-      iconColor: "text-emerald-400",
-      progress: "from-emerald-500 to-green-500",
-    },
-    purple: {
-      bg: "bg-gradient-to-br from-purple-500/10 to-pink-600/10",
-      border: "border-purple-500/20 hover:border-purple-400/40",
-      iconBg: "bg-purple-500/20 border-purple-500/30",
-      iconColor: "text-purple-400",
-      progress: "from-purple-500 to-pink-500",
-    },
-    orange: {
-      bg: "bg-gradient-to-br from-orange-500/10 to-amber-600/10",
-      border: "border-orange-500/20 hover:border-orange-400/40",
-      iconBg: "bg-orange-500/20 border-orange-500/30",
-      iconColor: "text-orange-400",
-      progress: "from-orange-500 to-amber-500",
-    },
-  };
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.2 }}
-      className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8"
+      className="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-8"
     >
-      {stats.map((stat, index) => {
-        const colors = colorClasses[stat.color as keyof typeof colorClasses];
-        const StatIcon = stat.icon;
-        return (
-          <motion.div
-            key={stat.label}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 + index * 0.1 }}
+      {stats.map((stat, index) => (
+        <motion.div
+          key={stat.label}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 * index }}
+          className="group"
+        >
+          <Card
+            className={`bg-slate-800/20 backdrop-blur-xl border ${stat.borderColor} hover:border-opacity-60 transition-all duration-300 h-full group hover:shadow-lg hover:shadow-blue-500/5`}
           >
-            <Card
-              className={`${colors.bg} backdrop-blur-xl border ${colors.border} transition-all duration-300 group`}
-            >
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex-1">
-                    <p className="text-sm text-slate-400 font-medium mb-1">
-                      {stat.label}
-                    </p>
-                    <span className="text-3xl font-bold text-white">
-                      {stat.value}
-                      {stat.unit}
-                    </span>
-                  </div>
-                  <motion.div
-                    className={`p-3 rounded-xl ${colors.iconBg}`}
-                    whileHover={{ scale: 1.1, rotate: 5 }}
+            <CardContent className="p-4 flex flex-col justify-between h-full">
+              <div>
+                <div className="flex items-start justify-between mb-3">
+                  <div
+                    className={`w-10 h-10 bg-slate-900/50 border ${stat.borderColor} rounded-xl flex items-center justify-center`}
                   >
-                    <StatIcon className={`w-5 h-5 ${colors.iconColor}`} />
-                  </motion.div>
-                </div>
-                <div className="space-y-2">
-                  <div className="flex justify-between text-xs text-slate-400">
-                    <span>{stat.description}</span>
-                  </div>
-                  <div className="relative h-2 bg-slate-700/50 rounded-full overflow-hidden">
-                    <motion.div
-                      className={`h-full bg-gradient-to-r ${colors.progress}`}
-                      initial={{ width: 0 }}
-                      animate={{ width: `${stat.progress}%` }}
-                      transition={{
-                        delay: 0.5,
-                        duration: 0.8,
-                        ease: "easeOut",
-                      }}
+                    <stat.IconComponent
+                      className={`w-5 h-5 ${stat.iconColor}`}
                     />
                   </div>
+                  <span className={`text-2xl font-bold ${stat.iconColor}`}>
+                    {stat.value}
+                  </span>
                 </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-        );
-      })}
+                <h3 className="font-semibold text-white text-base mb-1">
+                  {stat.label}
+                </h3>
+                <p className="text-xs text-slate-400">{stat.description}</p>
+              </div>
+              <div className="mt-4">
+                <div className="h-1.5 bg-slate-700/50 rounded-full overflow-hidden">
+                  <motion.div
+                    className={`h-full bg-gradient-to-r ${stat.gradient}`}
+                    initial={{ width: 0 }}
+                    animate={{ width: `${stat.progress}%` }}
+                    transition={{
+                      delay: 0.5 + index * 0.1,
+                      duration: 0.8,
+                      ease: "easeOut",
+                    }}
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      ))}
     </motion.div>
   );
 });
@@ -428,6 +404,7 @@ const AIResumeArsenal: React.FC = () => {
   const navigate = useNavigate();
 
   const userName = useMemo(() => {
+    // ... (unchanged logic)
     if (!user) return "there";
     return (
       user.user_metadata?.full_name?.split(" ")?.[0] ||
@@ -572,8 +549,31 @@ const AIResumeArsenal: React.FC = () => {
     [filteredResumes, sortBy]
   );
 
+  // =================================================================
+  // **ENHANCEMENT 2: Swipe Navigation Handler**
+  // This function handles the logic for navigating between pages
+  // based on the user's horizontal swipe gesture.
+  // =================================================================
+  const handleSwipeNavigation = (
+    event: MouseEvent | TouchEvent | PointerEvent,
+    info: PanInfo
+  ) => {
+    const swipeConfidenceThreshold = 10000;
+    const swipePower = Math.abs(info.offset.x) * info.velocity.x;
+
+    // Swipe Left (to next page)
+    if (swipePower < -swipeConfidenceThreshold) {
+      navigate("/plan-usage"); // Navigate to Plan & Usage page
+    }
+    // Swipe Right (to previous page)
+    else if (swipePower > swipeConfidenceThreshold) {
+      navigate("/dashboard"); // Navigate to Dashboard page
+    }
+  };
+
   // Unchanged: Authentication check
   if (!user) {
+    // ... (unchanged)
     return (
       <TooltipProvider>
         <div className="min-h-screen bg-background flex items-center justify-center p-4">
@@ -616,7 +616,14 @@ const AIResumeArsenal: React.FC = () => {
     <TooltipProvider>
       <div className="min-h-screen bg-background">
         <DashboardHeader />
-        <div className="container mx-auto px-4 py-8 max-w-7xl">
+        {/* This motion.div enables the swipe gesture */}
+        <motion.div
+          drag="x"
+          dragConstraints={{ left: 0, right: 0 }}
+          dragSnapToOrigin
+          onDragEnd={handleSwipeNavigation}
+          className="container mx-auto px-4 py-8 max-w-7xl"
+        >
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -787,10 +794,11 @@ const AIResumeArsenal: React.FC = () => {
               </motion.div>
             )}
           </motion.div>
-        </div>
+        </motion.div>
       </div>
     </TooltipProvider>
   );
 };
 
 export default AIResumeArsenal;
+

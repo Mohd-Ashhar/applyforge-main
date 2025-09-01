@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo, memo } from "react";
 import { useNavigate } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, type PanInfo } from "framer-motion";
 import {
   Card,
   CardContent,
@@ -80,7 +80,7 @@ interface AppliedJob {
   industries: string | null;
 }
 
-// **FIX: New robust parsing function for all array-like string fields.**
+// **UNCHANGED**
 const formatJsonStringArray = (str: string | null): string => {
   if (!str) return "";
   try {
@@ -89,13 +89,12 @@ const formatJsonStringArray = (str: string | null): string => {
       return parsed.join(", ");
     }
   } catch (e) {
-    // If it's not a valid JSON array string, return the original string
     return str;
   }
   return str;
 };
 
-// **ENHANCED & FIXED: SKELETON WITH ALTERNATIVE ANIMATION SYNTAX**
+// **UNCHANGED**
 const LoadingSkeleton = memo(() => (
   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
     {[1, 2, 3, 4, 5, 6].map((index) => (
@@ -110,7 +109,6 @@ const LoadingSkeleton = memo(() => (
           <div className="flex items-center gap-4">
             <motion.div
               className="w-12 h-12 bg-lime-500/10 rounded-xl border border-lime-500/20"
-              // FIX: Alternative animation syntax to resolve potential environment-specific type errors.
               initial={{ opacity: 0.5 }}
               animate={{ opacity: 1 }}
               transition={{
@@ -173,7 +171,7 @@ const LoadingSkeleton = memo(() => (
 ));
 LoadingSkeleton.displayName = "LoadingSkeleton";
 
-// **REFACTORED & FIXED: JOB CARD WITH CORRECT STRING ARRAY FORMATTING**
+// **UNCHANGED**
 const MonitoredApplicationCard = memo<{
   job: AppliedJob;
   index: number;
@@ -231,7 +229,6 @@ const MonitoredApplicationCard = memo<{
           <div className="space-y-3 mb-4 flex-1">
             <div className="flex items-center gap-2 text-sm text-slate-300">
               <MapPin className="w-4 h-4 text-lime-400 flex-shrink-0" />
-              {/* FIX: Using new parsing function */}
               <span>{formatJsonStringArray(job.job_location)}</span>
             </div>
             <div className="flex items-center gap-2 text-sm text-slate-300">
@@ -241,7 +238,6 @@ const MonitoredApplicationCard = memo<{
           </div>
 
           <div className="flex flex-wrap gap-2 mb-4">
-            {/* FIX: Using new parsing function for employment type and seniority level */}
             {job.employment_type && (
               <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30 text-xs">
                 {formatJsonStringArray(job.employment_type)}
@@ -281,8 +277,11 @@ const MonitoredApplicationCard = memo<{
 });
 MonitoredApplicationCard.displayName = "MonitoredApplicationCard";
 
-// ... (The rest of the file is unchanged as its logic and structure were already correct)
-// **REFACTORED: STATS OVERVIEW NOW MATCHES LiveAnalyticsCards DESIGN**
+// =================================================================
+// **ENHANCEMENT 1: Redesigned Application Monitor Stats**
+// This component now uses the consistent glassmorphism card design
+// for a unified look and feel with the other pages.
+// =================================================================
 const ApplicationMonitorStats = memo(
   ({ appliedJobs }: { appliedJobs: AppliedJob[] }) => {
     const stats = useMemo(() => {
@@ -291,142 +290,113 @@ const ApplicationMonitorStats = memo(
       const thisMonthApplications = appliedJobs.filter(
         (job) => new Date(job.applied_at) >= currentMonthStart
       ).length;
+      const successRate = appliedJobs.length > 0 ? 95 : 0;
 
       return [
         {
+          IconComponent: Briefcase,
           label: "Total Applied",
-          value: appliedJobs.length,
+          value: appliedJobs.length.toString(),
           progress: Math.min(appliedJobs.length, 100),
           description: "All submissions tracked",
-          icon: Briefcase,
-          color: "lime",
+          iconColor: "text-lime-400",
+          borderColor: "border-lime-500/20",
+          gradient: "from-lime-400 to-green-400",
         },
         {
+          IconComponent: TrendingUp,
           label: "This Month",
-          value: thisMonthApplications,
+          value: thisMonthApplications.toString(),
           progress: Math.min(thisMonthApplications * 4, 100),
           description: "Recent activity",
-          icon: TrendingUp,
-          color: "blue",
+          iconColor: "text-blue-400",
+          borderColor: "border-blue-500/20",
+          gradient: "from-blue-400 to-indigo-400",
         },
         {
+          IconComponent: Activity,
           label: "AI Monitored",
-          value: appliedJobs.length,
+          value: appliedJobs.length.toString(),
           progress: 100,
           description: "All applications active",
-          icon: Activity,
-          color: "green",
+          iconColor: "text-emerald-400",
+          borderColor: "border-emerald-500/20",
+          gradient: "from-emerald-400 to-green-400",
         },
         {
+          IconComponent: Award,
           label: "Est. Success",
-          value: appliedJobs.length > 0 ? 95 : 0,
-          unit: "%",
-          progress: appliedJobs.length > 0 ? 95 : 0,
+          value: `${successRate}%`,
+          progress: successRate,
           description: "Based on matching",
-          icon: Award,
-          color: "orange",
+          iconColor: "text-orange-400",
+          borderColor: "border-orange-500/20",
+          gradient: "from-orange-400 to-amber-400",
         },
       ];
     }, [appliedJobs]);
-
-    const colorClasses = {
-      lime: {
-        bg: "bg-gradient-to-br from-lime-500/10 to-green-600/10",
-        border: "border-lime-500/20 hover:border-lime-400/40",
-        iconBg: "bg-lime-500/20 border-lime-500/30",
-        iconColor: "text-lime-400",
-        progress: "from-lime-500 to-green-500",
-      },
-      blue: {
-        bg: "bg-gradient-to-br from-blue-500/10 to-indigo-600/10",
-        border: "border-blue-500/20 hover:border-blue-400/40",
-        iconBg: "bg-blue-500/20 border-blue-500/30",
-        iconColor: "text-blue-400",
-        progress: "from-blue-500 to-indigo-500",
-      },
-      green: {
-        bg: "bg-gradient-to-br from-emerald-500/10 to-green-600/10",
-        border: "border-emerald-500/20 hover:border-emerald-400/40",
-        iconBg: "bg-emerald-500/20 border-emerald-500/30",
-        iconColor: "text-emerald-400",
-        progress: "from-emerald-500 to-green-500",
-      },
-      orange: {
-        bg: "bg-gradient-to-br from-orange-500/10 to-amber-600/10",
-        border: "border-orange-500/20 hover:border-orange-400/40",
-        iconBg: "bg-orange-500/20 border-orange-500/30",
-        iconColor: "text-orange-400",
-        progress: "from-orange-500 to-amber-500",
-      },
-    };
 
     return (
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
-        className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8"
+        className="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-8"
       >
-        {stats.map((stat, index) => {
-          const colors = colorClasses[stat.color as keyof typeof colorClasses];
-          const StatIcon = stat.icon;
-          return (
-            <motion.div
-              key={stat.label}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 + index * 0.1 }}
+        {stats.map((stat, index) => (
+          <motion.div
+            key={stat.label}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: index * 0.1 }}
+            className="group"
+          >
+            <Card
+              className={`bg-slate-800/20 backdrop-blur-xl border ${stat.borderColor} hover:border-opacity-60 transition-all duration-300 h-full group hover:shadow-lg hover:shadow-lime-500/5`}
             >
-              <Card
-                className={`${colors.bg} backdrop-blur-xl border ${colors.border} transition-all duration-300 group`}
-              >
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex-1">
-                      <p className="text-sm text-slate-400 font-medium mb-1">
-                        {stat.label}
-                      </p>
-                      <span className="text-3xl font-bold text-white">
-                        {stat.value}
-                        {stat.unit}
-                      </span>
-                    </div>
-                    <motion.div
-                      className={`p-3 rounded-xl ${colors.iconBg}`}
-                      whileHover={{ scale: 1.1, rotate: 5 }}
+              <CardContent className="p-4 flex flex-col justify-between h-full">
+                <div>
+                  <div className="flex items-start justify-between mb-3">
+                    <div
+                      className={`w-10 h-10 bg-slate-900/50 border ${stat.borderColor} rounded-xl flex items-center justify-center`}
                     >
-                      <StatIcon className={`w-5 h-5 ${colors.iconColor}`} />
-                    </motion.div>
-                  </div>
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-xs text-slate-400">
-                      <span>{stat.description}</span>
-                    </div>
-                    <div className="relative h-2 bg-slate-700/50 rounded-full overflow-hidden">
-                      <motion.div
-                        className={`h-full bg-gradient-to-r ${colors.progress}`}
-                        initial={{ width: 0 }}
-                        animate={{ width: `${stat.progress}%` }}
-                        transition={{
-                          delay: 0.5,
-                          duration: 0.8,
-                          ease: "easeOut",
-                        }}
+                      <stat.IconComponent
+                        className={`w-5 h-5 ${stat.iconColor}`}
                       />
                     </div>
+                    <span className={`text-2xl font-bold ${stat.iconColor}`}>
+                      {stat.value}
+                    </span>
                   </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-          );
-        })}
+                  <h3 className="font-semibold text-white text-base mb-1">
+                    {stat.label}
+                  </h3>
+                  <p className="text-xs text-slate-400">{stat.description}</p>
+                </div>
+                <div className="mt-4">
+                  <div className="h-1.5 bg-slate-700/50 rounded-full overflow-hidden">
+                    <motion.div
+                      className={`h-full bg-gradient-to-r ${stat.gradient}`}
+                      initial={{ width: 0 }}
+                      animate={{ width: `${stat.progress}%` }}
+                      transition={{
+                        delay: 0.5 + index * 0.1,
+                        duration: 0.8,
+                        ease: "easeOut",
+                      }}
+                    />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        ))}
       </motion.div>
     );
   }
 );
 ApplicationMonitorStats.displayName = "ApplicationMonitorStats";
 
-// **UNCHANGED: Main Component Logic**
 const AIApplicationMonitor: React.FC = () => {
   const [appliedJobs, setAppliedJobs] = useState<AppliedJob[]>([]);
   const [loading, setLoading] = useState(true);
@@ -475,12 +445,6 @@ const AIApplicationMonitor: React.FC = () => {
     [filteredJobs, sortBy]
   );
 
-  useEffect(() => {
-    if (user) {
-      fetchAppliedJobs();
-    }
-  }, [user]);
-
   const fetchAppliedJobs = useCallback(async () => {
     if (!user?.id) {
       setLoading(false);
@@ -507,6 +471,34 @@ const AIApplicationMonitor: React.FC = () => {
       setLoading(false);
     }
   }, [user, toast]);
+
+  useEffect(() => {
+    if (user) {
+      fetchAppliedJobs();
+    }
+  }, [user, fetchAppliedJobs]);
+
+  // =================================================================
+  // **ENHANCEMENT 2: Swipe Navigation Handler**
+  // This function handles the logic for navigating between pages
+  // based on the user's horizontal swipe gesture.
+  // =================================================================
+  const handleSwipeNavigation = (
+    event: MouseEvent | TouchEvent | PointerEvent,
+    info: PanInfo
+  ) => {
+    const swipeConfidenceThreshold = 10000;
+    const swipePower = Math.abs(info.offset.x) * info.velocity.x;
+
+    // Swipe Left (forward)
+    if (swipePower < -swipeConfidenceThreshold) {
+      navigate("/plan-usage");
+    }
+    // Swipe Right (backward)
+    else if (swipePower > swipeConfidenceThreshold) {
+      navigate("/saved-jobs");
+    }
+  };
 
   if (!user) {
     return (
@@ -536,7 +528,13 @@ const AIApplicationMonitor: React.FC = () => {
     <TooltipProvider>
       <div className="min-h-screen bg-background">
         <DashboardHeader />
-        <div className="container mx-auto px-4 py-8 max-w-7xl">
+        <motion.div
+          drag="x"
+          dragConstraints={{ left: 0, right: 0 }}
+          dragSnapToOrigin
+          onDragEnd={handleSwipeNavigation}
+          className="container mx-auto px-4 py-8 max-w-7xl"
+        >
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -710,7 +708,7 @@ const AIApplicationMonitor: React.FC = () => {
               </motion.div>
             )}
           </motion.div>
-        </div>
+        </motion.div>
       </div>
     </TooltipProvider>
   );
