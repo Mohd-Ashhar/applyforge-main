@@ -64,7 +64,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import DashboardHeader from "@/components/DashboardHeader";
 import UserAvatar from "@/components/header/UserAvatar";
 
-// **ENHANCED AI INSIGHTS COLLECTOR LOADING OVERLAY - AMBER/ORANGE THEME**
 const InsightsCollectorLoadingOverlay = ({
   show,
   stage = 0,
@@ -91,7 +90,6 @@ const InsightsCollectorLoadingOverlay = ({
           transition={{ duration: 0.3 }}
           className="fixed inset-0 z-[999] flex flex-col items-center justify-center backdrop-blur-lg bg-background/90"
         >
-          {/* Agent Avatar with Learning Animation */}
           <motion.div
             className="relative mb-8"
             initial={{ scale: 0.8, opacity: 0 }}
@@ -111,8 +109,6 @@ const InsightsCollectorLoadingOverlay = ({
               }}
             >
               <Brain className="w-12 h-12 sm:w-16 sm:h-16 text-amber-400" />
-
-              {/* Learning particles */}
               <motion.div
                 className="absolute inset-0 rounded-full border-2 border-amber-400/30"
                 animate={{
@@ -127,8 +123,6 @@ const InsightsCollectorLoadingOverlay = ({
               />
             </motion.div>
           </motion.div>
-
-          {/* Agent Status */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -141,7 +135,6 @@ const InsightsCollectorLoadingOverlay = ({
             <p className="text-base sm:text-lg text-amber-400 font-medium">
               {agentMessages[stage] || agentMessages[0]}
             </p>
-
             <div className="space-y-3">
               <Progress
                 value={(stage + 1) * 16.67}
@@ -153,8 +146,6 @@ const InsightsCollectorLoadingOverlay = ({
               </p>
             </div>
           </motion.div>
-
-          {/* Security Badge */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -164,8 +155,6 @@ const InsightsCollectorLoadingOverlay = ({
             <Shield className="w-4 h-4 text-amber-400" />
             <span>Your insights are being processed securely</span>
           </motion.div>
-
-          {/* Floating learning particles */}
           <div className="absolute inset-0 overflow-hidden pointer-events-none">
             {[...Array(6)].map((_, i) => (
               <motion.div
@@ -195,7 +184,6 @@ const InsightsCollectorLoadingOverlay = ({
   );
 };
 
-// **ENHANCED AI STAR RATING COMPONENT**
 const AIStarRating = memo(
   ({
     rating,
@@ -207,7 +195,6 @@ const AIStarRating = memo(
     size?: string;
   }) => {
     const [hoverRating, setHoverRating] = useState(0);
-
     const starSize = size === "large" ? "w-8 h-8" : "w-6 h-6";
     const containerPadding = size === "large" ? "p-2" : "p-1";
 
@@ -255,7 +242,6 @@ const AIStarRating = memo(
             </motion.button>
           ))}
         </div>
-
         <AnimatePresence mode="wait">
           {(hoverRating || rating) > 0 && (
             <motion.div
@@ -295,7 +281,6 @@ const AIInsightsCollectorAgent: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  // Calculate user name for personalized greeting
   const userName = useMemo(() => {
     if (!user) return "there";
     return (
@@ -320,7 +305,6 @@ const AIInsightsCollectorAgent: React.FC = () => {
     setComment(
       "Your AI agents have been incredibly helpful in my job search! The AI Resume Arsenal and Application Automation Agent saved me hours of work. The interface is intuitive and the results are professional. Keep up the great work with the AI agents!"
     );
-
     toast({
       title: "Agent Example Loaded! 🤖",
       description: "Form filled with example insights for your agent.",
@@ -333,7 +317,6 @@ const AIInsightsCollectorAgent: React.FC = () => {
     setComment("");
     setFormValidation({ rating: true });
     localStorage.removeItem("feedbackDraft");
-
     toast({
       title: "Agent Reset ✨",
       description: "All fields have been reset for new insights collection.",
@@ -341,10 +324,7 @@ const AIInsightsCollectorAgent: React.FC = () => {
   }, [toast]);
 
   const validateForm = () => {
-    const newValidation = {
-      rating: rating > 0,
-    };
-
+    const newValidation = { rating: rating > 0 };
     setFormValidation(newValidation);
     return Object.values(newValidation).every(Boolean);
   };
@@ -387,23 +367,19 @@ const AIInsightsCollectorAgent: React.FC = () => {
     simulateLoadingStages();
 
     try {
-      // Get user profile data
       const { data: profile } = await supabase
         .from("profiles")
         .select("full_name, email")
         .eq("id", user.id)
         .single();
 
-      // Send feedback to webhook
-      const response = await fetch(
-        "https://n8n.applyforge.cloud/webhook-test/feedback-form",
+      // --- REPLACEMENT ---
+      // Securely call the new feedback-proxy Edge Function
+      const { data: result, error } = await supabase.functions.invoke(
+        "feedback-proxy",
         {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            user_id: user.id,
+          body: {
+            // user_id is now handled securely by the backend
             feature: "ai_insights_collector_agent",
             userName: profile?.full_name || userName,
             userEmail: profile?.email || user.email,
@@ -411,26 +387,23 @@ const AIInsightsCollectorAgent: React.FC = () => {
             suggestion: suggestion,
             comment: comment,
             timestamp: new Date().toISOString(),
-          }),
+          },
         }
       );
 
-      if (!response.ok) {
-        throw new Error("Failed to submit insights");
+      if (error) {
+        throw new Error(error.message);
       }
+      // --- END REPLACEMENT ---
 
-      const result = await response.text();
-
-      // Clear draft
       localStorage.removeItem("feedbackDraft");
 
-      // Show result in modal
       setResultMessage(
-        result || "Thank you for helping our AI agents learn and improve!"
+        result.message ||
+          "Thank you for helping our AI agents learn and improve!"
       );
       setShowResultModal(true);
 
-      // Reset form
       setRating(0);
       setSuggestion("");
       setComment("");
@@ -441,7 +414,6 @@ const AIInsightsCollectorAgent: React.FC = () => {
           "Your insights have been collected and will improve our AI agents.",
       });
 
-      // Auto-close modal and redirect after 10 seconds
       setTimeout(() => {
         setShowResultModal(false);
         navigate("/dashboard");
@@ -505,10 +477,7 @@ const AIInsightsCollectorAgent: React.FC = () => {
           show={isSubmitting}
           stage={loadingStage}
         />
-
-        {/* Header */}
         <DashboardHeader />
-
         <div className="container mx-auto px-4 py-8 max-w-4xl">
           <motion.div
             initial={{ opacity: 0 }}
@@ -516,7 +485,6 @@ const AIInsightsCollectorAgent: React.FC = () => {
             transition={{ duration: 0.5 }}
             className="space-y-8"
           >
-            {/* Hero Section - AI Agent Focused */}
             <div className="text-center space-y-6">
               <motion.div
                 initial={{ opacity: 0, scale: 0.9 }}
@@ -533,14 +501,12 @@ const AIInsightsCollectorAgent: React.FC = () => {
                   >
                     <Brain className="w-10 h-10 text-amber-400" />
                   </motion.div>
-
                   <div className="flex items-center justify-center gap-2">
                     <Badge className="bg-amber-500/20 text-amber-400 border-amber-500/30">
                       <Sparkles className="w-3 h-3 mr-1" />
                       AI Learning
                     </Badge>
                   </div>
-
                   <motion.h1
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -552,7 +518,6 @@ const AIInsightsCollectorAgent: React.FC = () => {
                       Agent
                     </span>
                   </motion.h1>
-
                   <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -576,55 +541,7 @@ const AIInsightsCollectorAgent: React.FC = () => {
                   </motion.div>
                 </div>
               </motion.div>
-
-              {/* Agent Capabilities */}
-              {/* <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.5 }}
-                className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-6 max-w-5xl mx-auto"
-                // grid grid-cols-1 sm:grid-cols-4 gap-6 max-w-5xl mx-auto
-              >
-                {[
-                  {
-                    icon: Brain,
-                    title: "Smart Learning",
-                    desc: "AI learns from your feedback",
-                  },
-                  {
-                    icon: Database,
-                    title: "Insights Storage",
-                    desc: "Secure data collection",
-                  },
-                  {
-                    icon: Target,
-                    title: "Targeted Improvements",
-                    desc: "Precise system enhancements",
-                  },
-                  {
-                    icon: Activity,
-                    title: "Real-time Learning",
-                    desc: "Continuous agent evolution",
-                  },
-                ].map((capability, index) => (
-                  <motion.div
-                    key={capability.title}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.6 + index * 0.1 }}
-                    className="p-4 rounded-xl bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl border border-slate-700/50"
-                  >
-                    <capability.icon className="w-8 h-8 text-amber-400 mx-auto mb-3" />
-                    <h3 className="font-semibold text-white mb-2">
-                      {capability.title}
-                    </h3>
-                    <p className="text-sm text-slate-400">{capability.desc}</p>
-                  </motion.div>
-                ))}
-              </motion.div> */}
             </div>
-
-            {/* Quick Actions */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -647,7 +564,6 @@ const AIInsightsCollectorAgent: React.FC = () => {
                   Load sample insights to see how your agent works
                 </TooltipContent>
               </Tooltip>
-
               <Button
                 variant="outline"
                 size="sm"
@@ -658,8 +574,6 @@ const AIInsightsCollectorAgent: React.FC = () => {
                 Reset Agent
               </Button>
             </motion.div>
-
-            {/* Progress Indicator */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -676,8 +590,6 @@ const AIInsightsCollectorAgent: React.FC = () => {
                 className="w-full h-3 bg-slate-700/50"
               />
             </motion.div>
-
-            {/* Enhanced Feedback Form */}
             <motion.div
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
@@ -699,7 +611,6 @@ const AIInsightsCollectorAgent: React.FC = () => {
                     onSubmit={handleSubmit}
                     className="space-y-4 sm:space-y-6"
                   >
-                    {/* Enhanced Rating Section */}
                     <motion.div
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
@@ -718,7 +629,6 @@ const AIInsightsCollectorAgent: React.FC = () => {
                           </TooltipContent>
                         </Tooltip>
                       </Label>
-
                       <div className="mt-3">
                         <AIStarRating
                           rating={rating}
@@ -726,7 +636,6 @@ const AIInsightsCollectorAgent: React.FC = () => {
                           size="large"
                         />
                       </div>
-
                       {!formValidation.rating && (
                         <motion.p
                           initial={{ opacity: 0 }}
@@ -738,8 +647,6 @@ const AIInsightsCollectorAgent: React.FC = () => {
                         </motion.p>
                       )}
                     </motion.div>
-
-                    {/* Enhanced Suggestions */}
                     <motion.div
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
@@ -768,8 +675,6 @@ const AIInsightsCollectorAgent: React.FC = () => {
                         <span>{suggestion.length}/500</span>
                       </div>
                     </motion.div>
-
-                    {/* Enhanced Comments */}
                     <motion.div
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
@@ -798,8 +703,6 @@ const AIInsightsCollectorAgent: React.FC = () => {
                         <span>{comment.length}/1000</span>
                       </div>
                     </motion.div>
-
-                    {/* Enhanced Submit Button */}
                     <motion.div
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -836,8 +739,6 @@ const AIInsightsCollectorAgent: React.FC = () => {
                         )}
                       </Button>
                     </motion.div>
-
-                    {/* Trust Indicators */}
                     <motion.div
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
@@ -865,8 +766,6 @@ const AIInsightsCollectorAgent: React.FC = () => {
             </motion.div>
           </motion.div>
         </div>
-
-        {/* Enhanced Result Modal */}
         <Dialog open={showResultModal} onOpenChange={setShowResultModal}>
           <DialogContent className="sm:max-w-md bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl border border-slate-700/50">
             <DialogHeader>
@@ -885,7 +784,6 @@ const AIInsightsCollectorAgent: React.FC = () => {
                 {resultMessage}
               </DialogDescription>
             </DialogHeader>
-
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -898,7 +796,6 @@ const AIInsightsCollectorAgent: React.FC = () => {
                   better assistance to job seekers like you.
                 </p>
               </div>
-
               <div className="text-xs sm:text-sm text-slate-400">
                 <Clock className="w-4 h-4 inline mr-1" />
                 Returning to dashboard in 10 seconds...
@@ -912,4 +809,3 @@ const AIInsightsCollectorAgent: React.FC = () => {
 };
 
 export default AIInsightsCollectorAgent;
-

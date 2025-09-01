@@ -797,6 +797,9 @@ const AIJobDiscoveryAgentResults: React.FC = () => {
   const { usage } = useUsageTracking();
   const hasSavedResults = useRef(false);
 
+  // **CHANGE 1 of 2**: Add a ref to track if the initial load has completed.
+  const initialLoadComplete = useRef(false);
+
   const userName = useMemo(() => {
     if (!user) return "there";
     return (
@@ -916,7 +919,11 @@ const AIJobDiscoveryAgentResults: React.FC = () => {
       }
     };
 
-    loadAndSyncJobs();
+    // **CHANGE 2 of 2**: Add a condition to ensure loadAndSyncJobs runs only once.
+    if (!initialLoadComplete.current) {
+      loadAndSyncJobs();
+      initialLoadComplete.current = true;
+    }
   }, [user, navigate, toast]);
 
   const checkGenerationStatus = useCallback(
@@ -1297,6 +1304,7 @@ const AIJobDiscoveryAgentResults: React.FC = () => {
 
           const formData = new FormData();
 
+          formData.append("jobUniqueId", job.uniqueId);
           formData.append("feature", "instant_tailoring_agent");
           formData.append("jobRole", job.job_title || "");
           formData.append("jobDescription", job.job_description || "");
@@ -1475,6 +1483,7 @@ const AIJobDiscoveryAgentResults: React.FC = () => {
 
           const formData = new FormData();
 
+          formData.append("jobUniqueId", job.uniqueId);
           formData.append("feature", "discovery_agent_cover_letters");
           formData.append("jobDescription", job.job_description || "");
           formData.append("companyName", job.company_name || "");

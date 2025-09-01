@@ -1263,6 +1263,10 @@ const InstantTailoringAgent = () => {
           formData.append("companyName", job.company_name);
           formData.append("positionTitle", job.job_title);
           formData.append("resume", file);
+          formData.append(
+            "fileType",
+            file.type === "application/pdf" ? "pdf" : "docx"
+          );
 
           const session = (await supabase.auth.getSession()).data.session;
           if (!session) throw new Error("User not authenticated");

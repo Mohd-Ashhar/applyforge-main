@@ -6,7 +6,6 @@ import React, {
   useCallback,
   Suspense,
 } from "react";
-// ENHANCEMENT: Added PanInfo for swipe gesture typing
 import { motion, AnimatePresence, type PanInfo } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -81,8 +80,8 @@ const AI_AGENTS = [
       "bg-gradient-to-br from-emerald-500/5 via-green-500/5 to-teal-500/10",
     features: [
       "ATS Score Analysis",
-      "Keyword Optimization",
-      "Format Validation",
+      "Missing Keyword Analysis",
+      "Enhancement Guidance",
     ],
     metrics: "98% Success Rate",
     comingSoon: false,
@@ -101,8 +100,12 @@ const AI_AGENTS = [
     hoverColor: "hover:border-blue-400/40",
     bgGradient:
       "bg-gradient-to-br from-blue-500/5 via-indigo-500/5 to-purple-500/10",
-    features: ["Smart Keywords", "Role Matching", "Industry Alignment"],
-    metrics: "3x Faster Processing",
+    features: [
+      "Smart Keywords Optimization",
+      "Role Matching",
+      "Industry Alignment",
+    ],
+    metrics: "95% ATS Score",
     comingSoon: false,
     priority: 2,
   },
@@ -119,8 +122,8 @@ const AI_AGENTS = [
     hoverColor: "hover:border-purple-400/40",
     bgGradient:
       "bg-gradient-to-br from-purple-500/5 via-pink-500/5 to-rose-500/10",
-    features: ["Tone Adaptation", "Company Research", "Personal Branding"],
-    metrics: "85% Response Rate",
+    features: ["Personalized Crafting", "Tone Adaptation", "Company Research"],
+    metrics: "90% Response Rate",
     comingSoon: false,
     priority: 3,
   },
@@ -137,8 +140,8 @@ const AI_AGENTS = [
     hoverColor: "hover:border-orange-400/40",
     bgGradient:
       "bg-gradient-to-br from-orange-500/5 via-amber-500/5 to-yellow-500/10",
-    features: ["Smart Filtering", "Real-time Updates", "Job Tracking"],
-    metrics: "50+ New Jobs Daily",
+    features: ["Smart Filtering", "Real-time Updates", "Fresh Opportunities"],
+    metrics: "New Jobs Daily",
     comingSoon: false,
     priority: 4,
   },
@@ -156,8 +159,8 @@ const AI_AGENTS = [
     bgGradient:
       "bg-gradient-to-br from-rose-500/5 via-red-500/5 to-orange-500/10",
 
-    features: ["Instant Processing", "Batch Operations", "Time Optimization"],
-    metrics: "< 30 Seconds",
+    features: ["No Manual Input", "Time Optimization", "Instant Processing"],
+    metrics: "Direct Generation",
     comingSoon: false,
     priority: 5,
   },
@@ -234,9 +237,8 @@ const useCareerState = () => {
   return state;
 };
 
-// **UNCHANGED: AI Agent Card Component**
+// **UPDATED: AI Agent Card Component with Dot Indicators**
 const AIAgentCard = memo(
-  // ... (unchanged)
   ({
     agent,
     onAgentActivate,
@@ -250,6 +252,29 @@ const AIAgentCard = memo(
     const handleActivate = useCallback(() => {
       onAgentActivate(agent.path, agent.implemented);
     }, [agent.path, agent.implemented, onAgentActivate]);
+
+    // **NEW: Function to get dot color based on agent status**
+    const getDotColor = () => {
+      if (agent.comingSoon) {
+        return "bg-slate-400"; // Gray for coming soon
+      }
+
+      // Different colors for different agent types
+      switch (agent.id) {
+        case "ats-screening-agent":
+          return "bg-emerald-400"; // Green for ATS
+        case "resume-optimization-agent":
+          return "bg-blue-400"; // Blue for resume optimization
+        case "cover-letter-crafting-agent":
+          return "bg-purple-400"; // Purple for cover letters
+        case "job-discovery-agent":
+          return "bg-orange-400"; // Orange for job discovery
+        case "instant-tailoring-agent":
+          return "bg-rose-400"; // Rose for instant generation
+        default:
+          return "bg-slate-400";
+      }
+    };
 
     return (
       <motion.div
@@ -296,12 +321,12 @@ const AIAgentCard = memo(
                 <p className="text-sm text-slate-400 font-medium mb-2">
                   {agent.subtitle}
                 </p>
+                {/* **UPDATED: Added dot component to all agents** */}
                 <div className="flex items-center gap-2">
                   <div
-                    className={`w-2 h-2 rounded-full ${agent.iconColor.replace(
-                      "text-",
-                      "bg-"
-                    )} animate-pulse`}
+                    className={`w-2 h-2 rounded-full ${getDotColor()} ${
+                      !agent.comingSoon ? "animate-pulse" : ""
+                    } transition-colors duration-300`}
                   />
                   <span className="text-xs text-slate-300 font-medium">
                     {agent.metrics}
@@ -345,6 +370,7 @@ const AIAgentCard = memo(
     );
   }
 );
+
 AIAgentCard.displayName = "AIAgentCard";
 
 // =================================================================
@@ -705,7 +731,7 @@ const RedesignedCallToAction = memo(
               transition={{ delay: 0.1 }}
               className="text-lg text-slate-300 max-w-2xl mx-auto leading-relaxed"
             >
-              Unlock powerful AI models to accelerate your job search and land
+              Unlock powerful AI models to enhance your application's and land
               your dream role faster.
             </motion.p>
           </div>
@@ -921,39 +947,15 @@ const Dashboard = memo(() => {
     [user, navigate, toast]
   );
 
-  // =================================================================
-  // **ENHANCEMENT 2: Swipe Navigation Handler**
-  // This function handles the logic for navigating between pages
-  // based on the user's horizontal swipe gesture.
-  // =================================================================
-  const handleSwipeNavigation = (
-    event: MouseEvent | TouchEvent | PointerEvent,
-    info: PanInfo
-  ) => {
-    const swipeConfidenceThreshold = 10000;
-    const swipePower = Math.abs(info.offset.x) * info.velocity.x;
-
-    // Swipe Left (to next page)
-    if (swipePower < -swipeConfidenceThreshold) {
-      navigate("/plan-usage"); // Navigate to Plan & Usage page
-    }
-    // Swipe Right (to previous page)
-    else if (swipePower > swipeConfidenceThreshold) {
-      navigate("/job-finder"); // Navigate to Job Finder page
-    }
-  };
-
   return (
     <TooltipProvider>
       <div className="min-h-screen bg-background pb-20 md:pb-0">
         <DashboardHeader />
 
-        {/* This motion.div enables the swipe gesture */}
         <motion.div
           drag="x"
           dragConstraints={{ left: 0, right: 0 }}
           dragSnapToOrigin
-          onDragEnd={handleSwipeNavigation}
           className="container mx-auto px-4 py-8 max-w-7xl"
         >
           <motion.div

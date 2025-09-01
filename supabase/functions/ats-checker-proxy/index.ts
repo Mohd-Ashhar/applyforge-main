@@ -36,19 +36,20 @@ Deno.serve(async (req) => {
       });
     }
     
-    // 3. Get the request body from the client
-    const requestBody = await req.json();
+    // --- CHANGE START: Handle FormData instead of JSON ---
+    // 3. Get the request body from the client as FormData
+    const formData = await req.formData();
 
     // 4. Proxy the request to n8n from the server
+    // Overwrite with the authenticated user ID for security
+    formData.set('user_id', user.id); 
+
     const n8nResponse = await fetch(n8nWebhookUrl, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      // Construct the body for n8n. Now you can trust the user_id.
-      body: JSON.stringify({
-        ...requestBody,
-        user_id: user.id, // Overwrite with the authenticated user ID for security
-      }),
+      // Do NOT set Content-Type header; the runtime does it for FormData
+      body: formData,
     });
+    // --- CHANGE END ---
 
     if (!n8nResponse.ok) {
         const errorText = await n8nResponse.text();

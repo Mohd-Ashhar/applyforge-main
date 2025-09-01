@@ -91,7 +91,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useUsageTracking } from "@/hooks/useUsageTracking";
 import { supabase } from "@/integrations/supabase/client";
 import DashboardHeader from "@/components/DashboardHeader";
-import UserAvatar from "@/components/header/UserAvatar";
 
 const atsCheckerSchema = z.object({
   jobDescription: z
@@ -884,40 +883,43 @@ Preferred Qualifications:
         return;
       }
 
-      // Convert file to base64
-      const base64Resume = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => {
-          const result = reader.result as string;
-          resolve(result.split(",")[1]);
-        };
-        reader.onerror = reject;
-        reader.readAsDataURL(selectedFile);
-      });
+      // --- CHANGE START: Send file using FormData instead of Base64 ---
+      const requestFormData = new FormData();
+      requestFormData.append("feature", "ats_screening_agent");
+      requestFormData.append("jobDescription", formData.jobDescription);
+      requestFormData.append("industry", industry || "");
+      requestFormData.append(
+        "fileType",
+        selectedFile.type === "application/pdf" ? "pdf" : "docx"
+      );
+      requestFormData.append("resume", selectedFile); // Append the actual file object
 
-      const { data: responseData, error: functionError } =
-        await supabase.functions.invoke(
-          "ats-checker-proxy", // The name of your edge function
-          {
-            body: {
-              // user_id is now handled securely by the backend
-              feature: "ats_screening_agent",
-              resume: base64Resume,
-              jobDescription: formData.jobDescription,
-              industry: industry,
-              fileType:
-                selectedFile.type === "application/pdf" ? "pdf" : "docx",
-            },
-          }
-        );
-
-      if (functionError) {
-        // This will catch network errors or function-level errors (like 5xx)
-        throw new Error(`Agent analysis failed: ${functionError.message}`);
+      const session = (await supabase.auth.getSession()).data.session;
+      if (!session) {
+        throw new Error("User not authenticated");
       }
 
-      // ✅ THE REDUNDANT LINE IS NOW REMOVED.
-      // The code will now correctly use the responseData from the invoke call above.
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ats-checker-proxy`,
+        {
+          method: "POST",
+          body: requestFormData,
+          headers: {
+            // Add the Authorization header to authenticate the user
+            // Do NOT set Content-Type; the browser does it automatically for FormData
+            Authorization: `Bearer ${session.access_token}`,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(
+          `Agent analysis failed: ${response.status} ${response.statusText}`
+        );
+      }
+
+      const responseData = await response.json();
+      // --- CHANGE END ---
 
       if (responseData.allowed === false) {
         toast({
@@ -1312,7 +1314,7 @@ Preferred Qualifications:
                             <div className="flex items-center justify-center gap-2 text-xs sm:text-sm text-slate-300">
                               <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-blue-400 flex-shrink-0" />
                               <span className="truncate">
-                                ~30 sec processing
+                                ~10 sec processing
                               </span>
                             </div>
                             <div className="flex items-center justify-center gap-2 text-xs sm:text-sm text-slate-300">

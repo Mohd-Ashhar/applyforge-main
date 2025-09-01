@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback, memo } from "react";
 import { useNavigate } from "react-router-dom";
-// ENHANCEMENT: Added PanInfo for swipe gesture typing
-import { motion, AnimatePresence, type PanInfo } from "framer-motion";
+
+import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -196,18 +196,6 @@ const AIResumeCard = memo(
                     {formatDate(resume.created_at)}
                   </span>
                 </div>
-              </div>
-            </div>
-
-            <div className="mb-4 flex-1">
-              <div className="p-3 bg-slate-800/40 rounded-lg border border-slate-700/50 space-y-2">
-                <h4 className="font-medium text-xs flex items-center gap-2 text-slate-400">
-                  <Target className="w-3.5 h-3.5 text-blue-400 flex-shrink-0" />
-                  <span>Optimized For</span>
-                </h4>
-                <p className="text-sm text-slate-300 leading-relaxed">
-                  {formatJobDescription(resume.job_description)}
-                </p>
               </div>
             </div>
 
@@ -549,28 +537,6 @@ const AIResumeArsenal: React.FC = () => {
     [filteredResumes, sortBy]
   );
 
-  // =================================================================
-  // **ENHANCEMENT 2: Swipe Navigation Handler**
-  // This function handles the logic for navigating between pages
-  // based on the user's horizontal swipe gesture.
-  // =================================================================
-  const handleSwipeNavigation = (
-    event: MouseEvent | TouchEvent | PointerEvent,
-    info: PanInfo
-  ) => {
-    const swipeConfidenceThreshold = 10000;
-    const swipePower = Math.abs(info.offset.x) * info.velocity.x;
-
-    // Swipe Left (to next page)
-    if (swipePower < -swipeConfidenceThreshold) {
-      navigate("/plan-usage"); // Navigate to Plan & Usage page
-    }
-    // Swipe Right (to previous page)
-    else if (swipePower > swipeConfidenceThreshold) {
-      navigate("/dashboard"); // Navigate to Dashboard page
-    }
-  };
-
   // Unchanged: Authentication check
   if (!user) {
     // ... (unchanged)
@@ -616,12 +582,11 @@ const AIResumeArsenal: React.FC = () => {
     <TooltipProvider>
       <div className="min-h-screen bg-background">
         <DashboardHeader />
-        {/* This motion.div enables the swipe gesture */}
+
         <motion.div
           drag="x"
           dragConstraints={{ left: 0, right: 0 }}
           dragSnapToOrigin
-          onDragEnd={handleSwipeNavigation}
           className="container mx-auto px-4 py-8 max-w-7xl"
         >
           <motion.div
@@ -801,4 +766,3 @@ const AIResumeArsenal: React.FC = () => {
 };
 
 export default AIResumeArsenal;
-

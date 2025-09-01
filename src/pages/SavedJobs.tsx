@@ -532,23 +532,6 @@ const JobLibrary: React.FC = () => {
     [filteredJobs, sortBy]
   );
 
-  const handleSwipeNavigation = (
-    event: MouseEvent | TouchEvent | PointerEvent,
-    info: PanInfo
-  ) => {
-    const swipeConfidenceThreshold = 10000;
-    const swipePower = Math.abs(info.offset.x) * info.velocity.x;
-
-    // Swipe Left (forward)
-    if (swipePower < -swipeConfidenceThreshold) {
-      navigate("/plan-usage");
-    }
-    // Swipe Right (backward)
-    else if (swipePower > swipeConfidenceThreshold) {
-      navigate("/saved-cover-letters");
-    }
-  };
-
   if (!user) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
@@ -581,7 +564,6 @@ const JobLibrary: React.FC = () => {
           drag="x"
           dragConstraints={{ left: 0, right: 0 }}
           dragSnapToOrigin
-          onDragEnd={handleSwipeNavigation}
           className="container mx-auto px-4 py-8 max-w-7xl"
         >
           <motion.div
