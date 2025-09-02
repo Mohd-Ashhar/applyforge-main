@@ -4,7 +4,7 @@ import React, {
   useCallback,
   useMemo,
   memo,
-  useRef, // Import useRef
+  useRef,
 } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
@@ -18,50 +18,32 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Progress } from "@/components/ui/progress";
 import {
-  ArrowLeft,
   FileText,
   Upload,
   Building,
   MapPin,
-  Calendar,
+  Clock,
   Briefcase,
   ExternalLink,
-  CheckCircle,
   Loader2,
-  AlertCircle,
   Search,
-  Clock,
-  Users,
   Target,
-  Zap,
   Heart,
-  Share2,
-  Trash2,
-  Download,
   Filter,
   Plus,
   Sparkles,
-  TrendingUp,
-  Award,
   Bot,
-  Brain,
   Shield,
-  Activity,
   Eye,
-  Home,
-  ChevronRight,
-  Settings,
   Crown,
   Wand2,
-  type LucideIcon,
+  Zap,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import DashboardHeader from "@/components/DashboardHeader";
-import UserAvatar from "@/components/header/UserAvatar";
 import { useUsageTracking } from "@/hooks/useUsageTracking";
 
 interface SavedJob {
@@ -91,154 +73,6 @@ interface GenerationStatus {
   resumeUrl?: string;
   coverLetterUrl?: string;
 }
-
-const TailoringAgentLoadingOverlay = memo(
-  ({
-    show,
-    stage = 0,
-    operation = "tailoring",
-  }: {
-    show: boolean;
-    stage?: number;
-    operation?: "tailoring" | "cover-letter" | "applying";
-  }) => {
-    const agentMessages = {
-      tailoring: [
-        "⚡ Analyzing job requirements...",
-        "🧠 Understanding your resume structure...",
-        "🎯 Optimizing content for ATS compatibility...",
-        "✨ Tailoring skills and experience...",
-        "📋 Finalizing personalized resume...",
-      ],
-      "cover-letter": [
-        "✍️ Analyzing your resume and experience...",
-        "🏢 Understanding company and role...",
-        "📝 Crafting personalized content...",
-        "🎯 Optimizing tone and messaging...",
-        "📋 Finalizing your cover letter...",
-      ],
-      applying: [
-        "📋 Processing your application...",
-        "📁 Moving to applied jobs...",
-        "✅ Updating your tracking...",
-      ],
-    };
-
-    const currentMessages = agentMessages[operation];
-
-    return (
-      <AnimatePresence>
-        {show && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.3 }}
-            className="fixed inset-0 z-50 flex flex-col items-center justify-center backdrop-blur-lg bg-background/90 p-4"
-          >
-            <motion.div
-              className="relative mb-6 sm:mb-8"
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ duration: 0.6 }}
-            >
-              <motion.div
-                className="w-20 h-20 sm:w-24 sm:h-24 md:w-32 md:h-32 rounded-full bg-gradient-to-br from-rose-500/20 via-red-500/15 to-orange-500/20 border border-rose-500/20 flex items-center justify-center backdrop-blur-xl"
-                animate={{
-                  scale: [1, 1.1, 1],
-                  rotate: [0, 15, -15, 0],
-                }}
-                transition={{
-                  duration: 2,
-                  repeat: Infinity,
-                  ease: "easeInOut",
-                }}
-              >
-                <Wand2 className="w-8 h-8 sm:w-10 sm:h-10 md:w-16 md:h-16 text-rose-400" />
-
-                <motion.div
-                  className="absolute inset-0 rounded-full border-2 border-rose-400/30"
-                  animate={{
-                    scale: [1, 1.5, 2],
-                    opacity: [0.8, 0.3, 0],
-                  }}
-                  transition={{
-                    duration: 2,
-                    repeat: Infinity,
-                    ease: "easeOut",
-                  }}
-                />
-              </motion.div>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
-              className="text-center space-y-3 sm:space-y-4 max-w-sm sm:max-w-md"
-            >
-              <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-white">
-                Instant Generation Agent
-              </h3>
-              <p className="text-sm sm:text-base md:text-lg text-rose-400 font-medium leading-relaxed">
-                {currentMessages[Math.min(stage, currentMessages.length - 1)]}
-              </p>
-
-              <div className="space-y-2 sm:space-y-3">
-                <Progress
-                  value={((stage + 1) / currentMessages.length) * 100}
-                  className="w-full max-w-80 h-2 sm:h-3 bg-slate-700/50 mx-auto"
-                />
-                <p className="text-xs sm:text-sm text-slate-400">
-                  {Math.round(((stage + 1) / currentMessages.length) * 100)}%
-                  Complete • Tailoring with AI precision
-                </p>
-              </div>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.8 }}
-              className="mt-6 sm:mt-8 flex items-center gap-2 text-xs text-slate-400 bg-slate-800/30 px-3 sm:px-4 py-2 rounded-full backdrop-blur-sm border border-slate-700/50"
-            >
-              <Shield className="w-3 h-3 sm:w-4 sm:h-4 text-rose-400 flex-shrink-0" />
-              <span className="text-xs sm:text-sm">
-                Your documents are processed securely
-              </span>
-            </motion.div>
-
-            <div className="absolute inset-0 overflow-hidden pointer-events-none">
-              {[...Array(6)].map((_, i) => (
-                <motion.div
-                  key={i}
-                  className="absolute w-1 h-1 sm:w-2 sm:h-2 bg-rose-400/30 rounded-full"
-                  animate={{
-                    x: [0, 100, -100, 0],
-                    y: [0, -100, 100, 0],
-                    opacity: [0, 1, 0],
-                  }}
-                  transition={{
-                    duration: 8,
-                    repeat: Infinity,
-                    delay: i * 1.3,
-                    ease: "easeInOut",
-                  }}
-                  style={{
-                    left: `${20 + i * 10}%`,
-                    top: `${30 + i * 8}%`,
-                  }}
-                />
-              ))}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    );
-  }
-);
-
-TailoringAgentLoadingOverlay.displayName = "TailoringAgentLoadingOverlay";
 
 const LoadingSkeleton = memo(() => (
   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
@@ -316,6 +150,7 @@ const TailoringJobCard = memo(
     onViewOrDownload: (url: string, fileName: string) => void;
   }) => {
     const [isHovered, setIsHovered] = useState(false);
+    const [isExpanded, setIsExpanded] = useState(false);
 
     const getCompanyInitials = useCallback((companyName: string) => {
       return companyName
@@ -353,8 +188,14 @@ const TailoringJobCard = memo(
         onHoverEnd={() => setIsHovered(false)}
         className="group"
       >
-        <Card className="bg-gradient-to-br from-rose-500/5 via-red-500/5 to-orange-500/10 backdrop-blur-xl border border-slate-700/50 hover:border-rose-400/40 transition-all duration-300 hover:shadow-xl overflow-hidden h-full flex flex-col">
-          <CardHeader className="pb-3 sm:pb-4">
+        <Card
+          onClick={() => setIsExpanded((prev) => !prev)}
+          className="cursor-pointer bg-gradient-to-br from-rose-500/5 via-red-500/5 to-orange-500/10 backdrop-blur-xl border border-slate-700/50 hover:border-rose-400/40 transition-all duration-300 hover:shadow-xl overflow-hidden h-full flex flex-col"
+        >
+          <CardHeader
+            className="pb-3 sm:pb-4"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
               <Checkbox
                 id={`applied-${job.id}`}
@@ -419,70 +260,90 @@ const TailoringJobCard = memo(
           </CardHeader>
 
           <CardContent className="flex-1 flex flex-col justify-between space-y-3 sm:space-y-4 pt-0">
-            {(job.employment_type ||
-              job.seniority_level ||
-              job.job_function) && (
-              <div className="flex flex-wrap gap-1 sm:gap-2">
-                {job.employment_type && (
-                  <Badge className="bg-rose-500/20 text-rose-400 border-rose-500/30 text-xs whitespace-nowrap">
-                    <Briefcase className="w-2 h-2 sm:w-3 sm:h-3 mr-1 flex-shrink-0" />
-                    <span className="truncate">
-                      {(() => {
-                        if (!job.employment_type) return "";
-                        try {
-                          return JSON.parse(job.employment_type).join(", ");
-                        } catch (e) {
-                          return job.employment_type;
-                        }
-                      })()}
-                    </span>
-                  </Badge>
-                )}
-                {job.seniority_level && (
-                  <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30 text-xs whitespace-nowrap">
-                    <Target className="w-2 h-2 sm:w-3 sm:h-3 mr-1 flex-shrink-0" />
-                    <span className="truncate">
-                      {(() => {
-                        if (!job.seniority_level) return "";
-                        try {
-                          return JSON.parse(job.seniority_level).join(", ");
-                        } catch (e) {
-                          return job.seniority_level;
-                        }
-                      })()}
-                    </span>
-                  </Badge>
-                )}
-                {job.job_function && (
-                  <Badge className="bg-purple-500/20 text-purple-400 border-purple-500/30 text-xs whitespace-nowrap">
-                    <span className="truncate">{job.job_function}</span>
-                  </Badge>
-                )}
-              </div>
-            )}
+            <AnimatePresence>
+              {isExpanded && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.3, ease: "easeInOut" }}
+                  className="overflow-hidden"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="pb-3 sm:pb-4 space-y-3 sm:space-y-4">
+                    {(job.employment_type ||
+                      job.seniority_level ||
+                      job.job_function) && (
+                      <div className="flex flex-wrap gap-1 sm:gap-2">
+                        {job.employment_type && (
+                          <Badge className="bg-rose-500/20 text-rose-400 border-rose-500/30 text-xs whitespace-nowrap">
+                            <Briefcase className="w-2 h-2 sm:w-3 sm:h-3 mr-1 flex-shrink-0" />
+                            <span className="truncate">
+                              {(() => {
+                                if (!job.employment_type) return "";
+                                try {
+                                  return JSON.parse(job.employment_type).join(
+                                    ", "
+                                  );
+                                } catch (e) {
+                                  return job.employment_type;
+                                }
+                              })()}
+                            </span>
+                          </Badge>
+                        )}
+                        {job.seniority_level && (
+                          <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30 text-xs whitespace-nowrap">
+                            <Target className="w-2 h-2 sm:w-3 sm:h-3 mr-1 flex-shrink-0" />
+                            <span className="truncate">
+                              {(() => {
+                                if (!job.seniority_level) return "";
+                                try {
+                                  return JSON.parse(job.seniority_level).join(
+                                    ", "
+                                  );
+                                } catch (e) {
+                                  return job.seniority_level;
+                                }
+                              })()}
+                            </span>
+                          </Badge>
+                        )}
+                        {job.job_function && (
+                          <Badge className="bg-purple-500/20 text-purple-400 border-purple-500/30 text-xs whitespace-nowrap">
+                            <span className="truncate">{job.job_function}</span>
+                          </Badge>
+                        )}
+                      </div>
+                    )}
 
-            {job.job_description && (
-              <div className="space-y-2">
-                <h4 className="font-medium text-xs sm:text-sm flex items-center gap-2">
-                  <Target className="w-3 h-3 sm:w-4 sm:h-4 text-rose-400 flex-shrink-0" />
-                  Job Description
-                </h4>
-                <div className="p-2 sm:p-3 bg-slate-800/30 rounded-lg border border-slate-700/50">
-                  <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-                    {truncateDescription(job.job_description)}
-                  </p>
-                </div>
-              </div>
-            )}
+                    {job.job_description && (
+                      <div className="space-y-2">
+                        <h4 className="font-medium text-xs sm:text-sm flex items-center gap-2">
+                          <Target className="w-3 h-3 sm:w-4 sm:h-4 text-rose-400 flex-shrink-0" />
+                          Job Description
+                        </h4>
+                        <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                          {truncateDescription(job.job_description)}
+                        </p>
+                      </div>
+                    )}
 
-            {job.posted_at && (
-              <div className="flex items-center gap-2 text-xs text-slate-400">
-                <Clock className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
-                <span>Posted {formatDate(job.posted_at)}</span>
-              </div>
-            )}
+                    {job.posted_at && (
+                      <div className="flex items-center gap-2 text-xs text-slate-400">
+                        <Clock className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
+                        <span>Posted {formatDate(job.posted_at)}</span>
+                      </div>
+                    )}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
-            <div className="space-y-2 sm:space-y-3 pt-2">
+            <div
+              className="space-y-2 sm:space-y-3 pt-2"
+              onClick={(e) => e.stopPropagation()}
+            >
               <div className="grid grid-cols-2 gap-2">
                 <motion.div
                   whileHover={{ scale: 1.02 }}
@@ -610,15 +471,10 @@ const InstantTailoringAgent = () => {
   const [generationStatus, setGenerationStatus] = useState<
     Record<string, GenerationStatus>
   >({});
-  const [loadingOperation, setLoadingOperation] = useState<
-    "tailoring" | "cover-letter" | "applying"
-  >("tailoring");
-  const [loadingStage, setLoadingStage] = useState(0);
   const { toast } = useToast();
   const { user } = useAuth();
   const navigate = useNavigate();
   const { usage } = useUsageTracking();
-  // **FIX**: Add a ref to prevent re-fetching on window focus
   const fetchedForUserId = useRef<string | null>(null);
 
   const userName = useMemo(() => {
@@ -659,33 +515,11 @@ const InstantTailoringAgent = () => {
     [filteredJobs, sortBy]
   );
 
-  const stats = useMemo(
-    () => ({
-      total: savedJobs.length,
-      thisWeek: savedJobs.filter(
-        (job) =>
-          new Date(job.saved_at) >=
-          new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
-      ).length,
-      activeJobs: filteredJobs.length,
-      companies: new Set(savedJobs.map((job) => job.company_name)).size,
-    }),
-    [savedJobs, filteredJobs]
-  );
-
-  const isProcessing =
-    processing.resume.size > 0 ||
-    processing.coverLetter.size > 0 ||
-    processing.applying.size > 0;
-
-  // **REFACTORED FUNCTION**
   const checkGenerationStatus = useCallback(
     async (jobs: SavedJob[]) => {
       if (!user || jobs.length === 0) return;
 
       try {
-        // Step 1: Fetch ALL tailored resumes and cover letters for the user.
-        // This avoids creating an excessively long URL.
         const [resumesRes, coverLettersRes] = await Promise.all([
           supabase
             .from("tailored_resumes")
@@ -700,7 +534,6 @@ const InstantTailoringAgent = () => {
         if (resumesRes.error) throw resumesRes.error;
         if (coverLettersRes.error) throw coverLettersRes.error;
 
-        // Step 2: Create efficient lookup maps from the fetched data.
         const resumeMap = new Map<string, string>();
         resumesRes.data?.forEach((resume) => {
           if (resume.job_description && resume.resume_data) {
@@ -715,7 +548,6 @@ const InstantTailoringAgent = () => {
           }
         });
 
-        // Step 3: Match jobs with the fetched documents on the client-side.
         const newStatus: Record<string, GenerationStatus> = {};
         jobs.forEach((job) => {
           const jobDescKey =
@@ -771,12 +603,9 @@ const InstantTailoringAgent = () => {
     }
   }, [user, toast]);
 
-  // **FIX**: This useEffect now prevents re-fetching data for the same user
   useEffect(() => {
-    // Fetches data only if a user is present and their data hasn't been fetched yet.
     if (user && user.id !== fetchedForUserId.current) {
       fetchSavedJobs();
-      // Mark that we have fetched data for this user ID.
       fetchedForUserId.current = user.id;
     }
   }, [user, fetchSavedJobs]);
@@ -786,24 +615,6 @@ const InstantTailoringAgent = () => {
       checkGenerationStatus(savedJobs);
     }
   }, [savedJobs, checkGenerationStatus]);
-
-  const simulateLoadingStages = useCallback(
-    (operation: "tailoring" | "cover-letter" | "applying") => {
-      const stageCounts = {
-        tailoring: 5,
-        "cover-letter": 5,
-        applying: 3,
-      };
-
-      const stageCount = stageCounts[operation];
-      const stages = Array.from({ length: stageCount }, (_, i) => i);
-
-      stages.forEach((stage, index) => {
-        setTimeout(() => setLoadingStage(stage), index * 1200);
-      });
-    },
-    []
-  );
 
   const getCurrentUserVersion = async (userId: string) => {
     try {
@@ -879,9 +690,6 @@ const InstantTailoringAgent = () => {
       const job = savedJobs.find((j) => j.id === jobId);
       if (!job || !user) return;
 
-      setLoadingOperation("applying");
-      setLoadingStage(0);
-      simulateLoadingStages("applying");
       updateProcessingState("applying", jobId, "add");
 
       try {
@@ -933,7 +741,7 @@ const InstantTailoringAgent = () => {
         updateProcessingState("applying", jobId, "remove");
       }
     },
-    [savedJobs, user, toast, updateProcessingState, simulateLoadingStages]
+    [savedJobs, user, toast, updateProcessingState]
   );
 
   const handleTailorResume = useCallback(
@@ -963,10 +771,12 @@ const InstantTailoringAgent = () => {
         const file = (event.target as HTMLInputElement).files?.[0];
         if (!file) return;
 
-        setLoadingOperation("tailoring");
-        setLoadingStage(0);
-        simulateLoadingStages("tailoring");
         updateProcessingState("resume", job.id, "add");
+        toast({
+          title: "AI Agent at Work 🧠",
+          description:
+            "Your resume is being tailored in the background. We'll notify you when it's ready!",
+        });
 
         try {
           const currentVersion = await getCurrentUserVersion(user.id);
@@ -1144,15 +954,7 @@ const InstantTailoringAgent = () => {
       };
       input.click();
     },
-    [
-      user,
-      toast,
-      updateProcessingState,
-      simulateLoadingStages,
-      navigate,
-      usage,
-      handleDownload,
-    ]
+    [user, toast, updateProcessingState, navigate, usage, handleDownload]
   );
 
   const handleGenerateCoverLetter = useCallback(
@@ -1182,10 +984,12 @@ const InstantTailoringAgent = () => {
         const file = (event.target as HTMLInputElement).files?.[0];
         if (!file) return;
 
-        setLoadingOperation("cover-letter");
-        setLoadingStage(0);
-        simulateLoadingStages("cover-letter");
         updateProcessingState("coverLetter", job.id, "add");
+        toast({
+          title: "AI Agent is Writing ✍️",
+          description:
+            "Your cover letter is being crafted in the background. We'll let you know once it's complete!",
+        });
 
         try {
           const currentVersion = await getCurrentUserVersion(user.id);
@@ -1367,15 +1171,7 @@ const InstantTailoringAgent = () => {
       };
       input.click();
     },
-    [
-      user,
-      toast,
-      updateProcessingState,
-      simulateLoadingStages,
-      navigate,
-      usage,
-      handleDownload,
-    ]
+    [user, toast, updateProcessingState, navigate, usage, handleDownload]
   );
 
   if (!user) {
@@ -1419,12 +1215,6 @@ const InstantTailoringAgent = () => {
   return (
     <TooltipProvider>
       <div className="min-h-screen bg-background">
-        <TailoringAgentLoadingOverlay
-          show={isProcessing}
-          stage={loadingStage}
-          operation={loadingOperation}
-        />
-
         <DashboardHeader />
 
         <div className="container mx-auto px-4 py-6 sm:py-8 max-w-7xl">

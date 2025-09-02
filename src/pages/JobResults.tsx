@@ -19,6 +19,12 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   MapPin,
   Briefcase,
   Building,
@@ -40,6 +46,7 @@ import {
   Radar,
   Crown,
   Trash2,
+  MoreVertical,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -52,7 +59,7 @@ interface JobResult {
   job_title: string;
   company_name: string;
   companyLinkedinUrl: string;
-  location: string | string[]; // **MODIFIED**: Allow location to be a string or array of strings for robust searching
+  location: string | string[];
   created_at: string;
   apply_link: string;
   job_description: string;
@@ -172,6 +179,7 @@ const DiscoveredJobCard = memo<{
     onViewOrDownload,
   }) => {
     const [isHovered, setIsHovered] = useState(false);
+    const [isExpanded, setIsExpanded] = useState(false);
 
     const formatPostedDate = useCallback((dateString: string) => {
       if (!dateString) return "Date unavailable";
@@ -202,16 +210,6 @@ const DiscoveredJobCard = memo<{
         .toUpperCase();
     }, []);
 
-    const truncateDescription = useCallback(
-      (description: string, maxLength: number = 150) => {
-        if (!description) return "";
-        if (description.length <= maxLength) return description;
-        return description.substring(0, maxLength) + "...";
-      },
-      []
-    );
-
-    // **FIXED**: Make location display robust
     const displayLocation = useMemo(() => {
       if (!job.location) return "Location Not Available";
       return Array.isArray(job.location)
@@ -223,6 +221,7 @@ const DiscoveredJobCard = memo<{
     const isSaving = savingJobs.has(job.uniqueId);
     const isProcessingResume = processingResume.has(job.uniqueId);
     const isProcessingCoverLetter = processingCoverLetter.has(job.uniqueId);
+    const isProcessing = isProcessingResume || isProcessingCoverLetter;
     const isApplied = appliedJobs.has(job.uniqueId);
     const isApplying = applyingJobs.has(job.uniqueId);
     const isDisliking = dislikingJobs.has(job.uniqueId);
@@ -240,7 +239,10 @@ const DiscoveredJobCard = memo<{
         onHoverEnd={() => setIsHovered(false)}
         className="group"
       >
-        <Card className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl border border-slate-700/50 hover:border-rose-500/30 transition-all duration-300 hover:shadow-xl overflow-hidden">
+        <Card
+          onClick={() => setIsExpanded((prev) => !prev)}
+          className="cursor-pointer bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl border border-slate-700/50 hover:border-rose-500/30 transition-all duration-300 hover:shadow-xl overflow-hidden"
+        >
           <CardHeader className="pb-3 sm:pb-4">
             <div className="space-y-3 sm:space-y-4">
               <div className="flex items-start gap-3">
@@ -285,39 +287,6 @@ const DiscoveredJobCard = memo<{
                     )}
                   </div>
                 </div>
-                <div className="hidden md:flex items-center gap-2 flex-shrink-0">
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        onClick={() => onDislikeJob(job)}
-                        disabled={isDisliking}
-                        size="sm"
-                        variant="ghost"
-                        className="opacity-0 group-hover:opacity-100 transition-opacity p-2 text-slate-400 hover:text-red-500"
-                      >
-                        {isDisliking ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                        ) : (
-                          <Trash2 className="w-4 h-4" />
-                        )}
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>Not interested</TooltipContent>
-                  </Tooltip>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        onClick={() => onShare(job)}
-                        size="sm"
-                        variant="ghost"
-                        className="opacity-0 group-hover:opacity-100 transition-opacity p-2 text-slate-400 hover:text-rose-400"
-                      >
-                        <Share2 className="w-4 h-4" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>Share discovery</TooltipContent>
-                  </Tooltip>
-                </div>
               </div>
               <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 sm:items-center sm:justify-between">
                 <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 min-w-0">
@@ -328,9 +297,27 @@ const DiscoveredJobCard = memo<{
                     <Radar className="w-3 h-3 mr-1 flex-shrink-0" />
                     AI Discovered
                   </Badge>
+                  <AnimatePresence>
+                    {isProcessing && (
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.5 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.5 }}
+                        transition={{ duration: 0.3 }}
+                      >
+                        <Badge className="bg-green-500/20 text-green-400 border-green-500/30 text-xs whitespace-nowrap flex-shrink-0 animate-pulse">
+                          <Bot className="w-3 h-3 mr-1 flex-shrink-0" />
+                          Agent at Work...
+                        </Badge>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
                 {user && (
-                  <div className="flex items-center space-x-2 flex-shrink-0 self-start sm:self-center">
+                  <div
+                    onClick={(e) => e.stopPropagation()}
+                    className="flex items-center space-x-2 flex-shrink-0 self-start sm:self-center"
+                  >
                     <Checkbox
                       id={`applied-${job.uniqueId}`}
                       checked={isApplied}
@@ -366,65 +353,81 @@ const DiscoveredJobCard = memo<{
                 </span>
               </div>
             </div>
-            <div className="flex flex-wrap gap-1 sm:gap-1.5">
-              {job.job_type && (
-                <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30 text-xs whitespace-nowrap flex-shrink-0">
-                  <Briefcase className="w-3 h-3 mr-1 flex-shrink-0" />
-                  <span className="truncate max-w-[80px] sm:max-w-none">
-                    {job.job_type}
-                  </span>
-                </Badge>
+
+            <AnimatePresence>
+              {isExpanded && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.3, ease: "easeInOut" }}
+                  className="overflow-hidden"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="pt-2 space-y-3 sm:space-y-4">
+                    <div className="flex flex-wrap gap-1 sm:gap-1.5">
+                      {job.job_type && (
+                        <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30 text-xs whitespace-nowrap flex-shrink-0">
+                          <Briefcase className="w-3 h-3 mr-1 flex-shrink-0" />
+                          <span className="truncate max-w-[80px] sm:max-w-none">
+                            {job.job_type}
+                          </span>
+                        </Badge>
+                      )}
+                      {job.jobFunction && (
+                        <Badge className="bg-purple-500/20 text-purple-400 border-purple-500/30 text-xs whitespace-nowrap flex-shrink-0">
+                          <span className="truncate max-w-[100px] sm:max-w-none">
+                            {job.jobFunction}
+                          </span>
+                        </Badge>
+                      )}
+                      {job.industries && (
+                        <Badge className="bg-cyan-500/20 text-cyan-400 border-cyan-500/30 text-xs whitespace-nowrap flex-shrink-0">
+                          <span className="truncate max-w-[80px] sm:max-w-none">
+                            {job.industries}
+                          </span>
+                        </Badge>
+                      )}
+                    </div>
+
+                    {job.job_description && (
+                      <div className="space-y-2">
+                        <h4 className="font-medium text-xs sm:text-sm flex items-center gap-2">
+                          <FileText className="w-3 h-3 sm:w-4 sm:h-4 text-rose-400 flex-shrink-0" />
+                          Opportunity Details
+                        </h4>
+                        <p
+                          className="text-xs sm:text-sm text-slate-300 leading-relaxed"
+                          dangerouslySetInnerHTML={{
+                            __html: job.job_description
+                              .replace(/&gt;/g, ">")
+                              .replace(/&lt;/g, "<"),
+                          }}
+                        />
+                      </div>
+                    )}
+
+                    <div className="flex flex-wrap gap-1 sm:gap-1.5">
+                      <Badge className="bg-rose-500/20 text-rose-400 border-rose-500/30 text-xs whitespace-nowrap flex-shrink-0">
+                        <Bot className="w-3 h-3 mr-1 flex-shrink-0" />
+                        AI Matched
+                      </Badge>
+                      <Badge className="bg-green-500/20 text-green-400 border-green-500/30 text-xs whitespace-nowrap flex-shrink-0">
+                        <CheckCircle className="w-3 h-3 mr-1 flex-shrink-0" />
+                        Quality Verified
+                      </Badge>
+                      <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30 text-xs whitespace-nowrap flex-shrink-0">
+                        <Star className="w-3 h-3 mr-1 flex-shrink-0" />
+                        Top Match
+                      </Badge>
+                    </div>
+                  </div>
+                </motion.div>
               )}
-              {job.jobFunction && (
-                <Badge className="bg-purple-500/20 text-purple-400 border-purple-500/30 text-xs whitespace-nowrap flex-shrink-0">
-                  <span className="truncate max-w-[100px] sm:max-w-none">
-                    {job.jobFunction}
-                  </span>
-                </Badge>
-              )}
-              {job.industries && (
-                <Badge className="bg-cyan-500/20 text-cyan-400 border-cyan-500/30 text-xs whitespace-nowrap flex-shrink-0">
-                  <span className="truncate max-w-[80px] sm:max-w-none">
-                    {job.industries}
-                  </span>
-                </Badge>
-              )}
-            </div>
-            {job.job_description && (
-              <div className="space-y-2">
-                <h4 className="font-medium text-xs sm:text-sm flex items-center gap-2">
-                  <FileText className="w-3 h-3 sm:w-4 sm:h-4 text-rose-400 flex-shrink-0" />
-                  Opportunity Details
-                </h4>
-                <div className="p-3 bg-slate-800/30 rounded-lg border border-slate-700/50">
-                  <p
-                    className="text-xs sm:text-sm text-slate-300 leading-relaxed line-clamp-3 sm:line-clamp-4"
-                    dangerouslySetInnerHTML={{
-                      __html: truncateDescription(
-                        job.job_description
-                          .replace(/&gt;/g, ">")
-                          .replace(/&lt;/g, "<")
-                      ),
-                    }}
-                  />
-                </div>
-              </div>
-            )}
-            <div className="flex flex-wrap gap-1 sm:gap-1.5">
-              <Badge className="bg-rose-500/20 text-rose-400 border-rose-500/30 text-xs whitespace-nowrap flex-shrink-0">
-                <Bot className="w-3 h-3 mr-1 flex-shrink-0" />
-                AI Matched
-              </Badge>
-              <Badge className="bg-green-500/20 text-green-400 border-green-500/30 text-xs whitespace-nowrap flex-shrink-0">
-                <CheckCircle className="w-3 h-3 mr-1 flex-shrink-0" />
-                Quality Verified
-              </Badge>
-              <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30 text-xs whitespace-nowrap flex-shrink-0">
-                <Star className="w-3 h-3 mr-1 flex-shrink-0" />
-                Top Match
-              </Badge>
-            </div>
-            <div className="pt-2">
+            </AnimatePresence>
+
+            <div className="pt-2" onClick={(e) => e.stopPropagation()}>
+              {/* --- DESKTOP ACTION BAR --- */}
               <div className="hidden md:flex flex-wrap gap-2">
                 <motion.div
                   whileHover={{ scale: 1.02 }}
@@ -555,147 +558,119 @@ const DiscoveredJobCard = memo<{
                   </Button>
                 </motion.div>
               </div>
-              <div className="md:hidden space-y-2">
-                <div className="grid grid-cols-2 gap-2">
-                  <motion.div
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
+
+              {/* --- NEW MOBILE ACTION BAR --- */}
+              <div className="md:hidden flex items-center gap-2">
+                <Button
+                  onClick={() => onSaveJob(job)}
+                  disabled={isSaving}
+                  size="sm"
+                  className={`flex-1 ${
+                    isSaved
+                      ? "bg-gradient-to-r from-rose-500 to-pink-500 text-white shadow-lg border-0"
+                      : "bg-slate-700/50 text-slate-300 border border-slate-600"
+                  }`}
+                >
+                  <Heart
+                    className={`w-4 h-4 mr-2 ${isSaved ? "fill-current" : ""}`}
+                  />
+                  {isSaved ? "Saved" : "Save"}
+                </Button>
+                <Button
+                  asChild
+                  size="sm"
+                  className="flex-1 bg-gradient-to-r from-rose-600 to-red-600 text-white"
+                >
+                  <a
+                    href={finalApplyLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
                   >
+                    Apply Now
+                  </a>
+                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
                     <Button
-                      onClick={() => onSaveJob(job)}
-                      disabled={isSaving}
-                      size="sm"
-                      className={
-                        isSaved
-                          ? "w-full bg-gradient-to-r from-rose-500 to-pink-500 text-white hover:from-rose-600 hover:to-pink-600 shadow-lg border-0 text-xs h-9"
-                          : "w-full bg-gradient-to-r from-slate-700 to-slate-800 text-slate-300 hover:from-rose-500 hover:to-pink-500 hover:text-white border border-slate-600 shadow-md text-xs h-9"
-                      }
-                    >
-                      {isSaved ? (
-                        <>
-                          <Heart className="w-3 h-3 mr-1 fill-current flex-shrink-0" />
-                          <span className="truncate">Saved</span>
-                        </>
-                      ) : (
-                        <>
-                          <Heart className="w-3 h-3 mr-1 flex-shrink-0" />
-                          <span className="truncate">
-                            {isSaving ? "Saving..." : "Save"}
-                          </span>
-                        </>
-                      )}
-                    </Button>
-                  </motion.div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <Button
-                      onClick={() => onShare(job)}
-                      size="sm"
                       variant="outline"
-                      className="w-full border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white text-xs h-9"
+                      size="icon"
+                      className="border-slate-600 bg-slate-700/50"
                     >
-                      <Share2 className="w-3 h-3 mr-1 flex-shrink-0" />
-                      <span className="truncate">Share</span>
+                      <MoreVertical className="h-4 w-4" />
                     </Button>
-                    <Button
-                      onClick={() => onDislikeJob(job)}
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent
+                    align="end"
+                    className="bg-slate-800 border-slate-700 text-white"
+                  >
+                    {generationStatus.resumeUrl ? (
+                      <DropdownMenuItem
+                        onSelect={() =>
+                          onViewOrDownload(
+                            generationStatus.resumeUrl,
+                            `${job.company_name}_resume.pdf`
+                          )
+                        }
+                      >
+                        <Eye className="mr-2 h-4 w-4" />
+                        <span>View Resume</span>
+                      </DropdownMenuItem>
+                    ) : (
+                      <DropdownMenuItem
+                        onSelect={() => onTailorResume(job)}
+                        disabled={isProcessingResume}
+                      >
+                        {isProcessingResume ? (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                          <FileText className="mr-2 h-4 w-4" />
+                        )}
+                        <span>Tailor Resume</span>
+                      </DropdownMenuItem>
+                    )}
+                    {generationStatus.coverLetterUrl ? (
+                      <DropdownMenuItem
+                        onSelect={() =>
+                          onViewOrDownload(
+                            generationStatus.coverLetterUrl,
+                            `${job.company_name}_cover_letter.pdf`
+                          )
+                        }
+                      >
+                        <Eye className="mr-2 h-4 w-4" />
+                        <span>View Cover Letter</span>
+                      </DropdownMenuItem>
+                    ) : (
+                      <DropdownMenuItem
+                        onSelect={() => onGenerateCoverLetter(job)}
+                        disabled={isProcessingCoverLetter}
+                      >
+                        {isProcessingCoverLetter ? (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                          <Upload className="mr-2 h-4 w-4" />
+                        )}
+                        <span>Cover Letter</span>
+                      </DropdownMenuItem>
+                    )}
+                    <DropdownMenuItem onSelect={() => onShare(job)}>
+                      <Share2 className="mr-2 h-4 w-4" />
+                      <span>Share</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onSelect={() => onDislikeJob(job)}
                       disabled={isDisliking}
-                      size="sm"
-                      variant="outline"
-                      className="w-full border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-red-500 text-xs h-9"
+                      className="text-red-400 focus:bg-red-500/20 focus:text-red-400"
                     >
                       {isDisliking ? (
-                        <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       ) : (
-                        <Trash2 className="w-3 h-3 mr-1 flex-shrink-0" />
+                        <Trash2 className="mr-2 h-4 w-4" />
                       )}
-                      <span className="truncate">Remove</span>
-                    </Button>
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  {generationStatus.resumeUrl ? (
-                    <Button
-                      onClick={() =>
-                        onViewOrDownload(
-                          generationStatus.resumeUrl,
-                          `${job.company_name}_resume.pdf`
-                        )
-                      }
-                      size="sm"
-                      variant="outline"
-                      className="w-full border-green-500/30 text-green-400 hover:bg-green-500 hover:text-white bg-green-500/10 text-xs h-9"
-                    >
-                      <Eye className="w-3 h-3 mr-1 flex-shrink-0" />
-                      <span className="truncate">View Resume</span>
-                    </Button>
-                  ) : (
-                    <Button
-                      onClick={() => onTailorResume(job)}
-                      disabled={isProcessingResume}
-                      size="sm"
-                      variant="outline"
-                      className="w-full border-blue-500/30 text-blue-400 hover:bg-blue-500 hover:text-white bg-blue-500/10 text-xs h-9"
-                    >
-                      {isProcessingResume ? (
-                        <Loader2 className="w-3 h-3 mr-1 animate-spin flex-shrink-0" />
-                      ) : (
-                        <FileText className="w-3 h-3 mr-1 flex-shrink-0" />
-                      )}
-                      <span className="truncate">Resume</span>
-                    </Button>
-                  )}
-                  {generationStatus.coverLetterUrl ? (
-                    <Button
-                      onClick={() =>
-                        onViewOrDownload(
-                          generationStatus.coverLetterUrl,
-                          `${job.company_name}_cover_letter.pdf`
-                        )
-                      }
-                      size="sm"
-                      variant="outline"
-                      className="w-full border-green-500/30 text-green-400 hover:bg-green-500 hover:text-white bg-green-500/10 text-xs h-9"
-                    >
-                      <Eye className="w-3 h-3 mr-1 flex-shrink-0" />
-                      <span className="truncate">View Cover</span>
-                    </Button>
-                  ) : (
-                    <Button
-                      onClick={() => onGenerateCoverLetter(job)}
-                      disabled={isProcessingCoverLetter}
-                      size="sm"
-                      variant="outline"
-                      className="w-full border-green-500/30 text-green-400 hover:bg-green-500 hover:text-white bg-green-500/10 text-xs h-9"
-                    >
-                      {isProcessingCoverLetter ? (
-                        <Loader2 className="w-3 h-3 mr-1 animate-spin flex-shrink-0" />
-                      ) : (
-                        <Upload className="w-3 h-3 mr-1 flex-shrink-0" />
-                      )}
-                      <span className="truncate">Cover</span>
-                    </Button>
-                  )}
-                </div>
-                <motion.div
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                >
-                  <Button
-                    asChild
-                    size="sm"
-                    className="w-full bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-700 hover:to-red-700 text-white h-10 text-sm"
-                  >
-                    <a
-                      href={finalApplyLink}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center justify-center gap-2"
-                    >
-                      <ExternalLink className="w-4 h-4 flex-shrink-0" />
-                      <span className="truncate">Apply Now</span>
-                    </a>
-                  </Button>
-                </motion.div>
+                      <span>Not Interested</span>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             </div>
           </CardContent>
@@ -796,8 +771,6 @@ const AIJobDiscoveryAgentResults: React.FC = () => {
   const { user } = useAuth();
   const { usage } = useUsageTracking();
   const hasSavedResults = useRef(false);
-
-  // **CHANGE 1 of 2**: Add a ref to track if the initial load has completed.
   const initialLoadComplete = useRef(false);
 
   const userName = useMemo(() => {
@@ -919,7 +892,6 @@ const AIJobDiscoveryAgentResults: React.FC = () => {
       }
     };
 
-    // **CHANGE 2 of 2**: Add a condition to ensure loadAndSyncJobs runs only once.
     if (!initialLoadComplete.current) {
       loadAndSyncJobs();
       initialLoadComplete.current = true;
@@ -1005,13 +977,13 @@ const AIJobDiscoveryAgentResults: React.FC = () => {
           company_name: job.company_name || "Unknown",
           location: Array.isArray(job.location)
             ? job.location.join(", ")
-            : job.location || "Unknown", // Handle array
+            : job.location || "Unknown",
           experience_level: job.experience_level || "Not specified",
           job_type: job.job_type || "Not specified",
           work_type: "Not specified",
           apply_link: job.apply_link || "",
           company_linkedin_url: job.companyLinkedinUrl || null,
-          posted_at: job.created_at || new Date().toISOString(), // This should be posted_at from types.ts
+          posted_at: job.created_at || new Date().toISOString(),
           job_description: job.job_description || null,
           seniority_level: job.experience_level || null,
           employment_type: job.job_type || null,
@@ -1019,15 +991,11 @@ const AIJobDiscoveryAgentResults: React.FC = () => {
           industries: job.industries || null,
         }));
 
-        // The column in job_search_results is created_at for the timestamp of insertion,
-        // and posted_at for when the job was originally posted.
-        // Let's correct the mapping based on the types.
         const correctedData = jobSearchData.map((item) => {
           const { posted_at, ...rest } = item;
           return {
             ...rest,
-            posted_at: item.posted_at, // The date the job was posted
-            // created_at is handled by the DB default
+            posted_at: item.posted_at,
           };
         });
 
@@ -1246,6 +1214,11 @@ const AIJobDiscoveryAgentResults: React.FC = () => {
         if (!file) return;
 
         setProcessingResume((prev) => new Set(prev).add(job.uniqueId));
+        toast({
+          title: "AI Agent at Work 🧠",
+          description:
+            "Your resume is being tailored in the background. We'll notify you when it's ready!",
+        });
 
         try {
           const currentVersion = await getCurrentUserVersion(user.id);
@@ -1425,6 +1398,11 @@ const AIJobDiscoveryAgentResults: React.FC = () => {
         if (!file) return;
 
         setProcessingCoverLetter((prev) => new Set(prev).add(job.uniqueId));
+        toast({
+          title: "AI Agent is Writing ✍️",
+          description:
+            "Your cover letter is being crafted in the background. We'll let you know once it's complete!",
+        });
 
         try {
           const currentVersion = await getCurrentUserVersion(user.id);
@@ -1723,7 +1701,6 @@ const AIJobDiscoveryAgentResults: React.FC = () => {
     [toast]
   );
 
-  // **FIXED**: Search logic is now more robust, especially for location data.
   const filteredJobs = useMemo(
     () =>
       jobResults.filter((job) => {
@@ -1735,7 +1712,6 @@ const AIJobDiscoveryAgentResults: React.FC = () => {
           .toLowerCase()
           .includes(lowercasedSearchTerm);
 
-        // Handle both string and array for location
         const locationString = Array.isArray(job.location)
           ? job.location.join(", ")
           : job.location ?? "";
@@ -1748,8 +1724,6 @@ const AIJobDiscoveryAgentResults: React.FC = () => {
     [jobResults, searchTerm]
   );
 
-  // **REMOVED**: Sorting logic is no longer needed.
-  // The displayed jobs will be the filtered jobs in their default order.
   const displayedJobs = filteredJobs;
 
   if (loading) {
@@ -1886,7 +1860,6 @@ const AIJobDiscoveryAgentResults: React.FC = () => {
               </div>
               <DiscoveryAgentStats jobCount={jobResults.length} />
 
-              {/* **MODIFIED**: Sorting controls removed */}
               {jobResults.length > 0 && (
                 <div className="flex flex-col sm:flex-row justify-between items-center gap-4 p-4 bg-slate-800/30 rounded-lg border border-slate-700/50">
                   <div className="relative w-full flex-1">
