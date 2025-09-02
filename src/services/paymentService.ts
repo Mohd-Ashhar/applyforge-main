@@ -46,6 +46,32 @@ export interface PaymentNotificationPayload {
   failureReason?: string;
 }
 
+// --- NEW INTERFACE FOR PAYPAL ---
+export interface PaypalSubscriptionResponse {
+  approve_link: string;
+}
+
+export interface SubscriptionUpdateDetails {
+  plan: SubscriptionPlan;
+  billingPeriod: BillingPeriod;
+  paymentId: string;
+  orderId: string;
+  amount: number;
+  currency: string;
+}
+
+export interface PaymentNotificationPayload {
+  status: "success" | "failed";
+  email: string;
+  name: string;
+  plan?: SubscriptionPlan;
+  amount?: number;
+  currency?: string;
+  paymentId?: string;
+  subscriptionId?: string;
+  failureReason?: string;
+}
+
 // Renamed to create Razorpay Subscription
 export const createRazorpaySubscription = async (
   payload: CreateOrderPayload
@@ -63,6 +89,23 @@ export const createRazorpaySubscription = async (
   }
 
   return data;
+};
+
+export const createPaypalSubscription = async (
+  payload: CreateOrderPayload
+): Promise<PaypalSubscriptionResponse> => {
+  // --- REPLACEMENT ---
+  const { data, error } = await supabase.functions.invoke(
+    "create-paypal-subscription",
+    { body: payload }
+  );
+
+  if (error) {
+    console.error("Failed to create PayPal subscription:", error);
+    throw new Error("Failed to create PayPal subscription.");
+  }
+  return data;
+  // --- END REPLACEMENT ---
 };
 
 
@@ -94,7 +137,6 @@ export const updateUserSubscription = async (
     p_user_id: authUser.user.id,
     p_plan: details.plan,
     p_payment_id: details.paymentId,
-    // **FIX: The missing p_order_id parameter is now included.**
     p_order_id: details.orderId,
     p_amount: details.amount,
     p_currency: details.currency,

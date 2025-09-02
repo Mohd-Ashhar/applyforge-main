@@ -609,22 +609,28 @@ const Pricing: React.FC = () => {
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-6">
-            <div className="flex items-center gap-2">
-              <Button
-                variant={currency === "INR" ? "default" : "outline"}
-                onClick={() => setCurrency("INR")}
-                size="sm"
-              >
-                India (₹)
-              </Button>
-              <Button
-                variant={currency === "USD" ? "default" : "outline"}
-                onClick={() => setCurrency("USD")}
-                size="sm"
-              >
-                International ($)
-              </Button>
-            </div>
+            {/* --- MODIFICATION START --- */}
+            {/* Conditionally render currency buttons based on detected region */}
+            {detectedCurrency === "INR" && (
+              <div className="flex items-center gap-2">
+                <Button
+                  variant={currency === "INR" ? "default" : "outline"}
+                  onClick={() => setCurrency("INR")}
+                  size="sm"
+                >
+                  India (₹)
+                </Button>
+                <Button
+                  variant={currency === "USD" ? "default" : "outline"}
+                  onClick={() => setCurrency("USD")}
+                  size="sm"
+                >
+                  International ($)
+                </Button>
+              </div>
+            )}
+            {/* --- MODIFICATION END --- */}
+
             <div className="flex items-center bg-white/5 rounded-lg p-1 border border-white/10">
               <button
                 type="button"

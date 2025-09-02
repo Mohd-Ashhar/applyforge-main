@@ -532,9 +532,9 @@ export type Database = {
       get_jobs_prioritized: {
         Args: {
           p_job_title: string;
-          p_locations: string[];
-          p_experience_levels: string[];
-          p_job_types: string[];
+          p_locations: string;
+          p_experience_levels: string;
+          p_job_types: string;
         };
         Returns: Tables<"job_data">[];
       };

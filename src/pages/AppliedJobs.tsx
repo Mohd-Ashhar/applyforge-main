@@ -153,7 +153,7 @@ const LoadingSkeleton = memo(() => (
               delay: 0.6,
             }}
           />
-          <div
+          <motion.div
             className="h-10 w-full bg-slate-700/50 rounded-lg"
             initial={{ opacity: 0.5 }}
             animate={{ opacity: 1 }}

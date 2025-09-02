@@ -28,7 +28,7 @@ import {
   ArrowRight,
   Clock,
   Shield,
-  Infinity,
+  Infinity as InfinityIcon,
   Eye,
   AlertCircle,
   FileText,
@@ -267,7 +267,7 @@ const EnhancedProgressBar: React.FC<EnhancedProgressBarProps> = ({
             )}
             <span className="text-muted-foreground mx-1">/</span>
             {limit === -1 ? (
-              <Infinity className="w-4 h-4 inline text-green-400" />
+              <InfinityIcon className="w-4 h-4 inline text-green-400" />
             ) : (
               limit
             )}

@@ -264,17 +264,6 @@ const PricingCard = memo<PricingCardProps>(
             </div>
           )}
 
-          {/* <div className="absolute top-3 left-3 flex items-center gap-1 bg-green-600/20 border border-green-400/30 rounded-full px-2 py-1">
-            <Users className="w-3 h-3 text-green-400" />
-            <span className="text-xs text-green-300 font-medium">
-              {plan.name === "Free"
-                ? "3 Agents"
-                : plan.name === "Basic"
-                ? "6 Agents"
-                : "6+ Agents"}
-            </span>
-          </div> */}
-
           <div
             className={`${iconBg} text-white mb-4 sm:mb-6 mx-auto p-3 sm:p-4 rounded-xl shadow-md flex justify-center items-center`}
           >
@@ -413,9 +402,9 @@ const Pricing: React.FC = () => {
         window.location.href = "/auth";
         return;
       }
-      await processPayment(plan);
+      await processPayment(plan, currency, billingPeriod);
     },
-    [user, processPayment]
+    [user, processPayment, currency, billingPeriod]
   );
 
   const toggleFAQ = useCallback(
@@ -601,22 +590,24 @@ const Pricing: React.FC = () => {
 
           {/* Toggles */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-6">
-            <div className="flex items-center gap-2">
-              <Button
-                variant={currency === "INR" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setCurrency("INR")}
-              >
-                India (₹)
-              </Button>
-              <Button
-                variant={currency === "USD" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setCurrency("USD")}
-              >
-                International ($)
-              </Button>
-            </div>
+            {detectedCurrency === "INR" && (
+              <div className="flex items-center gap-2">
+                <Button
+                  variant={currency === "INR" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setCurrency("INR")}
+                >
+                  India (₹)
+                </Button>
+                <Button
+                  variant={currency === "USD" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setCurrency("USD")}
+                >
+                  International ($)
+                </Button>
+              </div>
+            )}
 
             <div className="flex items-center bg-white/5 rounded-lg p-1 border border-white/10">
               <button
@@ -652,7 +643,6 @@ const Pricing: React.FC = () => {
         {/* Pricing cards                                                */}
         {/* ------------------------------------------------------------ */}
 
-        {/* Desktop / Tablet – ONE grid for ≥ md (768 px) */}
         <motion.div
           className="hidden md:grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 xl:gap-10 max-w-7xl mx-auto"
           variants={fadeStagger}
@@ -673,7 +663,6 @@ const Pricing: React.FC = () => {
           ))}
         </motion.div>
 
-        {/* Mobile swipe list */}
         <div className="md:hidden mt-12">
           <motion.div
             initial={{ opacity: 0, y: 30 }}

@@ -376,7 +376,6 @@ const JobDiscoveryAgent: React.FC = () => {
     return isValid;
   }, [jobTitle]);
 
-
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
