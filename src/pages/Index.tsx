@@ -1,5 +1,5 @@
 import React from "react";
-import { Link } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import Header from "@/components/Header";
@@ -10,14 +10,27 @@ import Testimonials from "@/components/Testimonials";
 import Pricing from "@/components/Pricing";
 import Footer from "@/components/Footer";
 
-// **UPDATED: This is now the landing page for non-authenticated users**
 const Index = () => {
-  return (
-    <div className="min-h-screen bg-background">
-      {/* **ALWAYS SHOW HEADER FOR LANDING PAGE** */}
-      <Header />
+  const { user, loading } = useAuth();
 
-      {/* **FULL LANDING PAGE EXPERIENCE** */}
+  // Show loading spinner while checking auth state
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
+      </div>
+    );
+  }
+
+  // If user is authenticated, redirect to dashboard
+  if (user) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  // Show landing page for non-authenticated users
+  return (
+    <div>
+      <Header />
       <Hero />
       <Features />
       <HowItWorks />

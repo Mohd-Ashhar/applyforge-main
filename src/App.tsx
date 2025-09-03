@@ -14,6 +14,7 @@ import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { HelmetProvider } from "react-helmet-async";
 
+
 // Lazy load components for better performance
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const Index = lazy(() => import("./pages/Index"));
@@ -35,6 +36,12 @@ const JobFinder = lazy(() => import("./pages/JobFinder"));
 const JobResults = lazy(() => import("./pages/JobResults"));
 const OneClickTailoring = lazy(() => import("./pages/OneClickTailoring"));
 const AutoApplyAgent = lazy(() => import("./pages/AutoApplyAgent"));
+
+const ErrorFallback = () => (
+  <div className="flex items-center justify-center h-screen">
+    <p className="text-lg">Something went wrong 😕</p>
+  </div>
+);
 
 // Enhanced QueryClient configuration for production
 const createQueryClient = () => {
@@ -229,96 +236,142 @@ const semiProtectedRoutes = [{ path: "/pricing", component: Pricing }];
 
 // Main routes component
 const AppRoutes = () => {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return <LoadingSpinner size="large" />;
+  }
+
   return (
     <Routes>
-      {/* Protected Routes */}
-      {protectedRoutes.map(({ path, component: Component }) => (
-        <Route
-          key={path}
-          path={path}
-          element={
-            <ProtectedRoute>
-              <Suspense fallback={<RouteLoadingSpinner />}>
-                <Component />
-              </Suspense>
-            </ProtectedRoute>
-          }
-        />
-      ))}
-
-      {/* Public Routes */}
-      {publicRoutes.map(({ path, component: Component }) => (
-        <Route
-          key={path}
-          path={path}
-          element={
-            <PublicRoute>
-              <Suspense fallback={<RouteLoadingSpinner />}>
-                <Component />
-              </Suspense>
-            </PublicRoute>
-          }
-        />
-      ))}
-
-      {/* Auth-specific Routes (callback, reset password, etc.) */}
-      {authRoutes.map(({ path, component: Component }) => (
-        <Route
-          key={path}
-          path={path}
-          element={
-            <AuthAwareRoute>
-              <Suspense fallback={<RouteLoadingSpinner />}>
-                <Component />
-              </Suspense>
-            </AuthAwareRoute>
-          }
-        />
-      ))}
-
-      {/* Semi-Protected Routes (accessible to both auth states) */}
-      {semiProtectedRoutes.map(({ path, component: Component }) => (
-        <Route
-          key={path}
-          path={path}
-          element={
-            <SemiProtectedRoute>
-              <Suspense fallback={<RouteLoadingSpinner />}>
-                <Component />
-              </Suspense>
-            </SemiProtectedRoute>
-          }
-        />
-      ))}
-
-      {/* Redirect root requests to landing for unauthenticated users */}
+      {/* Public Routes - accessible without authentication */}
+      <Route path="/" element={<Index />} />
+      <Route path="/auth" element={<Auth />} />
+      <Route path="/auth/callback" element={<AuthCallback />} />
+      <Route path="/auth/reset-password" element={<ResetPassword />} />
+      <Route path="/pricing" element={<Pricing />} />
+      
+      {/* Protected Routes - require authentication */}
       <Route
-        path="/welcome"
+        path="/dashboard"
         element={
-          <PublicRoute>
-            <Suspense fallback={<RouteLoadingSpinner />}>
-              <Index />
-            </Suspense>
-          </PublicRoute>
+          <ProtectedRoute>
+            <Dashboard />
+          </ProtectedRoute>
         }
       />
-
-      {/* 404 Route */}
       <Route
-        path="*"
+        path="/tailored-resumes"
         element={
-          <SemiProtectedRoute>
-            <Suspense fallback={<RouteLoadingSpinner />}>
-              <NotFound />
-            </Suspense>
-          </SemiProtectedRoute>
+          <ProtectedRoute>
+            <TailoredResumes />
+          </ProtectedRoute>
         }
       />
+      <Route
+        path="/cover-letter-generator"
+        element={
+          <ProtectedRoute>
+            <CoverLetterGenerator />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/saved-cover-letters"
+        element={
+          <ProtectedRoute>
+            <SavedCoverLetters />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/saved-jobs"
+        element={
+          <ProtectedRoute>
+            <SavedJobs />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/applied-jobs"
+        element={
+          <ProtectedRoute>
+            <AppliedJobs />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/plan-usage"
+        element={
+          <ProtectedRoute>
+            <PlanUsage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/feedback"
+        element={
+          <ProtectedRoute>
+            <Feedback />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/ats-checker"
+        element={
+          <ProtectedRoute>
+            <ATSChecker />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/ai-resume-tailor"
+        element={
+          <ProtectedRoute>
+            <AIResumeTailor />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/job-finder"
+        element={
+          <ProtectedRoute>
+            <JobFinder />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/job-results"
+        element={
+          <ProtectedRoute>
+            <JobResults />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/one-click-tailoring"
+        element={
+          <ProtectedRoute>
+            <OneClickTailoring />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/auto-apply-agent"
+        element={
+          <ProtectedRoute>
+            <AutoApplyAgent />
+          </ProtectedRoute>
+        }
+      />
+      
+      {/* Catch-all route for 404 */}
+      <Route path="*" element={<NotFound />} />
     </Routes>
   );
 };
 
-// **FIX 3: Main App component with proper Suspense boundary**
+
 const App = () => {
   const queryClient = createQueryClient();
 

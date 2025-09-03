@@ -15,9 +15,12 @@ const AuthCallback = () => {
 
       if (error) {
         console.error("Auth callback error:", error, errorDescription);
+        // Fix: Ensure proper URL formatting
         navigate(
-          "/auth?error=" + encodeURIComponent(errorDescription || error),
-          { replace: true }
+          `/auth?error=${encodeURIComponent(errorDescription || error)}`,
+          {
+            replace: true,
+          }
         );
         return;
       }
@@ -25,9 +28,13 @@ const AuthCallback = () => {
       // Wait for auth state to be determined
       if (!loading) {
         if (user) {
-          // Successful authentication - redirect to dashboard
-          const returnTo = searchParams.get("returnTo") || "/";
-          navigate(returnTo, { replace: true });
+          // **FIX: Redirect to dashboard instead of root**
+          const returnTo = searchParams.get("returnTo") || "/dashboard";
+          // Ensure clean path formatting
+          const cleanPath = returnTo.startsWith("/")
+            ? returnTo
+            : `/${returnTo}`;
+          navigate(cleanPath, { replace: true });
         } else {
           // No user found - redirect to auth
           navigate("/auth", { replace: true });
@@ -39,12 +46,10 @@ const AuthCallback = () => {
   }, [user, loading, navigate, searchParams]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <div className="text-center space-y-4">
-        <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto" />
-        <p className="text-sm text-muted-foreground">
-          Completing authentication...
-        </p>
+    <div className="flex items-center justify-center min-h-screen">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto"></div>
+        <p className="mt-4 text-gray-600">Completing authentication...</p>
       </div>
     </div>
   );

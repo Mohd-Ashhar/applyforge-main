@@ -68,10 +68,14 @@ const RATE_LIMIT_CONFIG = {
 // ✅ FIXED: Browser-safe URL construction (from your original working code)
 const getRedirectUrl = (path: string): string => {
   if (typeof window !== "undefined") {
-    return `${window.location.origin}${path}`;
+    // Ensure path starts with single slash and no double slashes
+    const cleanPath = path.startsWith("/") ? path : `/${path}`;
+    const baseUrl = window.location.origin;
+    return `${baseUrl}${cleanPath}`;
   }
-  // Server-side fallback (only when window is not available)
-  return path;
+  // Server-side fallback
+  const cleanPath = path.startsWith("/") ? path : `/${path}`;
+  return cleanPath;
 };
 
 // Validation utilities
@@ -88,21 +92,30 @@ const validateFullName = (name: string): boolean => {
   return name.trim().length >= 2 && name.trim().length <= 100;
 };
 
-// ✅ FIXED: Browser-safe error reporting
 const reportError = (error: any, context: string) => {
-  // Safe check for development environment
-  const isDevelopment =
-    typeof window !== "undefined" &&
-    (window.location.hostname === "localhost" ||
-      window.location.hostname === "127.0.0.1");
-
+  const isDevelopment = process.env.NODE_ENV === 'development';
+  
   if (isDevelopment) {
     console.error(`[ApplyForge Auth] ${context}:`, error);
   } else {
-    // In production, send to error tracking service
-    // Example: Sentry.captureException(error, { tags: { context } });
+    // Replace with your actual error tracking service
+    if (window.Sentry) {
+      window.Sentry.captureException(error, { 
+        tags: { context, app: 'ApplyForge' } 
+      });
+    }
+    
+    // Also log critical auth errors to your backend
+    if (error?.code || error?.status >= 500) {
+      fetch('/api/log-error', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ error: error.message, context, timestamp: Date.now() })
+      }).catch(() => {}); // Silently fail
+    }
   }
 };
+
 
 // Enhanced interface
 interface AuthContextType {
@@ -327,35 +340,22 @@ export const AuthProvider = memo<{ children: React.ReactNode }>(
       abortControllerRef.current = new AbortController();
 
       // Set up auth state listener
-      const {
-        data: { subscription },
-      } = supabase.auth.onAuthStateChange(handleAuthStateChange);
 
       // Get initial session
-      const initializeAuth = async () => {
-        try {
-          const {
-            data: { session },
-            error,
-          } = await supabase.auth.getSession();
-
-          if (mounted) {
-            if (error) {
-              reportError(error, "Session initialization");
-            }
-            setSession(session);
-            setUser(session?.user ?? null);
-            setLoading(false);
-          }
-        } catch (error) {
-          reportError(error, "Auth initialization");
-          if (mounted) {
-            setLoading(false);
-          }
+      const {
+        data: { subscription },
+      } = supabase.auth.onAuthStateChange((_event, session) => {
+        if (mounted) {
+          setSession(session);
+          setUser(session?.user ?? null);
+          // This is now the ONLY place where loading is set to false
+          // after the FIRST auth event is received.
+          setLoading(false);
         }
-      };
+      });
 
-      initializeAuth();
+      // The getSession() call is no longer needed here because onAuthStateChange
+      // fires immediately on load with the current session state.
 
       return () => {
         mounted = false;
@@ -364,7 +364,8 @@ export const AuthProvider = memo<{ children: React.ReactNode }>(
           abortControllerRef.current.abort();
         }
       };
-    }, [handleAuthStateChange]);
+    }, []);
+    // ------------------------------
 
     // Session monitoring
     useEffect(() => {
