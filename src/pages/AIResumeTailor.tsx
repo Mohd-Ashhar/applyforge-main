@@ -197,6 +197,29 @@ const OptimizationAgentLoadingOverlay = memo(
               </div>
             </motion.div>
 
+            {/* --- ADDED SECTION START --- */}
+            {/* User Wait Time Message */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 1.5 }}
+              className="mt-6 sm:mt-8 max-w-md text-center p-4 bg-slate-800/50 rounded-lg border border-slate-700/60"
+            >
+              <p className="text-sm text-slate-300 leading-relaxed">
+                This can take 1-2 minutes. Feel free to explore other features
+                &mdash; we'll notify you when it's done! You can find all
+                generated resumes later in the{" "}
+                <Link
+                  to="/tailored-resumes"
+                  className="font-semibold text-blue-400 hover:underline"
+                >
+                  Tailored Resumes
+                </Link>{" "}
+                section.
+              </p>
+            </motion.div>
+            {/* --- ADDED SECTION END --- */}
+
             {/* Security Badge */}
             <motion.div
               initial={{ opacity: 0 }}

@@ -402,7 +402,7 @@ const App = () => {
           <TooltipProvider>
             <Toaster />
             <Sonner
-              position="top-right"
+              position="bottom-right"
               toastOptions={{
                 duration: 4000,
                 style: {

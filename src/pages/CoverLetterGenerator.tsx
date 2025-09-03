@@ -222,6 +222,23 @@ const CraftingAgentLoadingOverlay = memo(
               </div>
             </motion.div>
 
+            {/* --- CHANGE: Add informational message for user --- */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5 }}
+              className="mt-6 sm:mt-8 max-w-md text-center p-4 sm:p-5 bg-slate-800/40 border border-slate-700/50 rounded-xl backdrop-blur-sm space-y-2"
+            >
+              <p className="text-sm sm:text-base text-slate-300 font-medium leading-relaxed">
+                This may take 30-45 seconds. Feel free to explore other
+                features!
+              </p>
+              <p className="text-xs sm:text-sm text-slate-400">
+                We'll notify you in the app once your letter is crafted. You can
+                also find it in your saved cover letters section.
+              </p>
+            </motion.div>
+
             {/* Security Badge - CONSISTENT COLORS */}
             <motion.div
               initial={{ opacity: 0 }}

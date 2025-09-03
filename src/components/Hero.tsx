@@ -37,7 +37,7 @@ const Hero = memo(() => {
       </div>
 
       <motion.div
-        className="container mx-auto px-4 text-center relative z-10"
+        className="container mx-auto px-6 text-center relative z-10"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.6, staggerChildren: 0.1 }}
@@ -49,11 +49,15 @@ const Hero = memo(() => {
           transition={{ delay: 0.1 }}
           className="font-bold text-3xl sm:text-5xl lg:text-6xl mb-6 leading-relaxed pb-3 bg-gradient-to-br from-white to-blue-200 bg-clip-text text-transparent"
         >
-          Let AI Agents Land Your Dream Job{" "}
+         Land Your Dream Job{" "}
           <span className="bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
             3x
           </span>{" "}
-          Faster
+          Faster With{" "}
+          <span className="bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+            AI-Powered
+          </span>{" "}
+           Agents
         </motion.h1>
 
         {/* Enhanced Subtext */}
