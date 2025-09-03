@@ -26,7 +26,7 @@ const CoverLetterGenerator = lazy(() => import("./pages/CoverLetterGenerator"));
 const SavedCoverLetters = lazy(() => import("./pages/SavedCoverLetters"));
 const SavedJobs = lazy(() => import("./pages/SavedJobs"));
 const AppliedJobs = lazy(() => import("./pages/AppliedJobs"));
-const PlanUsage = lazy(() => import ("./pages/PlanUsage"))
+const PlanUsage = lazy(() => import ("./pages/PlanUsage"));
 const Feedback = lazy(() => import("./pages/Feedback"));
 const Pricing = lazy(() => import("./pages/Pricing"));
 const NotFound = lazy(() => import("./pages/NotFound"));

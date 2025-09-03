@@ -265,17 +265,6 @@ const Auth = memo(() => {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="fixed top-6 left-6 z-10">
-        <Button
-          variant="ghost"
-          onClick={() => navigate("/landing")}
-          className="text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-all duration-200 rounded-lg px-3 py-2 group"
-        >
-          <ArrowLeft className="w-4 h-4 mr-2 group-hover:-translate-x-0.5 transition-transform" />
-          <span className="font-medium">Back to Home</span>
-        </Button>
-      </div>
-
       <div className="min-h-screen flex items-center justify-center p-4 pt-20">
         <div className="w-full max-w-md">
           <div className="flex items-center justify-center mb-8">

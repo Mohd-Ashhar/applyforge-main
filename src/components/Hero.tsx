@@ -37,7 +37,7 @@ const Hero = memo(() => {
       </div>
 
       <motion.div
-        className="container mx-auto px-4 text-center relative z-10 pt-24 pb-8"
+        className="container mx-auto px-4 text-center relative z-10"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.6, staggerChildren: 0.1 }}

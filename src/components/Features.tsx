@@ -14,7 +14,6 @@ import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { motion, Variants } from "framer-motion";
 
-
 // **OPTIMIZED: Shortened AI-first descriptions that fit perfectly in cards**
 // **FIXED: Ultra-short descriptions and single-line benefits**
 const FEATURES = [
@@ -87,7 +86,8 @@ const FEATURES = [
     icon: Zap,
     iconBg: "from-yellow-400/80 to-orange-500/60",
     title: "Instant Generation Agent",
-    description:"Creates perfectly tailored applications in 30 seconds, 90% faster than manual.",
+    description:
+      "Creates perfectly tailored applications in 30 seconds, 90% faster than manual.",
     tagline: "30-Second Applications",
     benefits: [
       "90% faster than manual tailoring",
@@ -118,7 +118,6 @@ const FEATURES = [
   },
 ] as const;
 
-
 // **ENHANCED: Success-focused stats with stronger proof points**
 const STATS = [
   {
@@ -141,7 +140,6 @@ const STATS = [
   },
 ] as const;
 
-
 // Simplified animation variants
 const containerVariants: Variants = {
   hidden: { opacity: 0 },
@@ -154,7 +152,6 @@ const containerVariants: Variants = {
   },
 };
 
-
 const cardVariants: Variants = {
   hidden: { opacity: 0, y: 10 },
   show: {
@@ -163,7 +160,6 @@ const cardVariants: Variants = {
     transition: { duration: 0.3, ease: "easeOut" },
   },
 };
-
 
 // Optimized Feature Card with reduced complexity
 const FeatureCard = memo(
@@ -178,13 +174,11 @@ const FeatureCard = memo(
   }) => {
     const Icon = feature.icon;
 
-
     const handleClick = useCallback(() => {
       if (feature.clickable) {
         onFeatureClick(feature.path, feature.implemented);
       }
     }, [feature.clickable, feature.path, feature.implemented, onFeatureClick]);
-
 
     return (
       <motion.div
@@ -201,10 +195,6 @@ const FeatureCard = memo(
             feature.clickable
               ? "cursor-pointer active:scale-[0.98]"
               : "cursor-default"
-          } ${
-            "comingSoon" in feature && feature.comingSoon
-              ? "ring-1 ring-purple-400/40"
-              : ""
           } ${isMobile ? "min-h-[350px] shrink-0" : ""}`}
           onClick={handleClick}
           tabIndex={feature.clickable ? 0 : -1}
@@ -212,11 +202,10 @@ const FeatureCard = memo(
         >
           {/* Coming Soon Badge */}
           {"comingSoon" in feature && feature.comingSoon && (
-            <div className="absolute top-3 right-3 bg-purple-500 text-white text-xs font-semibold px-2.5 py-1 rounded-full">
+            <div className="absolute top-3 right-3 bg-slate-700 text-white text-xs font-semibold px-2.5 py-1 rounded-full">
               Coming Soon
             </div>
           )}
-
 
           {/* Icon */}
           <div
@@ -231,20 +220,16 @@ const FeatureCard = memo(
             />
           </div>
 
-
           {/* Title */}
           <h3
             className={`${
               isMobile ? "text-lg" : "text-xl md:text-2xl"
-            } font-bold ${isMobile ? "mb-3" : "mb-4 md:mb-5"} leading-tight ${
-              "comingSoon" in feature && feature.comingSoon
-                ? "text-purple-400"
-                : "text-blue-200"
-            }`}
+            } font-bold ${
+              isMobile ? "mb-3" : "mb-4 md:mb-5"
+            } leading-tight text-blue-200`}
           >
             {feature.title}
           </h3>
-
 
           {/* **FIXED: Shorter description with proper line limiting** */}
           <p
@@ -254,7 +239,6 @@ const FeatureCard = memo(
           >
             {feature.description}
           </p>
-
 
           {/* Benefits */}
           <ul
@@ -283,7 +267,6 @@ const FeatureCard = memo(
 );
 FeatureCard.displayName = "FeatureCard";
 
-
 // Optimized Mobile Carousel with better performance
 const MobileCarousel = memo(
   ({
@@ -297,7 +280,6 @@ const MobileCarousel = memo(
     const intervalRef = useRef<NodeJS.Timeout>();
     const [isUserScrolling, setIsUserScrolling] = useState(false);
 
-
     useEffect(() => {
       const startAutoScroll = () => {
         intervalRef.current = setInterval(() => {
@@ -305,7 +287,6 @@ const MobileCarousel = memo(
             const { scrollLeft, scrollWidth, clientWidth } = scrollRef.current;
             const maxScroll = scrollWidth - clientWidth;
             const cardWidth = 320 + 16;
-
 
             if (scrollLeft >= maxScroll - 10) {
               scrollRef.current.scrollTo({ left: 0, behavior: "smooth" });
@@ -320,7 +301,6 @@ const MobileCarousel = memo(
         }, 4000);
       };
 
-
       startAutoScroll();
       return () => {
         if (intervalRef.current) {
@@ -329,7 +309,6 @@ const MobileCarousel = memo(
       };
     }, [isUserScrolling]);
 
-
     const handleScrollStart = useCallback(() => {
       setIsUserScrolling(true);
       if (intervalRef.current) {
@@ -337,12 +316,10 @@ const MobileCarousel = memo(
       }
     }, []);
 
-
     const handleScrollEnd = useCallback(() => {
       const timer = setTimeout(() => setIsUserScrolling(false), 2000);
       return () => clearTimeout(timer);
     }, []);
-
 
     return (
       <div className="relative">
@@ -374,7 +351,6 @@ const MobileCarousel = memo(
 );
 MobileCarousel.displayName = "MobileCarousel";
 
-
 // Simplified Stats Component
 const StatsSection = memo(() => (
   <div className="mt-12 md:mt-20 bg-background/80 backdrop-blur-sm border border-white/10 rounded-xl px-4 md:px-8 py-4 md:py-10">
@@ -396,12 +372,10 @@ const StatsSection = memo(() => (
 ));
 StatsSection.displayName = "StatsSection";
 
-
 const Features = memo(() => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
-
 
   const handleFeatureClick = useCallback(
     (path: string, implemented = false) => {
@@ -416,12 +390,10 @@ const Features = memo(() => {
         return;
       }
 
-
       if (!user) {
         navigate("/auth");
         return;
       }
-
 
       if (!implemented) {
         toast({
@@ -433,12 +405,10 @@ const Features = memo(() => {
         return;
       }
 
-
       navigate(path);
     },
     [user, navigate, toast]
   );
-
 
   return (
     <section
@@ -449,7 +419,6 @@ const Features = memo(() => {
         <div className="absolute top-1/3 left-[8vw] w-52 h-52 bg-blue-500/5 rounded-full blur-2xl" />
         <div className="absolute right-[10vw] bottom-[7vw] w-60 h-44 bg-purple-500/5 rounded-3xl blur-2xl" />
       </div>
-
 
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <div className="text-center max-w-3xl mx-auto mb-12 md:mb-16">
@@ -465,7 +434,6 @@ const Features = memo(() => {
           </p>
         </div>
 
-
         <motion.div
           variants={containerVariants}
           initial="hidden"
@@ -479,7 +447,6 @@ const Features = memo(() => {
             />
           </div>
 
-
           <div className="hidden sm:grid md:hidden grid-cols-2 gap-4">
             {FEATURES.map((feature) => (
               <FeatureCard
@@ -489,7 +456,6 @@ const Features = memo(() => {
               />
             ))}
           </div>
-
 
           <div className="hidden md:grid lg:grid-cols-3 md:grid-cols-2 gap-6 lg:gap-8">
             {FEATURES.map((feature) => (
@@ -502,13 +468,11 @@ const Features = memo(() => {
           </div>
         </motion.div>
 
-
         <StatsSection />
       </div>
     </section>
   );
 });
-
 
 Features.displayName = "Features";
 export default Features;

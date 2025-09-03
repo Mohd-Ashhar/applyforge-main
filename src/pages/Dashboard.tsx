@@ -862,36 +862,6 @@ const RedesignedCallToAction = memo(
 );
 RedesignedCallToAction.displayName = "RedesignedCallToAction";
 
-// **UNCHANGED: Mobile Bottom Navigation**
-const MobileBottomNav = memo(
-  // ... (unchanged)
-  () => {
-    const navigate = useNavigate();
-    const navItems = [
-      { icon: Home, label: "Dashboard", path: "/dashboard" },
-      { icon: Briefcase, label: "Jobs", path: "/job-finder" },
-      { icon: LayoutGrid, label: "Agents", path: "/dashboard" },
-      { icon: BarChart3, label: "Analytics", path: "/plan-usage" },
-    ];
-
-    return (
-      <div className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-slate-900/80 backdrop-blur-lg border-t border-slate-700/50 flex justify-around items-center z-50">
-        {navItems.map((item) => (
-          <button
-            key={item.label}
-            onClick={() => navigate(item.path)}
-            className="flex flex-col items-center justify-center text-slate-400 hover:text-white transition-colors"
-          >
-            <item.icon className="w-6 h-6" />
-            <span className="text-xs font-medium">{item.label}</span>
-          </button>
-        ))}
-      </div>
-    );
-  }
-);
-MobileBottomNav.displayName = "MobileBottomNav";
-
 // **MAIN DASHBOARD COMPONENT**
 const Dashboard = memo(() => {
   const { user } = useAuth();
@@ -1053,8 +1023,6 @@ const Dashboard = memo(() => {
             <RedesignedCallToAction />
           </motion.div>
         </motion.div>
-
-        <MobileBottomNav />
       </div>
     </TooltipProvider>
   );

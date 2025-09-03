@@ -222,15 +222,16 @@ interface PricingCardProps {
   onClick: () => void;
   isProcessing: boolean;
   formatPrice: (p: number) => string;
+  isMobile?: boolean;
 }
 
 const PricingCard = memo<PricingCardProps>(
-  ({ plan, index, onClick, isProcessing, formatPrice }) => {
+  ({ plan, index, onClick, isProcessing, formatPrice, isMobile = false }) => {
     const baseRing = plan.highlight
-      ? "ring-2 ring-appforge-blue/50 border-appforge-blue/50"
+      ? "border-2 border-appforge-blue"
       : plan.badge === "Best AI"
-      ? "ring-2 ring-purple-500/80 border-purple-500/60"
-      : "border-white/10";
+      ? "border-2 border-purple-500"
+      : "border border-white/10";
 
     const hoverTransform =
       plan.name === "Pro"
@@ -252,7 +253,10 @@ const PricingCard = memo<PricingCardProps>(
     }[plan.name] as string;
 
     return (
-      <motion.div variants={cardVariants} whileHover={hoverTransform}>
+      <motion.div
+        variants={cardVariants}
+        whileHover={!isMobile ? hoverTransform : undefined}
+      >
         <Card
           className={`relative glass bg-background/75 backdrop-blur shadow-xl overflow-hidden ${baseRing} rounded-2xl p-4 sm:p-6 md:p-8 flex flex-col h-full`}
         >
@@ -674,10 +678,10 @@ const Pricing: React.FC = () => {
               ← Swipe to see all agent plans →
             </p>
 
-            <div className="overflow-x-auto pb-8 -mx-4 px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <div className="overflow-x-auto pb-8 px-4 scroll-px-4 touch-pan-x [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               <div
-                className="flex gap-4 w-max"
-                style={{ scrollSnapType: "x mandatory" }}
+                className="flex gap-4"
+                style={{ scrollSnapType: "x proximity" }}
               >
                 {plans.map((plan, i) => (
                   <div
@@ -691,6 +695,7 @@ const Pricing: React.FC = () => {
                       onClick={() => handleSubscribe(plan.name)}
                       isProcessing={isProcessing}
                       formatPrice={formatPrice}
+                      isMobile={true}
                     />
                   </div>
                 ))}
