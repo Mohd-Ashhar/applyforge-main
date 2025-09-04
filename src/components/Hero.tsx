@@ -1,6 +1,6 @@
 import React, { memo, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Play, Bot, Cpu, Clock, Settings } from "lucide-react";
+import { ArrowRight, Play, Bot, Cpu, Clock } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 
@@ -37,7 +37,7 @@ const Hero = memo(() => {
       </div>
 
       <motion.div
-        className="container mx-auto px-6 text-center relative z-10"
+        className="container mx-auto px-6 py-24 text-center relative z-10"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.6, staggerChildren: 0.1 }}
@@ -49,7 +49,7 @@ const Hero = memo(() => {
           transition={{ delay: 0.1 }}
           className="font-bold text-3xl sm:text-5xl lg:text-6xl mb-6 leading-relaxed pb-3 bg-gradient-to-br from-white to-blue-200 bg-clip-text text-transparent"
         >
-         Land Your Dream Job{" "}
+          Land Your Dream Job{" "}
           <span className="bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
             3x
           </span>{" "}
@@ -57,7 +57,7 @@ const Hero = memo(() => {
           <span className="bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
             AI-Powered
           </span>{" "}
-           Agents
+          Agents
         </motion.h1>
 
         {/* Enhanced Subtext */}

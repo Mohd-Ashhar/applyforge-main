@@ -591,16 +591,10 @@ const Pricing: React.FC = () => {
           transition={{ duration: 0.5 }}
           className="text-center mb-12 md:mb-16"
         >
-          <div className="flex items-center justify-center gap-2 mb-4">
-            <Bot className="w-6 h-6 text-blue-400" />
-            <span className="text-blue-400 font-medium text-sm sm:text-base">
-              Deploy Your AI Agent Workforce
-            </span>
-          </div>
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 sm:mb-6">
             Choose Your{" "}
             <span className="bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500 bg-clip-text text-transparent">
-              AI Agent Plan
+              AI Plan
             </span>
           </h2>
           <p className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto mb-6 sm:mb-8 px-4">
@@ -691,29 +685,15 @@ const Pricing: React.FC = () => {
 
           <div className="md:hidden mt-8 sm:mt-12">
             <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
+              variants={fadeStagger}
+              initial="hidden"
+              animate="show"
+              key={`mobile-${currency}-${billingPeriod}`}
+              className="flex flex-col gap-8 max-w-md mx-auto px-4"
             >
-              <p className="text-center text-muted-foreground text-sm mb-6 px-4">
-                ← Swipe to see all agent plans →
-              </p>
-              <div className="overflow-x-auto pb-8 -mx-4 px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                <div
-                  className="flex gap-4 w-max"
-                  style={{ scrollSnapType: "x mandatory" }}
-                >
-                  {plans.map((plan, i) => (
-                    <div
-                      key={plan.name}
-                      className="w-[85vw] max-w-sm flex-shrink-0"
-                      style={{ scrollSnapAlign: "center" }}
-                    >
-                      <PricingCard plan={plan} index={i} />
-                    </div>
-                  ))}
-                </div>
-              </div>
+              {plans.map((plan, i) => (
+                <PricingCard key={plan.name} plan={plan} index={i} />
+              ))}
             </motion.div>
           </div>
 

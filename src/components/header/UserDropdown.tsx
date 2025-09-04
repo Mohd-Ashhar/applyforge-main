@@ -39,38 +39,20 @@ import { useUsageTracking } from "@/hooks/useUsageTracking";
 import PlanBadge from "./PlanBadge";
 import UserAvatar from "./UserAvatar";
 
-// REFACTORED: Combined item types for better type safety and reusability
-type NavItem = {
-  to: string;
-  icon: React.ElementType;
-  label: string;
-  description: string;
-};
-
-type ActionItem = {
-  action: string;
-  icon: React.ElementType;
-  label: string;
-  description: string;
-};
-
-type ExternalLinkItem = {
-  href: string;
-  icon: React.ElementType;
-  label: string;
-  description: string;
-};
-
-type DropdownItemType = NavItem | ActionItem | ExternalLinkItem;
-
 interface UserDropdownProps {
   user: User;
   onSignOut: () => void;
   className?: string;
 }
 
-const DROPDOWN_NAV_ITEMS: readonly NavItem[] = [
-  { to: "/", icon: Home, label: "Dashboard", description: "User Dashboard" },
+// Navigation items with enhanced metadata
+const DROPDOWN_NAV_ITEMS = [
+  {
+    to: "/",
+    icon: Home,
+    label: "Dashboard",
+    description: "User Dashboard",
+  },
   {
     to: "/tailored-resumes",
     icon: FileText,
@@ -96,7 +78,7 @@ const DROPDOWN_NAV_ITEMS: readonly NavItem[] = [
     description: "Application tracking",
   },
   {
-    to: "/planusage",
+    to: "/plan-usage",
     icon: ChartNoAxesGantt,
     label: "Plan & Usage",
     description: "Usage Tracking",
@@ -107,10 +89,9 @@ const DROPDOWN_NAV_ITEMS: readonly NavItem[] = [
     label: "Feedback",
     description: "Share your experience",
   },
-];
+] as const;
 
-// FIXED: Implemented settings and support items
-const SETTINGS_ITEMS: readonly (NavItem | ActionItem)[] = [
+const SETTINGS_ITEMS = [
   {
     icon: UserIcon,
     label: "Profile Settings",
@@ -128,6 +109,7 @@ const SETTINGS_ITEMS: readonly (NavItem | ActionItem)[] = [
     icon: CreditCard,
     label: "Billing & Plans",
     description: "Manage subscription",
+    external: false,
   },
   {
     icon: Bell,
@@ -141,13 +123,14 @@ const SETTINGS_ITEMS: readonly (NavItem | ActionItem)[] = [
     description: "Password & 2FA",
     action: "security",
   },
-];
+] as const;
 
-const SUPPORT_ITEMS: readonly (ExternalLinkItem | ActionItem)[] = [
+const SUPPORT_ITEMS = [
   {
     icon: HelpCircle,
     label: "Help Center",
     description: "Documentation & guides",
+    external: true,
     href: "/help",
   },
   {
@@ -156,100 +139,142 @@ const SUPPORT_ITEMS: readonly (ExternalLinkItem | ActionItem)[] = [
     description: "Earn rewards",
     action: "referral",
   },
-];
+] as const;
 
-// REFACTORED: Unified Dropdown Item Component to handle links, actions, and external links
-const DropdownActionItem = memo(
+// Memoized Dropdown Item Component
+const DropdownNavItem = memo(
   ({
     item,
     isActive,
     onClick,
   }: {
-    item: DropdownItemType;
-    isActive?: boolean;
-    onClick: () => void;
+    item: (typeof DROPDOWN_NAV_ITEMS)[number];
+    isActive: boolean;
+    onClick?: () => void;
   }) => {
     const Icon = item.icon;
-
-    const content = (
-      <div
-        className={`flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 hover:bg-primary/5 hover:scale-[1.02] group cursor-pointer ${
-          isActive
-            ? "bg-primary/10 border border-primary/20 shadow-sm"
-            : "hover:bg-muted/50"
-        }`}
-      >
-        <div
-          className={`p-2 rounded-lg transition-all duration-200 group-hover:scale-110 ${
+    return (
+      <DropdownMenuItem asChild className="cursor-pointer p-0 m-0">
+        <Link
+          to={item.to}
+          onClick={onClick}
+          className={`
+          flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 hover:bg-primary/5 hover:scale-[1.02] group
+          ${
+            isActive
+              ? "bg-primary/10 border border-primary/20 shadow-sm"
+              : "hover:bg-muted/50"
+          }
+        `}
+        >
+          <div
+            className={`
+          p-2 rounded-lg transition-all duration-200 group-hover:scale-110
+          ${
             isActive
               ? "bg-primary/20 shadow-sm"
               : "bg-muted/30 group-hover:bg-primary/10"
-          }`}
-        >
-          <Icon
-            className={`w-4 h-4 transition-colors ${
-              isActive
-                ? "text-primary"
-                : "text-muted-foreground group-hover:text-primary"
-            }`}
-          />
+          }
+        `}
+          >
+            <Icon
+              className={`w-4 h-4 ${
+                isActive
+                  ? "text-primary"
+                  : "text-muted-foreground group-hover:text-primary"
+              }`}
+            />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div
+              className={`text-sm font-medium ${
+                isActive ? "text-primary" : "text-foreground"
+              }`}
+            >
+              {item.label}
+            </div>
+            <div className="text-xs text-muted-foreground truncate mt-0.5">
+              {item.description}
+            </div>
+          </div>
+          {isActive && (
+            <div className="w-2 h-2 bg-primary rounded-full animate-pulse" />
+          )}
+        </Link>
+      </DropdownMenuItem>
+    );
+  }
+);
+
+DropdownNavItem.displayName = "DropdownNavItem";
+
+// Memoized Settings Item Component
+const SettingsItem = memo(
+  ({
+    item,
+    onClick,
+  }: {
+    item: (typeof SETTINGS_ITEMS)[number];
+    onClick?: () => void;
+  }) => {
+    const Icon = item.icon;
+    const content = (
+      <div className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-muted/50 transition-all duration-200 hover:scale-[1.02] group cursor-pointer">
+        <div className="p-2 rounded-lg bg-muted/30 group-hover:bg-primary/10 transition-all duration-200">
+          <Icon className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
         </div>
         <div className="flex-1 min-w-0">
-          <div
-            className={`text-sm font-medium ${
-              isActive ? "text-primary" : "text-foreground"
-            }`}
-          >
+          <div className="text-sm font-medium text-foreground">
             {item.label}
           </div>
-          <div className="text-xs text-muted-foreground truncate mt-0.5">
+          <div className="text-xs text-muted-foreground truncate">
             {item.description}
           </div>
         </div>
-        {isActive && (
-          <div className="w-2 h-2 bg-primary rounded-full animate-pulse" />
-        )}
-        {"href" in item && (
+        {"external" in item && item.external && (
           <ExternalLink className="w-3 h-3 text-muted-foreground group-hover:text-primary" />
         )}
       </div>
     );
 
-    return (
-      <DropdownMenuItem
-        asChild
-        className="p-0 m-0 cursor-pointer"
-        onClick={onClick}
-      >
-        {"to" in item ? (
-          <Link to={item.to}>{content}</Link>
-        ) : "href" in item ? (
-          <a href={item.href} target="_blank" rel="noopener noreferrer">
+    if ("to" in item && item.to) {
+      return (
+        <DropdownMenuItem asChild className="cursor-pointer p-0 m-0">
+          <Link to={item.to} onClick={onClick}>
             {content}
-          </a>
-        ) : (
-          <div onClick={() => "action" in item && onClick()}>{content}</div>
-        )}
+          </Link>
+        </DropdownMenuItem>
+      );
+    }
+
+    return (
+      <DropdownMenuItem className="cursor-pointer p-0 m-0" onClick={onClick}>
+        {content}
       </DropdownMenuItem>
     );
   }
 );
-DropdownActionItem.displayName = "DropdownActionItem";
 
-// **NEW: Enhanced Plan Upgrade CTA Component** (No changes needed here, it's well-implemented)
+SettingsItem.displayName = "SettingsItem";
+
+// **NEW: Enhanced Plan Upgrade CTA Component**
 const PlanUpgradeCTA = memo(
   ({ currentPlan, onClose }: { currentPlan: string; onClose: () => void }) => {
+    // **PLAN MAPPING: Same logic as RedesignedCallToAction**
     const mapPlanName = (dbPlanName: string) => {
       const planMapping: Record<string, string> = {
         Free: "Starter",
         Basic: "Pro",
+
         Pro: "Advanced",
+        // Enterprise: "Advanced",
       };
       return planMapping[dbPlanName] || "Starter";
     };
 
     const mappedPlan = mapPlanName(currentPlan);
 
+    // **DYNAMIC UPGRADE BUTTON LOGIC**
     const getUpgradeConfig = () => {
       switch (mappedPlan) {
         case "Starter":
@@ -355,6 +380,7 @@ const PlanUpgradeCTA = memo(
     );
   }
 );
+
 PlanUpgradeCTA.displayName = "PlanUpgradeCTA";
 
 const UserDropdown = memo<UserDropdownProps>(
@@ -364,36 +390,48 @@ const UserDropdown = memo<UserDropdownProps>(
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const { usage, isLoading } = useUsageTracking();
 
-    const userData = useMemo(
-      () => ({
-        displayName:
-          user?.user_metadata?.full_name ||
-          user?.email?.split("@")[0] ||
-          "User",
-        email: user?.email || "",
+    const userData = useMemo(() => {
+      const fullName = user?.user_metadata?.full_name || "";
+      const email = user?.email || "";
+      const displayName = fullName || email.split("@")[0] || "User";
+      return {
+        displayName,
+        email,
         avatarUrl: user?.user_metadata?.avatar_url,
-      }),
-      [user]
-    );
+      };
+    }, [user]);
 
     const isActiveRoute = useCallback(
-      (path: string) => location.pathname === path,
+      (path: string) => {
+        return location.pathname === path;
+      },
       [location.pathname]
     );
 
-    const handleDropdownClose = useCallback(() => setIsDropdownOpen(false), []);
+    const handleDropdownClose = useCallback(() => {
+      setIsDropdownOpen(false);
+    }, []);
 
-    const handleAction = useCallback(
+    const handleSettingsAction = useCallback(
       (action: string) => {
-        const actionMap: Record<string, string> = {
-          profile: "/profile",
-          settings: "/settings",
-          notifications: "/settings/notifications",
-          security: "/settings/security",
-          referral: "/referral",
-        };
-        if (actionMap[action]) {
-          navigate(actionMap[action]);
+        switch (action) {
+          case "profile":
+            navigate("/profile");
+            break;
+          case "settings":
+            navigate("/settings");
+            break;
+          case "notifications":
+            navigate("/settings/notifications");
+            break;
+          case "security":
+            navigate("/settings/security");
+            break;
+          case "referral":
+            navigate("/referral");
+            break;
+          default:
+            console.log(`Action: ${action}`);
         }
         handleDropdownClose();
       },
@@ -404,7 +442,12 @@ const UserDropdown = memo<UserDropdownProps>(
       return (
         <Button
           variant="ghost"
-          className={`relative flex items-center gap-2 md:gap-3 p-2 rounded-2xl border border-transparent transition-all duration-300 group shrink-0 ${className}`}
+          className={`
+            relative flex items-center gap-2 md:gap-3 p-2 rounded-2xl
+            hover:bg-primary/5 hover:border-primary/20 border border-transparent
+            transition-all duration-300 group shrink-0 hover:shadow-lg hover:shadow-primary/10
+            ${className}
+          `}
           disabled
         >
           <UserAvatar user={user} size="sm" />
@@ -413,7 +456,7 @@ const UserDropdown = memo<UserDropdownProps>(
               <p className="text-sm font-medium text-foreground max-w-20 md:max-w-28 truncate leading-tight">
                 {userData.displayName}
               </p>
-              <div className="h-4 bg-muted/50 rounded w-12 animate-pulse mt-1" />
+              <div className="h-4 bg-muted/50 rounded w-12 animate-pulse" />
             </div>
           </div>
         </Button>
@@ -423,12 +466,16 @@ const UserDropdown = memo<UserDropdownProps>(
     const planType = usage?.plan_type || "Free";
 
     return (
-      <DropdownMenu open={isDropdownOpen} onOpenChange={setIsDropdownOpen}>
+      <DropdownMenu onOpenChange={setIsDropdownOpen}>
         <DropdownMenuTrigger asChild>
-          {/* FIXED: Simplified trigger button for better mobile interaction */}
           <Button
             variant="ghost"
-            className={`relative flex items-center gap-2 md:gap-3 p-2 rounded-2xl hover:bg-primary/5 hover:border-primary/20 border border-transparent transition-all duration-300 group shrink-0 hover:shadow-lg hover:shadow-primary/10 ${className}`}
+            className={`
+            relative flex items-center gap-2 md:gap-3 p-2 rounded-2xl
+            hover:bg-primary/5 hover:border-primary/20 border border-transparent
+            transition-all duration-300 group shrink-0 hover:shadow-lg hover:shadow-primary/10
+            ${className}
+          `}
             aria-label="Open user menu"
           >
             <UserAvatar
@@ -437,15 +484,24 @@ const UserDropdown = memo<UserDropdownProps>(
               size="sm"
               variant="premium"
             />
-            <div className="hidden sm:flex flex-col items-start min-w-0">
-              <p className="text-sm font-medium text-foreground max-w-20 md:max-w-28 truncate leading-tight">
-                {userData.displayName}
-              </p>
-              <PlanBadge plan={planType} size="sm" showIcon={false} />
+            <div className="hidden sm:flex items-center gap-2">
+              <div className="text-left min-w-0">
+                <p className="text-sm font-medium text-foreground max-w-20 md:max-w-28 truncate leading-tight">
+                  {userData.displayName}
+                </p>
+                <PlanBadge plan={planType} size="sm" showIcon={false} />
+              </div>
+              <motion.div
+                animate={{ rotate: isDropdownOpen ? 180 : 0 }}
+                transition={{ duration: 0.2 }}
+              >
+                <ChevronDown className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
+              </motion.div>
             </div>
             <motion.div
               animate={{ rotate: isDropdownOpen ? 180 : 0 }}
               transition={{ duration: 0.2 }}
+              className="sm:hidden"
             >
               <ChevronDown className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
             </motion.div>
@@ -455,8 +511,7 @@ const UserDropdown = memo<UserDropdownProps>(
         <AnimatePresence>
           {isDropdownOpen && (
             <DropdownMenuContent
-              // FIXED: Improved mobile styling for scrolling
-              className="w-[95vw] sm:w-96 mr-0 sm:mr-4 p-0 border border-white/10 shadow-2xl bg-background/95 backdrop-blur-xl rounded-2xl overflow-hidden"
+              className="w-screen sm:w-96 mr-0 sm:mr-4 p-0 border border-white/10 shadow-2xl bg-background/95 backdrop-blur-xl rounded-2xl overflow-hidden"
               align="end"
               forceMount
               side="bottom"
@@ -469,8 +524,8 @@ const UserDropdown = memo<UserDropdownProps>(
                 exit={{ opacity: 0, y: -10, scale: 0.95 }}
                 transition={{ duration: 0.2, ease: "easeOut" }}
               >
-                {/* FIXED: Ensured ScrollArea works correctly on mobile */}
-                <ScrollArea className="max-h-[85vh]">
+                <ScrollArea className="max-h-[85vh] overflow-y-auto">
+                  {/* **ENHANCED: Header section with better plan display** */}
                   <div className="p-4 md:p-6 bg-gradient-to-br from-primary/5 via-blue-600/5 to-purple-600/5 border-b border-white/10">
                     <div className="flex items-center gap-3 md:gap-4">
                       <UserAvatar
@@ -490,8 +545,30 @@ const UserDropdown = memo<UserDropdownProps>(
                         <div className="flex items-center gap-2">
                           <PlanBadge plan={planType} animated usage={usage} />
                         </div>
+                        {usage && (
+                          <div className="text-xs text-muted-foreground">
+                            {planType === "Pro" || planType === "Advanced" ? (
+                              <span className="text-green-400">
+                                Unlimited usage
+                              </span>
+                            ) : (
+                              <span>
+                                {[
+                                  usage.resume_tailors_used || 0,
+                                  usage.cover_letters_used || 0,
+                                  usage.job_searches_used || 0,
+                                  usage.one_click_tailors_used || 0,
+                                  usage.ats_checks_used || 0,
+                                ].reduce((sum, val) => sum + val, 0)}{" "}
+                                total uses this month
+                              </span>
+                            )}
+                          </div>
+                        )}
                       </div>
                     </div>
+
+                    {/* **NEW: Enhanced Plan Upgrade CTA** */}
                     <div className="mt-4">
                       <PlanUpgradeCTA
                         currentPlan={planType}
@@ -502,45 +579,17 @@ const UserDropdown = memo<UserDropdownProps>(
 
                   {/* Navigation Items */}
                   <DropdownMenuGroup className="p-2">
-                    <DropdownMenuLabel className="text-xs font-semibold text-muted-foreground px-3 py-2">
+                    <DropdownMenuLabel className="text-xs font-semibold text-muted-foreground px-3 py-2 bg-muted/20 rounded-lg mb-2 flex items-center gap-2">
+                      <Home className="w-3 h-3" />
                       Quick Navigation
                     </DropdownMenuLabel>
                     <div className="space-y-1">
                       {DROPDOWN_NAV_ITEMS.map((item) => (
-                        <DropdownActionItem
+                        <DropdownNavItem
                           key={item.to}
                           item={item}
                           isActive={isActiveRoute(item.to)}
                           onClick={handleDropdownClose}
-                        />
-                      ))}
-                    </div>
-                  </DropdownMenuGroup>
-
-                  <DropdownMenuSeparator className="mx-4 bg-white/10" />
-
-                  {/* FIXED: Added Settings and Support sections */}
-                  <DropdownMenuGroup className="p-2">
-                    <DropdownMenuLabel className="text-xs font-semibold text-muted-foreground px-3 py-2">
-                      Account & Support
-                    </DropdownMenuLabel>
-                    <div className="space-y-1">
-                      {SETTINGS_ITEMS.map((item) => (
-                        <DropdownActionItem
-                          key={item.label}
-                          item={item}
-                          onClick={() =>
-                            "action" in item && handleAction(item.action)
-                          }
-                        />
-                      ))}
-                      {SUPPORT_ITEMS.map((item) => (
-                        <DropdownActionItem
-                          key={item.label}
-                          item={item}
-                          onClick={() =>
-                            "action" in item && handleAction(item.action)
-                          }
                         />
                       ))}
                     </div>

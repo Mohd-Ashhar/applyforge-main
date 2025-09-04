@@ -212,7 +212,7 @@ const protectedRoutes = [
   { path: "/saved-cover-letters", component: SavedCoverLetters },
   { path: "/saved-jobs", component: SavedJobs },
   { path: "/applied-jobs", component: AppliedJobs },
-  { path: "/planusage", component: PlanUsage },
+  { path: "/plan-usage", component: PlanUsage },
   { path: "/feedback", component: Feedback },
   { path: "/ats-checker", component: ATSChecker },
   { path: "/ai-resume-tailor", component: AIResumeTailor },
