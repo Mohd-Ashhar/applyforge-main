@@ -7,15 +7,18 @@ type ToastProps = {
   description?: React.ReactNode;
   variant?: "default" | "destructive";
   action?: React.ReactElement;
+  duration?: number;
 };
 
 // 1. Create a new `toast` function with the same signature as the old one.
-function toast({ title, description, variant, action }: ToastProps) {
+function toast({ title, description, variant, action, duration }: ToastProps) {
   // 2. Map the old `variant` to the new Sonner functions.
   if (variant === "destructive") {
     sonnerToast.error(title, {
       description,
       action,
+      duration,
+      
     });
   } else {
     // Default variant can map to a standard or success toast in Sonner.
@@ -23,6 +26,7 @@ function toast({ title, description, variant, action }: ToastProps) {
     sonnerToast(title, {
       description,
       action,
+      duration,
     });
   }
 }

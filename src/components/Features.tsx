@@ -5,7 +5,7 @@ import {
   Target,
   Mail,
   Search,
-  Zap,
+  LucideRocket,
   Bot,
   CheckCircle,
 } from "lucide-react";
@@ -83,7 +83,7 @@ const FEATURES = [
     implemented: true,
   },
   {
-    icon: Zap,
+    icon: LucideRocket,
     iconBg: "from-yellow-400/80 to-orange-500/60",
     title: "Instant Generation Agent",
     description:

@@ -23,7 +23,7 @@ import {
   Search,
   Shield,
   Cpu,
-  Zap,
+  LucideRocket,
   Bot,
   ArrowRight,
   TrendingUp,
@@ -147,7 +147,7 @@ const AI_AGENTS = [
   },
   {
     id: "instant-tailoring-agent",
-    icon: Zap,
+    icon: LucideRocket,
     title: "Instant Generation Agent",
     subtitle: "One-Click Resume Optimization",
     path: "/one-click-tailoring",
