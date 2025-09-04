@@ -1,5 +1,4 @@
 import React, { Suspense, lazy } from "react";
-import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import {
@@ -14,7 +13,6 @@ import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { HelmetProvider } from "react-helmet-async";
 
-
 // Lazy load components for better performance
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const Index = lazy(() => import("./pages/Index"));
@@ -26,7 +24,7 @@ const CoverLetterGenerator = lazy(() => import("./pages/CoverLetterGenerator"));
 const SavedCoverLetters = lazy(() => import("./pages/SavedCoverLetters"));
 const SavedJobs = lazy(() => import("./pages/SavedJobs"));
 const AppliedJobs = lazy(() => import("./pages/AppliedJobs"));
-const PlanUsage = lazy(() => import ("./pages/PlanUsage"));
+const PlanUsage = lazy(() => import("./pages/PlanUsage"));
 const Feedback = lazy(() => import("./pages/Feedback"));
 const Pricing = lazy(() => import("./pages/Pricing"));
 const NotFound = lazy(() => import("./pages/NotFound"));
@@ -250,7 +248,7 @@ const AppRoutes = () => {
       <Route path="/auth/callback" element={<AuthCallback />} />
       <Route path="/auth/reset-password" element={<ResetPassword />} />
       <Route path="/pricing" element={<Pricing />} />
-      
+
       {/* Protected Routes - require authentication */}
       <Route
         path="/dashboard"
@@ -364,13 +362,12 @@ const AppRoutes = () => {
           </ProtectedRoute>
         }
       />
-      
+
       {/* Catch-all route for 404 */}
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
 };
-
 
 const App = () => {
   const queryClient = createQueryClient();
@@ -400,7 +397,6 @@ const App = () => {
       <QueryClientProvider client={queryClient}>
         <HelmetProvider>
           <TooltipProvider>
-            <Toaster />
             <Sonner
               position="bottom-right"
               toastOptions={{
@@ -431,4 +427,3 @@ const App = () => {
 };
 
 export default App;
-

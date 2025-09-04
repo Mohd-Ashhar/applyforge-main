@@ -678,7 +678,7 @@ const Pricing: React.FC = () => {
               ← Swipe to see all agent plans →
             </p>
 
-            <div className="overflow-x-auto pb-8 px-4 scroll-px-4 touch-pan-x [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <div className="overflow-x-auto pb-8 px-4 scroll-px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               <div
                 className="flex gap-4"
                 style={{ scrollSnapType: "x proximity" }}
