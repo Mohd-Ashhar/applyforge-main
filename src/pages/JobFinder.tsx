@@ -376,6 +376,7 @@ const JobDiscoveryAgent: React.FC = () => {
     return isValid;
   }, [jobTitle]);
 
+  // --------------------------------------------------------------------------------------------------
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -395,60 +396,10 @@ const JobDiscoveryAgent: React.FC = () => {
     simulateLoadingStages();
 
     try {
-      // Step 1: Increment usage (existing secure logic)
-      const currentVersion = await getCurrentUserVersion(user.id);
-      const { error: usageError } = await supabase.rpc(
-        "increment_usage_secure",
-        {
-          p_target_user_id: user.id,
-          p_usage_type: "job_searches_used",
-          p_increment_amount: 1,
-          p_current_version: currentVersion,
-          p_audit_metadata: {
-            action: "job_discovery_agent",
-            job_title: jobTitle,
-            locations: selectedLocations.map((loc) => loc.name),
-            job_types: jobTypes,
-            experience_level: experienceLevel,
-          },
-        }
-      );
-
-      if (usageError) {
-        if (usageError.message.includes("Usage limit exceeded")) {
-          toast({
-            title: "Agent Limit Reached",
-            description: "Upgrade to activate unlimited job discovery!",
-            variant: "destructive",
-            action: (
-              <Button size="sm" onClick={() => navigate("/pricing")}>
-                <Crown className="w-4 h-4 mr-1" />
-                Upgrade Plan
-              </Button>
-            ),
-          });
-          return;
-        }
-        throw new Error(usageError.message);
-      }
-
-      // Step 2: Save user preferences to the new table
-      const userPlan = user.user_metadata?.plan || "free";
-      const preferencePayload = {
-        user_id: user.id,
-        job_title: jobTitle.trim(),
-        locations: selectedLocations.map((loc) => loc.name),
-        job_types: jobTypes,
-        experience_levels: experienceLevel,
-        subscription_plan: userPlan,
-      };
-      await supabase.from("user_job_preferences").insert(preferencePayload);
-
-      // Format arrays into PostgreSQL-compatible strings
+      // Step 1: Query your database first to check for instant matches
       const formatArray = (arr: string[]) =>
         arr.length > 0 ? `{${arr.join(",")}}` : null;
 
-      // Step 3: Call the RPC function
       const rpcParams = {
         p_job_title: jobTitle.trim(),
         p_locations: formatArray(selectedLocations.map((loc) => loc.name)),
@@ -463,7 +414,6 @@ const JobDiscoveryAgent: React.FC = () => {
 
       if (rpcError) throw new Error(rpcError.message);
 
-      let finalData = rpcData;
       const searchParams = {
         jobTitle: jobTitle.trim(),
         locations: selectedLocations.map((loc) => loc.name),
@@ -471,8 +421,54 @@ const JobDiscoveryAgent: React.FC = () => {
         experienceLevel,
       };
 
-      // Step 4: Conditional Fallback to the secure Edge Function
-      if (!rpcData || rpcData.length === 0) {
+      // --- PATH 1: Instant results found in the database ---
+      if (rpcData && rpcData.length > 0) {
+        // Increment usage ONLY when providing immediate results
+        const currentVersion = await getCurrentUserVersion(user.id);
+        const { error: usageError } = await supabase.rpc(
+          "increment_usage_secure",
+          {
+            p_target_user_id: user.id,
+            p_usage_type: "job_searches_used",
+            p_increment_amount: 1,
+            p_current_version: currentVersion,
+            p_audit_metadata: {
+              action: "job_discovery_instant_results",
+              job_title: jobTitle,
+              locations: selectedLocations.map((loc) => loc.name),
+              job_types: jobTypes,
+              experience_level: experienceLevel,
+            },
+          }
+        );
+
+        if (usageError) {
+          if (usageError.message.includes("Usage limit exceeded")) {
+            toast({
+              title: "Agent Limit Reached",
+              description: "Upgrade to activate unlimited job discovery!",
+              variant: "destructive",
+              action: (
+                <Button size="sm" onClick={() => navigate("/pricing")}>
+                  <Crown className="w-4 h-4 mr-1" />
+                  Upgrade Plan
+                </Button>
+              ),
+            });
+            setIsDiscovering(false); // Stop loading on limit reached
+            return;
+          }
+          throw new Error(usageError.message);
+        }
+
+        // Process and navigate to results page
+        refreshUsage();
+        sessionStorage.setItem("jobSearchResults", JSON.stringify(rpcData));
+        sessionStorage.setItem("jobSearchParams", JSON.stringify(searchParams));
+        navigate("/job-results");
+      }
+      // --- PATH 2: No instant results, activate deep discovery agent ---
+      else {
         toast({
           title: "Expanding Search Radius... 📡",
           description:
@@ -480,35 +476,47 @@ const JobDiscoveryAgent: React.FC = () => {
         });
 
         const fallbackPayload = {
-          // user_id is now handled by the secure backend function
           feature: "job_discovery_agent_fallback",
           ...searchParams,
         };
 
-        // --- REPLACEMENT ---
-        // Securely invoke your new Edge Function
-        const { data: fallbackData, error: functionError } =
-          await supabase.functions.invoke("job-finder-proxy", {
-            body: fallbackPayload,
-          });
+        // Invoke the proxy function (which now returns immediately)
+        const { error: functionError } = await supabase.functions.invoke(
+          "job-finder-proxy",
+          { body: fallbackPayload }
+        );
 
         if (functionError) {
-          throw new Error(functionError.message);
+          throw new Error(`Failed to activate agent: ${functionError.message}`);
         }
-        // --- END REPLACEMENT ---
 
-        if (fallbackData?.allowed === false) {
-          toast({ title: "Agent Access Denied 🚫", variant: "destructive" });
-          return;
-        }
-        finalData = fallbackData?.results ?? fallbackData;
+        // Hide the full-screen loading overlay
+        setIsDiscovering(false);
+
+        // Show a persistent toast with the new message and redirect plan
+        toast({
+          duration: 10000, // Show for 10 seconds
+          title: "Your Deep Job Discovery Agent is Activated! 🤖",
+          description:
+            "It can take 2-3 mins. We will notify you via email when your discovery is complete. You will be redirected to the dashboard shortly.",
+        });
+
+        // Save preferences for future reference
+        const userPlan = user.user_metadata?.plan || "free";
+        await supabase.from("user_job_preferences").insert({
+          user_id: user.id,
+          job_title: jobTitle.trim(),
+          locations: selectedLocations.map((loc) => loc.name),
+          job_types: jobTypes,
+          experience_levels: experienceLevel,
+          subscription_plan: userPlan,
+        });
+
+        // Redirect the user to the dashboard after 10 seconds
+        setTimeout(() => {
+          navigate("/dashboard"); // Change '/dashboard' to your actual dashboard route
+        }, 10000);
       }
-
-      // Step 5: Process and navigate with results
-      refreshUsage();
-      sessionStorage.setItem("jobSearchResults", JSON.stringify(finalData));
-      sessionStorage.setItem("jobSearchParams", JSON.stringify(searchParams));
-      navigate("/job-results");
     } catch (error) {
       console.error("Agent discovery error:", error);
       toast({
@@ -517,11 +525,18 @@ const JobDiscoveryAgent: React.FC = () => {
           "Your Job Discovery Agent encountered an issue. Please try again.",
         variant: "destructive",
       });
+      setIsDiscovering(false); // Ensure loading stops on error
     } finally {
-      setIsDiscovering(false);
-      setLoadingStage(0);
+      // The loading state is now managed within the try/catch block,
+      // but this can stay as a final fallback to ensure it always closes.
+      if (isDiscovering) {
+        setIsDiscovering(false);
+        setLoadingStage(0);
+      }
     }
   };
+
+  // -----------------------------------------------------------------------------
 
   return (
     <TooltipProvider>
@@ -757,8 +772,8 @@ const JobDiscoveryAgent: React.FC = () => {
                         {/* **COMPONENT REPLACED HERE** */}
                         <RadarLocationInput
                           onLocationsChange={setSelectedLocations}
-                          placeholder="Discovery upto 5 cities at a time"
-                          maxSelections={5}
+                          placeholder="Kindly enter the city to discover"
+                          maxSelections={1}
                         />
                       </div>
                     </div>

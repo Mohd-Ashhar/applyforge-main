@@ -53,7 +53,7 @@ Deno.serve(async (req) => {
 
     if (!n8nResponse.ok) {
         const errorText = await n8nResponse.text()
-        console.error('n8n request failed:', errorText)
+        console.error('n8n webhook rejected the request:', errorText)
         return new Response(JSON.stringify({ error: `n8n error: ${n8nResponse.statusText}` }), {
           status: n8nResponse.status,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -63,9 +63,9 @@ Deno.serve(async (req) => {
     const responseData = await n8nResponse.json()
 
     // 5. Return the response from n8n to the client
-    return new Response(JSON.stringify(responseData), {
+    return new Response(JSON.stringify({ message: 'Deep discovery agent has been activated.' }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 200,
+      status: 202, // 202 Accepted is the standard for asynchronous operations
     })
   } catch (error) {
     console.error('Unexpected error:', error)

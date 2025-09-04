@@ -187,11 +187,11 @@ const DiscoveredJobCard = memo<{
       if (isNaN(date.getTime())) return "Invalid date";
       const now = new Date();
       const diffSeconds = Math.round((now.getTime() - date.getTime()) / 1000);
-      if (diffSeconds < 60) return "Posted just now";
+      if (diffSeconds < 60) return "Discovered just now";
       const diffMinutes = Math.round(diffSeconds / 60);
-      if (diffMinutes < 60) return `Posted ${diffMinutes}m ago`;
+      if (diffMinutes < 60) return `Discovered ${diffMinutes}m ago`;
       const diffHours = Math.round(diffMinutes / 60);
-      if (diffHours < 24) return `Posted ${diffHours}h ago`;
+      if (diffHours < 24) return `Discovered ${diffHours}h ago`;
       const diffDays = Math.round(diffHours / 24);
       if (diffDays < 7) {
         if (diffDays === 0) return `Posted ${diffHours}h ago`;
