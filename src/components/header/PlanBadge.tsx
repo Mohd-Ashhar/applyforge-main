@@ -70,25 +70,25 @@ const PLAN_CONFIGS = {
 // **UPDATED: New plan limits configuration based on AI agent pricing**
 const defaultPlanLimitsConfig: PlanLimitsConfig = {
   Starter: {
-    resumeChecks: 3, // AI ATS Resume Scanner (5/month)
-    coverLetters: 3, // AI Cover Letter Assistant (5/month)
-    jobApplications: 3, // Smart Job Discovery (5/month)
-    atsScans: 3, // AI Writing Quality Score
-    agents: 3, // 3 Agents
+    resumeChecks: 3,
+    coverLetters: 3,
+    jobApplications: 3,
+    atsScans: 3,
+    agents: 3,
   },
   Pro: {
-    resumeChecks: 25, // Advanced ATS Analyzer (25/month)
-    coverLetters: 25, // Smart Resume Tailor (25/month)
-    jobApplications: 25, // Intelligent Cover Letter Generator (25/month)
-    atsScans: 25, // AI Job Matching Engine (25/month)
-    agents: 25, // 6 Agents
+    resumeChecks: 25,
+    coverLetters: 25,
+    jobApplications: 25,
+    atsScans: 25,
+    agents: 25,
   },
   Advanced: {
-    resumeChecks: 999, // Unlimited AI Tools (State-of-the-art models)
-    coverLetters: 999, // Hyper-Personalized Resume AI
-    jobApplications: 999, // Advanced Cover Letter AI
-    atsScans: 75, // Auto Apply AI Agent (75/month)
-    agents: 999, // 6+ Agents (Unlimited)
+    resumeChecks: 999,
+    coverLetters: 999,
+    jobApplications: 999,
+    atsScans: 999,
+    agents: 999,
   },
 };
 

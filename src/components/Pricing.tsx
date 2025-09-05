@@ -90,8 +90,8 @@ const faqData: FAQItem[] = [
 const PRICING_DATA: Record<"INR" | "USD", Record<string, PricingData>> = {
   INR: {
     Free: { monthly: 0, yearly: 0 },
-    Basic: { monthly: 399, yearly: 3591, yearlyMonthly: 299 },
-    Pro: { monthly: 999, yearly: 8991, yearlyMonthly: 749 },
+    Basic: { monthly: 499, yearly: 4499, yearlyMonthly: 375 },
+    Pro: { monthly: 999, yearly: 8999, yearlyMonthly: 750 },
   },
   USD: {
     Free: { monthly: 0, yearly: 0 },

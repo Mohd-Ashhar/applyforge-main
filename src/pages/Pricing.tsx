@@ -18,7 +18,6 @@ import { usePayment } from "@/hooks/usePayment";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUsageTracking } from "@/hooks/useUsageTracking";
 import { useToast } from "@/hooks/use-toast";
-// MODIFIED: Import new types for currency and billing period
 import {
   SubscriptionPlan,
   Currency,
@@ -54,6 +53,8 @@ interface PlanData {
   badge?: string;
   isCurrentPlan?: boolean;
   canUpgrade?: boolean;
+  // --- MODIFICATION: Add new property to track monthly-to-yearly switch ---
+  isSwitchToYearly?: boolean;
 }
 
 /* ------------------------------------------------------------------ */
@@ -63,8 +64,8 @@ interface PlanData {
 const PRICING_DATA: Record<"INR" | "USD", Record<string, PricingData>> = {
   INR: {
     Free: { monthly: 0, yearly: 0 },
-    Basic: { monthly: 499, yearly: 3999, yearlyMonthly: 299 }, // 25 % off
-    Pro: { monthly: 999, yearly: 7999, yearlyMonthly: 749 }, // 25 % off
+    Basic: { monthly: 499, yearly: 4499, yearlyMonthly: 375 }, // 25 % off
+    Pro: { monthly: 999, yearly: 8999, yearlyMonthly: 750 }, // 25 % off
   },
   USD: {
     Free: { monthly: 0, yearly: 0 },
@@ -141,16 +142,12 @@ const cardVariants: Variants = {
 const Pricing: React.FC = () => {
   /* currency / auth / payment ---------------------------------------------- */
   const { detectedCurrency, isLoading } = useRegionDetection();
-  // MODIFIED: Use imported types for state
   const [currency, setCurrency] = useState<Currency>("INR");
   const [billingPeriod, setBillingPeriod] = useState<BillingPeriod>("yearly");
 
   const { processPayment, isProcessing } = usePayment();
   const { user } = useAuth();
 
-  // =================================================================
-  // **FIX: Pass options to disable re-fetching when switching tabs.**
-  // =================================================================
   const { usage, isLoading: isUsageLoading } = useUsageTracking({
     refetchOnWindowFocus: false,
   });
@@ -206,7 +203,33 @@ const Pricing: React.FC = () => {
   const plans = useMemo<PlanData[]>(() => {
     const cs = currency === "INR" ? "₹" : "$";
     const currentPlan = usage?.plan_type || "Free";
+    // --- MODIFICATION: Get current billing period from the usage hook ---
+    const currentBillingPeriod = usage?.billing_period || "monthly";
     const currentPlanHierarchy = getPlanHierarchy(currentPlan);
+
+    // --- MODIFICATION: Create a helper to calculate plan status ---
+    const calculatePlanStatus = (planName: SubscriptionPlan) => {
+      if (planName === "Free") {
+        return {
+          isCurrentPlan: currentPlan === "Free",
+          canUpgrade: getPlanHierarchy("Free") > currentPlanHierarchy,
+          isSwitchToYearly: false,
+        };
+      }
+
+      const isSamePlanName = currentPlan === planName;
+      const isSwitchToYearly =
+        isSamePlanName &&
+        currentBillingPeriod === "monthly" &&
+        billingPeriod === "yearly";
+
+      return {
+        isCurrentPlan: isSamePlanName && currentBillingPeriod === billingPeriod,
+        canUpgrade:
+          getPlanHierarchy(planName) > currentPlanHierarchy || isSwitchToYearly,
+        isSwitchToYearly: isSwitchToYearly,
+      };
+    };
 
     return [
       {
@@ -236,8 +259,7 @@ const Pricing: React.FC = () => {
         ],
         cta: "Start with AI Free",
         highlight: false,
-        isCurrentPlan: currentPlan === "Free",
-        canUpgrade: getPlanHierarchy("Free") > currentPlanHierarchy,
+        ...calculatePlanStatus("Free"),
       },
       {
         name: "Basic",
@@ -276,8 +298,7 @@ const Pricing: React.FC = () => {
         cta: "Upgrade to AI Pro",
         highlight: true,
         badge: "Most Popular",
-        isCurrentPlan: currentPlan === "Basic",
-        canUpgrade: getPlanHierarchy("Basic") > currentPlanHierarchy,
+        ...calculatePlanStatus("Basic"),
       },
       {
         name: "Pro",
@@ -317,8 +338,7 @@ const Pricing: React.FC = () => {
         cta: "Go AI Advanced",
         highlight: false,
         badge: "Best AI",
-        isCurrentPlan: currentPlan === "Pro",
-        canUpgrade: getPlanHierarchy("Pro") > currentPlanHierarchy,
+        ...calculatePlanStatus("Pro"),
       },
     ];
   }, [currency, billingPeriod, usage, getPlanHierarchy]);
@@ -383,6 +403,16 @@ const Pricing: React.FC = () => {
           className:
             "bg-green-500/20 hover:bg-green-500/30 text-green-400 border border-green-500/30",
           text: "✓ Current Plan",
+          disabled: false,
+        };
+      }
+
+      // --- MODIFICATION: Add new button state for monthly-to-yearly switch ---
+      if (plan.isSwitchToYearly) {
+        return {
+          className:
+            "bg-gradient-to-r from-green-500 to-teal-500 hover:from-green-600 hover:to-teal-600 text-white",
+          text: "Switch to Yearly & Save",
           disabled: false,
         };
       }
@@ -603,8 +633,6 @@ const Pricing: React.FC = () => {
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-6">
-            {/* --- MODIFICATION START --- */}
-            {/* Conditionally render currency buttons based on detected region */}
             {detectedCurrency === "INR" && (
               <div className="flex items-center gap-2">
                 <Button
@@ -623,7 +651,6 @@ const Pricing: React.FC = () => {
                 </Button>
               </div>
             )}
-            {/* --- MODIFICATION END --- */}
 
             <div className="flex items-center bg-white/5 rounded-lg p-1 border border-white/10">
               <button

@@ -14,6 +14,7 @@ export type UsageType =
 interface UserUsage {
   user_id: string;
   plan_type: string;
+  billing_period: string | null;
   resume_tailors_used: number;
   cover_letters_used: number;
   job_searches_used: number;
@@ -42,13 +43,30 @@ const fetchUsageAndLimits = async (
 ): Promise<UsageAndLimits | null> => {
   if (!userId) return null;
 
-  // We fetch usage data and all plan limits in parallel, just like before.
-  const [usageRes, limitsRes] = await Promise.all([
+
+  const [usageRes, limitsRes, paymentRes] = await Promise.all([
     (supabase.rpc as any)("get_user_usage_secure", {
       p_target_user_id: userId,
     }).single(),
     supabase.from("plan_limits").select("plan_type, usage_type, usage_limit"),
+    // Query for the most recent completed payment to get the billing period.
+    // This assumes a `user_id` column exists in your `payments` table.
+    supabase
+      .from("payments")
+      .select("billing_period")
+      .eq("user_id", userId)
+      .eq("status", "completed")
+      .order("id", { ascending: false }) // Order by ID to get the latest
+      .limit(1)
+      .single(),
   ]);
+  // --- Process Billing Period ---
+  const { data: paymentData, error: paymentError } = paymentRes;
+  if (paymentError && paymentError.code !== 'PGRST116') {
+      console.error("Error fetching billing period:", paymentError);
+  }
+  // This line was likely missed. It defines the variable.
+  const billingPeriod = paymentData?.billing_period || null;
 
   // --- Process User Usage ---
   const { data: usageData, error: usageError } = usageRes;
@@ -59,11 +77,13 @@ const fetchUsageAndLimits = async (
     throw new Error("Failed to fetch user usage.");
   }
 
+
   // If no usage record exists, create a default "Free" plan object.
   if (!usageData) {
     effectiveUsageData = {
       user_id: userId,
       plan_type: "Free",
+      billing_period: null,
       resume_tailors_used: 0,
       cover_letters_used: 0,
       job_searches_used: 0,
@@ -73,7 +93,10 @@ const fetchUsageAndLimits = async (
       billing_cycle_end: null,
     };
   } else {
-    effectiveUsageData = usageData as UserUsage;
+    effectiveUsageData = {
+        ...(usageData as Omit<UserUsage, 'billing_period'>), // Cast to ensure type safety
+         billing_period: billingPeriod,
+    };
   }
 
   // --- Process Plan Limits ---

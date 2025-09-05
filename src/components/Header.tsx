@@ -1,7 +1,7 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Zap, Settings, Star, DollarSign } from "lucide-react";
+import { Bot, Settings, Star, DollarSign } from "lucide-react";
 import {
   NavigationMenu,
   NavigationMenuItem,
@@ -46,7 +46,7 @@ const Header = () => {
                 href="#features"
                 className="group inline-flex h-10 w-max items-center justify-center rounded-xl bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-muted/50 hover:text-primary focus:bg-accent focus:text-accent-foreground focus:outline-none disabled:pointer-events-none disabled:opacity-50"
               >
-                <Zap className="w-4 h-4 mr-2" />
+                <Bot className="w-4 h-4 mr-2" />
                 Features
               </NavigationMenuLink>
             </NavigationMenuItem>
