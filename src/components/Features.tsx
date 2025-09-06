@@ -37,7 +37,7 @@ const FEATURES = [
   {
     icon: FileText,
     iconBg: "from-blue-500/90 to-indigo-400/70",
-    title: "Resume Optimization Agent",
+    title: "Resume Tailoring Agent",
     description:
       "Automatically customizes your resume for each application, maximizing relevance.",
     tagline: "3x Interview Booster",
@@ -90,9 +90,9 @@ const FEATURES = [
       "Creates perfectly tailored applications in 30 seconds, 90% faster than manual.",
     tagline: "30-Second Applications",
     benefits: [
-      "90% faster than manual tailoring",
-      "Reads job requirements instantly",
-      "Delivers perfect resume + cover letter",
+      "No manual effort needed",
+      "No more copy-paste",
+      "Generate direct from job listings",
     ],
     clickable: true,
     path: "/one-click-tailoring",

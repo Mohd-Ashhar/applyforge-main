@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 
 const FEATURES = [
-  { icon: "🤖", label: "Resume Optimization Agent" },
+  { icon: "🤖", label: "Resume Tailoring Agent" },
   { icon: "🛡️", label: "ATS Screening Agent" },
   { icon: "✍️", label: "Cover Letter Crafting Agent" },
   { icon: "🎯", label: "Job Discovery Agent" },

@@ -141,7 +141,7 @@ const getPlanLimit = (planType: string, usageType: UsageType): number => {
 // **USAGE ITEMS CONFIGURATION (NOW FULLY CORRECTED)**
 const getUsageItems = (usage: any): UsageItem[] => [
   {
-    // Corresponds to "Resume Optimization Agent" in Dashboard.tsx
+    // Corresponds to "Resume Tailoring Agent" in Dashboard.tsx
     label: "Resume Tailors",
     description: "AI-powered resume optimization",
     used: usage.resume_tailors_used || 0,

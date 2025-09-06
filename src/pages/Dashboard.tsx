@@ -90,7 +90,7 @@ const AI_AGENTS = [
   {
     id: "resume-optimization-agent",
     icon: FileText,
-    title: "Resume Optimization Agent",
+    title: "Resume Tailoring Agent",
     subtitle: "AI-Powered Resume Tailoring",
     path: "/ai-resume-tailor",
     implemented: true,

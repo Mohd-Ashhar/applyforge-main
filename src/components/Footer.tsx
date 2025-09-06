@@ -2,29 +2,28 @@ import React, { memo } from "react";
 import {
   Twitter,
   Linkedin,
-  Github,
-  Mail,
-  ArrowUpRight,
+  Instagram,
+  Mail, // NOTE: Removed unused imports like Github, ArrowUpRight, etc. for cleanliness
   Bot,
-  Activity,
-  Users,
 } from "lucide-react";
 import { motion, Variants } from "framer-motion";
 import Logo from "@/components/ui/Logo";
 
-// --- ENHANCED: AI Agent-focused constants ---
-
+// --- CHANGED: Minimized Footer Sections for a new SaaS ---
+// We've commented out the 'Company' and 'Support' sections as requested.
+// You can easily re-enable them later by uncommenting the code blocks.
 const FOOTER_SECTIONS = [
   {
     title: "AI Agents",
     links: [
       { label: "ATS Screening Agent", href: "/ats-checker" },
-      { label: "Resume Optimization Agent", href: "/ai-resume-tailor" },
+      { label: "Resume Tailoring Agent", href: "/ai-resume-tailor" },
       { label: "Cover Letter Crafting Agent", href: "/cover-letter-generator" },
       { label: "Job Discovery Agent", href: "/job-finder" },
       { label: "Agent Templates", href: "/templates" },
     ],
   },
+  /*
   {
     title: "Company",
     links: [
@@ -45,17 +44,23 @@ const FOOTER_SECTIONS = [
       { label: "Agent Status", href: "/status", external: true },
     ],
   },
+  */
 ];
 
+// NOTE: Kept the social links data structure for future use.
 const SOCIAL_LINKS = [
-  { Icon: Twitter, href: "https://twitter.com/applyforge", label: "Twitter" },
+  { Icon: Mail, href: "mailto:hey@applyforge.ai", label: "Email" },
   {
     Icon: Linkedin,
     href: "https://linkedin.com/company/applyforge",
     label: "LinkedIn",
   },
-  { Icon: Github, href: "https://github.com/applyforge", label: "GitHub" },
-  { Icon: Mail, href: "mailto:hello@applyforge.ai", label: "Email" },
+  { Icon: Twitter, href: "https://twitter.com/applyforge", label: "Twitter" },
+  {
+    Icon: Instagram,
+    href: "https://instagram.com/company/applyforge",
+    label: "Instagram",
+  },
 ];
 
 const LEGAL_LINKS = [
@@ -64,15 +69,10 @@ const LEGAL_LINKS = [
   { label: "Cookie Policy", href: "/cookies" },
 ];
 
-// **NEW: Agent Performance Metrics**
-const AGENT_METRICS = [
-  { icon: Bot, metric: "6 Active Agents", color: "text-green-400" },
-  { icon: Activity, metric: "24/7 Operation", color: "text-blue-400" },
-  { icon: Users, metric: "95% Success Rate", color: "text-purple-400" },
-];
+// NOTE: AGENT_METRICS section was removed as it wasn't present in the final render.
+// This simplifies the component further.
 
-// --- ANIMATION VARIANTS (Typed correctly) ---
-
+// --- ANIMATION VARIANTS (Unchanged) ---
 const containerVariants: Variants = {
   hidden: { opacity: 0 },
   visible: {
@@ -95,56 +95,66 @@ const itemVariants: Variants = {
 
 // --- REUSABLE SUB-COMPONENTS ---
 
+// --- CHANGED: SocialIcon component now supports a 'disabled' state ---
 const SocialIcon = memo(
   ({
     Icon,
     href,
     label,
+    disabled = false,
   }: {
     Icon: React.ElementType;
     href: string;
     label: string;
-  }) => (
-    <motion.a
-      href={href}
-      aria-label={label}
-      className="group relative p-2.5 rounded-xl bg-white/5 border border-white/10 hover:border-blue-400/50 transition-all duration-300 hover:bg-blue-500/10"
-      whileHover={{ scale: 1.05, y: -2 }}
-      whileTap={{ scale: 0.95 }}
-      target="_blank"
-      rel="noopener noreferrer"
-    >
-      <Icon className="w-5 h-5 text-muted-foreground group-hover:text-blue-400 transition-colors duration-300" />
-      <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-blue-500/20 to-purple-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 -z-10" />
-    </motion.a>
-  )
+    disabled?: boolean;
+  }) => {
+    const commonClasses =
+      "group relative p-2.5 rounded-xl bg-white/5 border border-white/10 transition-all duration-300";
+
+    // If disabled, render a non-interactive div with different styling.
+    if (disabled) {
+      return (
+        <div
+          className={`${commonClasses} opacity-40 cursor-not-allowed`}
+          aria-label={`${label} (coming soon)`}
+        >
+          <Icon className="w-5 h-5 text-muted-foreground" />
+        </div>
+      );
+    }
+
+    // Original interactive link for active icons (like email).
+    return (
+      <motion.a
+        href={href}
+        aria-label={label}
+        className={`${commonClasses} hover:border-blue-400/50 hover:bg-blue-500/10`}
+        whileHover={{ scale: 1.05, y: -2 }}
+        whileTap={{ scale: 0.95 }}
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        <Icon className="w-5 h-5 text-muted-foreground group-hover:text-blue-400 transition-colors duration-300" />
+        <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-blue-500/20 to-purple-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 -z-10" />
+      </motion.a>
+    );
+  }
 );
 SocialIcon.displayName = "SocialIcon";
 
 const FooterLink = memo(
-  ({
-    href,
-    children,
-    external = false,
-  }: {
-    href: string;
-    children: React.ReactNode;
-    external?: boolean;
-  }) => (
+  ({ href, children }: { href: string; children: React.ReactNode }) => (
+    // NOTE: Removed 'external' prop as it's not used in the minimized version.
     <motion.a
       href={href}
       className="group flex items-center gap-1 text-muted-foreground hover:text-blue-400 transition-all duration-300 text-sm py-1"
       whileHover={{ x: 4 }}
-      target={external ? "_blank" : undefined}
-      rel={external ? "noopener noreferrer" : undefined}
     >
       <span>{children}</span>
-      {external && (
-        <ArrowUpRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-      )}
     </motion.a>
   )
 );
+FooterLink.displayName = "FooterLink";
 
 // --- MAIN FOOTER COMPONENT ---
 
@@ -153,7 +163,7 @@ const Footer = memo(() => {
 
   return (
     <footer className="relative bg-gradient-to-b from-background via-slate-900/20 to-slate-900/40 border-t border-white/10 overflow-hidden">
-      {/* Background Effects */}
+      {/* Background Effects (Unchanged) */}
       <div className="absolute inset-0 pointer-events-none -z-10">
         <div className="absolute left-0 top-0 w-72 h-72 bg-blue-500/5 rounded-full blur-3xl" />
         <div className="absolute right-0 bottom-0 w-96 h-48 bg-purple-500/5 rounded-full blur-3xl" />
@@ -167,25 +177,36 @@ const Footer = memo(() => {
           viewport={{ once: true, margin: "-50px" }}
           className="py-16 md:py-20"
         >
-          {/* Main Content Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8 lg:gap-12">
-            {/* **ENHANCED: Agent-focused Brand Section** */}
+          {/* --- CHANGED: Main Content Grid adjusted for fewer columns --- */}
+          {/* From lg:grid-cols-5 to lg:grid-cols-3 for a balanced layout */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 lg:gap-12">
             <motion.div
               variants={itemVariants}
               className="lg:col-span-2 space-y-6"
             >
-              <Logo showTagline={true} linkTo="/" />
+              <Logo showTagline={false} linkTo="/" />{" "}
+              {/* NOTE: Tagline might be redundant here */}
               <p className="text-muted-foreground text-sm md:text-base leading-relaxed max-w-sm">
                 Get AI agents that help optimize your job applications
                 automatically. These tools work in the background to improve
                 your resume, find relevant positions, and increase your
                 interview chances.
               </p>
-
-              <div className="flex items-center gap-3">
-                {SOCIAL_LINKS.map((social) => (
-                  <SocialIcon key={social.label} {...social} />
-                ))}
+              {/* --- CHANGED: Social links section with "Coming Soon" message --- */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-3">
+                  {SOCIAL_LINKS.map((social) => (
+                    // We disable all social links except for the email contact.
+                    <SocialIcon
+                      key={social.label}
+                      {...social}
+                      disabled={social.label !== "Email"}
+                    />
+                  ))}
+                </div>
+                <p className="text-xs text-muted-foreground pl-1 italic">
+                  We're building! Follow our journey soon.
+                </p>
               </div>
             </motion.div>
 
@@ -193,21 +214,13 @@ const Footer = memo(() => {
             {FOOTER_SECTIONS.map((section) => (
               <motion.div key={section.title} variants={itemVariants}>
                 <h3 className="font-semibold text-white mb-4 text-sm md:text-base flex items-center gap-2">
-                  {section.title === "AI Agents" && (
-                    <Bot className="w-4 h-4 text-blue-400" />
-                  )}
+                  <Bot className="w-4 h-4 text-blue-400" />
                   {section.title}
-                  {section.title === "AI Agents" && (
-                    <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse ml-1"></div>
-                  )}
+                  <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse ml-1"></div>
                 </h3>
                 <div className="space-y-3">
                   {section.links.map((link) => (
-                    <FooterLink
-                      key={link.label}
-                      href={link.href}
-                      external={link.external}
-                    >
+                    <FooterLink key={link.label} href={link.href}>
                       {link.label}
                     </FooterLink>
                   ))}
@@ -216,7 +229,7 @@ const Footer = memo(() => {
             ))}
           </div>
 
-          {/* **ENHANCED: Agent-focused Bottom Bar** */}
+          {/* Bottom Bar (Unchanged structure) */}
           <motion.div
             variants={itemVariants}
             className="mt-16 pt-8 border-t border-white/10"
@@ -231,13 +244,13 @@ const Footer = memo(() => {
                   <span>AI Agents Active</span>
                 </div>
               </div>
-              <nav className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
+              {/* <nav className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
                 {LEGAL_LINKS.map((link) => (
                   <FooterLink key={link.label} href={link.href}>
                     {link.label}
                   </FooterLink>
                 ))}
-              </nav>
+              </nav> */}
             </div>
             <div className="mt-6 pt-6 border-t border-white/5 md:hidden">
               <p className="text-xs text-muted-foreground text-center flex items-center justify-center gap-2">

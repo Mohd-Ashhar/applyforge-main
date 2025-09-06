@@ -56,11 +56,6 @@ interface PlanData {
 
 const faqData: FAQItem[] = [
   {
-    question: "How many AI agents do I get with each plan?",
-    answer:
-      "Starter gives you 3 basic agents, Professional unlocks 6 advanced agents, and Career Accelerator provides access to all 6 agents plus premium autonomous features with state-of-the-art intelligence.",
-  },
-  {
     question: "Can I cancel my agent subscription anytime?",
     answer:
       "Yes, you can cancel anytime. Your AI agents will continue working until the end of your billing period, ensuring you get maximum value from your agent workforce.",
@@ -78,12 +73,7 @@ const faqData: FAQItem[] = [
   {
     question: "How do AI agents improve with each tier?",
     answer:
-      "Higher tiers deploy more intelligent agents with better autonomous decision-making, faster processing, and advanced learning capabilities. Career Accelerator agents include custom training based on your specific career goals.",
-  },
-  {
-    question: "What makes your AI agents different from regular AI tools?",
-    answer:
-      "Our agents work autonomously 24/7, learn from your preferences, collaborate with each other, and make intelligent decisions without constant input. They're like having a personal career team that never sleeps.",
+      "Higher tiers deploy more intelligent agents with use of better decision-making powered AI Models, faster processing, and advanced thinking capabilities.",
   },
 ];
 
@@ -445,18 +435,19 @@ const Pricing: React.FC = () => {
         agentCount: "Basic AI Models",
         icon: <Bot className="w-6 h-6 sm:w-7 sm:h-7" />,
         features: [
-          "AI ATS Resume Scanner (5/month)",
-          "AI Resume Optimizer (5/month)",
-          "AI Cover Letter Assistant (5/month)",
-          "Smart Job Discovery (5/month)",
+          "Advanced ATS Analyzer (3/month)",
+          "Smart Resume Tailor (3/month)",
+          "Personalized Cover Letters (3/month)",
+          "Smart Job Discoveries (3/month)",
           "AI Writing Quality Score",
-          "Community AI Templates (10+)",
-          "Basic grammar & formatting checks",
+          "Community AI Templates",
         ],
         limitations: [
-          "Limited processing speed",
-          "Advanced templates only",
-          "Basic AI accuracy",
+          "One-Click Content Generation",
+          "No email support",
+          "Limited Uses",
+          "No Job Listing Emails",
+          "Limited Capabilities",
         ],
         cta: "Start with AI Free",
         highlight: false,
@@ -487,13 +478,13 @@ const Pricing: React.FC = () => {
         features: [
           "Advanced ATS Analyzer (25/month)",
           "Smart Resume Tailor (25/month)",
-          "Intelligent Cover Letter Generator (25/month)",
-          "AI Job Matching Engine (25/month)",
-          "One-Click AI Application (15/month)",
-          "AI Interview Prep (10 questions/month)",
-          "Skills Gap AI Analysis",
-          "Premium AI Templates (50+)",
-          "Advanced LLM processing",
+          "Personalized Cover Letters (25/month)",
+          "Smart Job Discoveries (25/month)",
+          "One-Click Content Generation (25/month)",
+          "Weekly Job Matches Emails",
+          "AI Job Matching",
+          "Email Support (24-48h)",
+          "Premium AI Templates",
         ],
         cta: "Upgrade to AI Pro",
         highlight: true,
@@ -523,16 +514,16 @@ const Pricing: React.FC = () => {
         agentCount: "GPT-5 Class AI",
         icon: <Sparkles className="w-6 h-6 sm:w-7 sm:h-7" />,
         features: [
-          "Unlimited AI Tools (state-of-the-art models)",
-          "Hyper-Personalized Resume AI",
-          "Advanced Cover Letter AI",
-          "Predictive Job Matching",
-          "One-Click AI Mastery (unlimited)",
-          "Auto Apply AI Agent (75/month)",
-          "AI Career Coach (weekly insights)",
-          "Advanced AI Analytics",
-          "Custom AI Training",
-          "Priority AI Processing",
+          "Advanced ATS Analyzer (unlimited)",
+          "Smart Resume Tailor (unlimited)",
+          "Personalized Cover Letters (unlimited)",
+          "Smart Job Discoveries (unlimited)",
+          "One-Click Content Generation (unlimited)",
+          "Daily Job Matches Emails",
+          "AI Job Matching",
+          "Daily Job Matches Emails",
+          "Premium AI Templates",
+          "Priority Support (12-24h)",
         ],
         cta: "Go AI Advanced",
         highlight: false,

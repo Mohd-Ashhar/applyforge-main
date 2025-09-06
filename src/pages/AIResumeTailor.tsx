@@ -179,7 +179,7 @@ const OptimizationAgentLoadingOverlay = memo(
               className="text-center space-y-3 sm:space-y-4 max-w-sm sm:max-w-md"
             >
               <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-white">
-                Resume Optimization Agent
+                Resume Tailoring Agent
               </h3>
               <p className="text-sm sm:text-base md:text-lg text-blue-400 font-medium leading-relaxed">
                 {agentMessages[stage] || agentMessages[0]}
@@ -484,7 +484,7 @@ const AgentOptimizationResults = memo(
               Optimization Complete! 🚀
             </h2>
             <p className="text-slate-300 text-sm sm:text-base md:text-lg max-w-lg mx-auto">
-              Your Resume Optimization Agent has crafted your perfect resume
+              Your Resume Tailoring Agent has crafted your perfect resume
             </p>
           </div>
         </div>
@@ -571,7 +571,7 @@ const AgentOptimizationResults = memo(
               <span className="truncate">Agent Optimization Insights</span>
             </CardTitle>
             <CardDescription className="text-slate-300 text-xs sm:text-sm">
-              Key improvements your Resume Optimization Agent applied
+              Key improvements your Resume Tailoring Agent applied
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -637,7 +637,7 @@ const AgentOptimizationResults = memo(
     );
   }
 );
-// **MAIN MOBILE-ENHANCED RESUME OPTIMIZATION AGENT COMPONENT**
+// **MAIN MOBILE-ENHANCED RESUME Tailoring AGENT COMPONENT**
 const ResumeOptimizationAgent: React.FC = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [loadingStage, setLoadingStage] = useState(0);
@@ -818,7 +818,7 @@ Preferred Qualifications:
       toast({
         title: "Authentication Required 🔐",
         description:
-          "Please log in to activate your Resume Optimization Agent.",
+          "Please log in to activate your Resume Tailoring Agent.",
         variant: "destructive",
       });
       navigate("/auth");
@@ -856,7 +856,7 @@ Preferred Qualifications:
           toast({
             title: "Agent Limit Reached 🤖",
             description:
-              "You've reached your Resume Optimization Agent limit. Upgrade to activate unlimited optimization!",
+              "You've reached your Resume Tailoring Agent limit. Upgrade to activate unlimited optimization!",
             variant: "destructive",
             action: (
               <Button
@@ -885,7 +885,7 @@ Preferred Qualifications:
         toast({
           title: "Agent Activation Failed ⚠️",
           description:
-            "Unable to activate your Resume Optimization Agent. Please try again.",
+            "Unable to activate your Resume Tailoring Agent. Please try again.",
           variant: "destructive",
         });
         return;
@@ -938,7 +938,7 @@ Preferred Qualifications:
         toast({
           title: "Agent Access Denied 🚫",
           description:
-            "Unable to access Resume Optimization Agent with your current plan.",
+            "Unable to access Resume Tailoring Agent with your current plan.",
           variant: "destructive",
         });
         return;
@@ -1013,7 +1013,7 @@ Preferred Qualifications:
       toast({
         title: "Agent Optimization Complete! 🚀",
         description:
-          "Your Resume Optimization Agent has crafted your perfect resume.",
+          "Your Resume Tailoring Agent has crafted your perfect resume.",
         action: (
           <Button size="sm" onClick={() => navigate("/tailored-resumes")}>
             <Eye className="w-4 h-4 mr-1" />
@@ -1027,7 +1027,7 @@ Preferred Qualifications:
       toast({
         title: "Agent Error 🤖",
         description:
-          "Your Resume Optimization Agent encountered an issue. Please try again.",
+          "Your Resume Tailoring Agent encountered an issue. Please try again.",
         variant: "destructive",
       });
     } finally {

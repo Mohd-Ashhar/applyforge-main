@@ -34,9 +34,9 @@ const TESTIMONIALS = [
     avatar:
       "https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=64&h=64&fit=crop&crop=face",
     content:
-      "The resume optimization agent is insane! It found industry terms I didn't even know were important. My resume now passes through ATS systems that used to reject me instantly. The agents learn from each job description autonomously.",
+      "The resume tailoring agent is insane! It found industry terms I didn't even know were important. My resume now passes through ATS systems that used to reject me instantly. The agents learn from each job description autonomously.",
     rating: 5,
-    agentUsed: "Resume Optimization Agent",
+    agentUsed: "Resume Tailoring Agent",
   },
   {
     name: "Peter Rezz",
@@ -45,9 +45,9 @@ const TESTIMONIALS = [
     avatar:
       "https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg?auto=compress&cs=tinysrgb&w=64&h=64&fit=crop&crop=face",
     content:
-      "I was skeptical about AI agents, but ApplyForge's resume optimization agent actually understands context. It repositioned my retail experience to highlight transferable skills for tech roles. My personal agent workforce is spot-on!",
+      "I was skeptical about AI agents, but ApplyForge's resume tailoring agent actually understands context. It repositioned my retail experience to highlight transferable skills for tech roles. My personal agent workforce is spot-on!",
     rating: 5,
-    agentUsed: "Resume Optimization Agent",
+    agentUsed: "Resume Tailoring Agent",
   },
   {
     name: "Haris Aly",
