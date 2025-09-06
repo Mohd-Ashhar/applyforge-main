@@ -521,7 +521,6 @@ const Pricing: React.FC = () => {
           "One-Click Content Generation (unlimited)",
           "Daily Job Matches Emails",
           "AI Job Matching",
-          "Daily Job Matches Emails",
           "Premium AI Templates",
           "Priority Support (12-24h)",
         ],
