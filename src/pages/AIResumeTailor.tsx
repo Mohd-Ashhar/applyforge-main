@@ -6,7 +6,7 @@ import React, {
   useCallback,
   memo,
 } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Card,
@@ -650,6 +650,7 @@ const ResumeOptimizationAgent: React.FC = () => {
   );
 
   const navigate = useNavigate();
+  const { state } = useLocation();
   const { toast } = useToast();
   const { user } = useAuth();
   const { refreshUsage } = useUsageTracking();
@@ -663,6 +664,24 @@ const ResumeOptimizationAgent: React.FC = () => {
       industry: "",
     },
   });
+
+  useEffect(() => {
+    // Check if state was passed from the ATS checker page
+    if (state?.resumeFile && state?.jobDescription) {
+      console.log("Data received from ATS Checker:", state);
+
+      // Pre-populate the selected file
+      setSelectedFile(state.resumeFile as File);
+
+      // Pre-populate the job description in the form
+      form.setValue("jobDescription", state.jobDescription);
+
+      toast({
+        title: "Data Loaded from ATS Checker! 🚀",
+        description: "Your resume and job description are ready.",
+      });
+    }
+  }, [state, form, toast]);
 
   const jobDescription = form.watch("jobDescription");
 

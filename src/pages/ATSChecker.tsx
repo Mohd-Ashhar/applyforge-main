@@ -948,7 +948,26 @@ Preferred Qualifications:
         title: "Agent Analysis Complete! 🎯",
         description: "Your ATS Screening Agent has completed its analysis.",
         action: (
-          <Button size="sm" onClick={() => navigate("/ai-resume-tailor")}>
+          // --- CHANGE: Update the onClick handler here ---
+          <Button
+            size="sm"
+            onClick={() => {
+              if (selectedFile) {
+                navigate("/ai-resume-tailor", {
+                  state: {
+                    resumeFile: selectedFile,
+                    jobDescription: formData.jobDescription, // Use formData from the onSubmit scope
+                  },
+                });
+              } else {
+                toast({
+                  title: "File not found",
+                  description: "Could not find the resume file to optimize.",
+                  variant: "destructive",
+                });
+              }
+            }}
+          >
             <Bot className="w-4 h-4 mr-1" />
             Optimize Resume
           </Button>
@@ -1338,7 +1357,24 @@ Preferred Qualifications:
                 <AgentAnalysisResults
                   results={results}
                   onNewAnalysis={handleResetAgent}
-                  onImproveResume={() => navigate("/ai-resume-tailor")}
+                  // --- CHANGE: Pass the file and job description to the handler ---
+                  onImproveResume={() => {
+                    if (selectedFile) {
+                      navigate("/ai-resume-tailor", {
+                        state: {
+                          resumeFile: selectedFile,
+                          jobDescription: form.getValues("jobDescription"),
+                        },
+                      });
+                    } else {
+                      toast({
+                        title: "File not found",
+                        description:
+                          "Could not find the resume file to optimize.",
+                        variant: "destructive",
+                      });
+                    }
+                  }}
                 />
               </div>
             )}
