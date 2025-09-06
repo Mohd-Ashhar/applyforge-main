@@ -1,4 +1,6 @@
 // src/global.d.ts
+/// <reference types="vite-plugin-pwa/react" />
+/// <reference types="vite/client" />
 
 export {};
 

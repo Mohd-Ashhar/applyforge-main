@@ -2,8 +2,14 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>AI Job-Seeking Automation Platform</title>
+
+    <meta name="theme-color" content="#18181b" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+
+    <title>ApplyForge</title>
+
     <meta
       name="description"
       content="AI-powered job-seeking platform that helps you tailor resumes, check ATS compatibility, generate cover letters, and find jobs with smart automation."
@@ -14,10 +20,13 @@
       content="AI resume tailor, ATS checker, cover letter generator, job finder, resume optimization"
     />
 
-    <meta property="og:title" content="AI Job-Seeking Automation Platform" />
+    <meta
+      property="og:title"
+      content="ApplyForge - AI Job-Seeking Automation"
+    />
     <meta
       property="og:description"
-      content="AI-powered job-seeking platform that helps you tailor resumes, check ATS compatibility, generate cover letters, and find jobs with smart automation."
+      content="Streamline your job search with AI-powered resume tailoring, ATS checking, cover letter generation, and automated job applications."
     />
     <meta property="og:type" content="website" />
     <meta property="og:image" content="/social-preview-image.jpg" />
@@ -32,8 +41,12 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
+    <script
+      src="https://cdn.jsdelivr.net/npm/pdf-lib/dist/pdf-lib.min.js"
+      async
+    ></script>
+    <script src="https://checkout.razorpay.com/v1/checkout.js" async></script>
   </head>
-
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>

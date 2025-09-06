@@ -1,5 +1,6 @@
 import React, { Suspense, lazy } from "react";
 import { Toaster as Sonner } from "@/components/ui/sonner";
+import ReloadPrompt from './components/ReloadPrompt';
 import { TooltipProvider } from "@/components/ui/tooltip";
 import {
   QueryClient,
@@ -413,6 +414,7 @@ const App = () => {
                 <Suspense fallback={<LoadingSpinner />}>
                   <AppRoutes />
                 </Suspense>
+                <ReloadPrompt />
               </AuthProvider>
             </BrowserRouter>
             {/* React Query Devtools - only in development */}
