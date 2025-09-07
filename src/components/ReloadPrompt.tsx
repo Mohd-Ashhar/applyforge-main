@@ -1,42 +1,27 @@
-// src/components/ReloadPrompt.tsx
-import { useRegisterSW } from "virtual:pwa-register/react";
-import { Button } from "@/components/ui/button";
-import { Toaster, toast } from "sonner";
+import { useRegisterSW } from 'virtual:pwa-register/react';
+import { toast } from 'sonner';
 
 function ReloadPrompt() {
   const {
-    offlineReady: [offlineReady, setOfflineReady],
-    needRefresh: [needRefresh, setNeedRefresh],
+    needRefresh: [needRefresh],
     updateServiceWorker,
-  } = useRegisterSW({
-    onRegistered(r) {
-      console.log("SW Registered:", r);
-    },
-    onRegisterError(error) {
-      console.log("SW registration error:", error);
-    },
-  });
-
-  const close = () => {
-    setOfflineReady(false);
-    setNeedRefresh(false);
-  };
+  } = useRegisterSW();
 
   if (needRefresh) {
-    toast.info("A new version is available!", {
-      position: "bottom-center",
-      duration: Infinity, // Keep it open until user interaction
+    toast.info('A new version is available!', {
+      position: 'bottom-center',
+      duration: Infinity,
       action: {
-        label: "Reload",
+        label: 'Reload',
         onClick: () => {
           updateServiceWorker(true);
         },
       },
-      onDismiss: () => close(),
     });
   }
 
-  return <Toaster richColors />;
+  // The Toaster component was here. It has been removed.
+  return null;
 }
 
 export default ReloadPrompt;

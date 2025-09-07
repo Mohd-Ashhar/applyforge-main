@@ -493,7 +493,7 @@ const DiscoveredJobCard = memo<{
                   <TooltipContent>
                     {generationStatus.resumeUrl
                       ? "View your tailored resume"
-                      : "Upload resume to tailor for this discovery"}
+                      : "Generates an AI-tailored resume for this job"}
                   </TooltipContent>
                 </Tooltip>
                 <Tooltip>
@@ -533,7 +533,7 @@ const DiscoveredJobCard = memo<{
                   <TooltipContent>
                     {generationStatus.coverLetterUrl
                       ? "View your generated cover letter"
-                      : "Generate cover letter for this discovery"}
+                      : "Generates an AI cover letter for this job"}
                   </TooltipContent>
                 </Tooltip>
                 <motion.div
@@ -766,12 +766,14 @@ const AIJobDiscoveryAgentResults: React.FC = () => {
     Record<string, GenerationStatus>
   >({});
   const [searchTerm, setSearchTerm] = useState("");
+  const [globalResumeFile, setGlobalResumeFile] = useState<File | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
   const { usage } = useUsageTracking();
   const hasSavedResults = useRef(false);
   const initialLoadComplete = useRef(false);
+  const globalResumeInputRef = useRef<HTMLInputElement>(null);
 
   const userName = useMemo(() => {
     if (!user) return "there";
@@ -1206,13 +1208,7 @@ const AIJobDiscoveryAgentResults: React.FC = () => {
         return;
       }
 
-      const input = document.createElement("input");
-      input.type = "file";
-      input.accept = ".pdf,.docx";
-      input.onchange = async (event) => {
-        const file = (event.target as HTMLInputElement).files?.[0];
-        if (!file) return;
-
+      const processTailoring = async (file: File) => {
         setProcessingResume((prev) => new Set(prev).add(job.uniqueId));
         toast({
           title: "AI Agent at Work 🧠",
@@ -1358,9 +1354,22 @@ const AIJobDiscoveryAgentResults: React.FC = () => {
           });
         }
       };
-      input.click();
+
+      if (globalResumeFile) {
+        await processTailoring(globalResumeFile);
+      } else {
+        const input = document.createElement("input");
+        input.type = "file";
+        input.accept = ".pdf,.docx";
+        input.onchange = async (event) => {
+          const file = (event.target as HTMLInputElement).files?.[0];
+          if (!file) return;
+          await processTailoring(file);
+        };
+        input.click();
+      }
     },
-    [user, toast, navigate, usage, handleViewOrDownload]
+    [user, toast, navigate, usage, handleViewOrDownload, globalResumeFile]
   );
 
   const handleGenerateCoverLetter = useCallback(
@@ -1390,13 +1399,7 @@ const AIJobDiscoveryAgentResults: React.FC = () => {
         return;
       }
 
-      const input = document.createElement("input");
-      input.type = "file";
-      input.accept = ".pdf,.docx";
-      input.onchange = async (event) => {
-        const file = (event.target as HTMLInputElement).files?.[0];
-        if (!file) return;
-
+      const processCoverLetter = async (file: File) => {
         setProcessingCoverLetter((prev) => new Set(prev).add(job.uniqueId));
         toast({
           title: "AI Agent is Writing ✍️",
@@ -1543,9 +1546,22 @@ const AIJobDiscoveryAgentResults: React.FC = () => {
           });
         }
       };
-      input.click();
+
+      if (globalResumeFile) {
+        await processCoverLetter(globalResumeFile);
+      } else {
+        const input = document.createElement("input");
+        input.type = "file";
+        input.accept = ".pdf,.docx";
+        input.onchange = async (event) => {
+          const file = (event.target as HTMLInputElement).files?.[0];
+          if (!file) return;
+          await processCoverLetter(file);
+        };
+        input.click();
+      }
     },
-    [user, toast, navigate, usage, handleViewOrDownload]
+    [user, toast, navigate, usage, handleViewOrDownload, globalResumeFile]
   );
 
   const handleAppliedChange = useCallback(
@@ -1700,6 +1716,44 @@ const AIJobDiscoveryAgentResults: React.FC = () => {
     },
     [toast]
   );
+
+  const handleGlobalResumeUpload = (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        // 5MB limit
+        toast({
+          title: "File Too Large",
+          description: "Please upload a resume smaller than 5MB.",
+          variant: "destructive",
+        });
+        return;
+      }
+      setGlobalResumeFile(file);
+      toast({
+        title: "Global Resume Uploaded ✅",
+        description: `${file.name} will be used for all tailoring actions.`,
+      });
+    }
+  };
+
+  const triggerGlobalUpload = () => {
+    globalResumeInputRef.current?.click();
+  };
+
+  const removeGlobalResume = () => {
+    setGlobalResumeFile(null);
+    if (globalResumeInputRef.current) {
+      globalResumeInputRef.current.value = "";
+    }
+    toast({
+      title: "Global Resume Removed",
+      description:
+        "You will now be prompted to upload a resume for each action.",
+    });
+  };
 
   const filteredJobs = useMemo(
     () =>
@@ -1859,6 +1913,74 @@ const AIJobDiscoveryAgentResults: React.FC = () => {
                 </motion.div>
               </div>
               <DiscoveryAgentStats jobCount={jobResults.length} />
+
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.6 }}
+                className="my-6"
+              >
+                <Card className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl border border-slate-700/50">
+                  <CardContent className="p-4 sm:p-5">
+                    <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-rose-500/10 rounded-full border border-rose-500/20 flex-shrink-0">
+                          <FileText className="w-5 h-5 text-rose-400" />
+                        </div>
+                        <div className="min-w-0">
+                          <h3 className="font-semibold text-white">
+                            Global Resume
+                          </h3>
+                          <p className="text-xs text-slate-400 truncate">
+                            {globalResumeFile
+                              ? `Using: ${globalResumeFile.name}`
+                              : "Upload once, use for all AI actions on this page."}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <input
+                          type="file"
+                          ref={globalResumeInputRef}
+                          onChange={handleGlobalResumeUpload}
+                          accept=".pdf,.docx"
+                          className="hidden"
+                        />
+                        {globalResumeFile ? (
+                          <>
+                            <Button
+                              onClick={triggerGlobalUpload}
+                              variant="outline"
+                              size="sm"
+                              className="border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white"
+                            >
+                              <Upload className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
+                              Change
+                            </Button>
+                            <Button
+                              onClick={removeGlobalResume}
+                              variant="destructive"
+                              size="sm"
+                              className="bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20"
+                            >
+                              <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
+                            </Button>
+                          </>
+                        ) : (
+                          <Button
+                            onClick={triggerGlobalUpload}
+                            size="sm"
+                            className="bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-700 hover:to-red-700 text-white"
+                          >
+                            <Upload className="w-4 h-4 mr-2" />
+                            Upload Resume
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
 
               {jobResults.length > 0 && (
                 <div className="flex flex-col sm:flex-row justify-between items-center gap-4 p-4 bg-slate-800/30 rounded-lg border border-slate-700/50">
