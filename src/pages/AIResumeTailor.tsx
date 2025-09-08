@@ -1421,7 +1421,7 @@ Preferred Qualifications:
                               <>
                                 <Wand2 className="w-5 h-5 sm:w-6 sm:h-6 mr-2 sm:mr-3 flex-shrink-0" />
                                 <span className="truncate">
-                                  Start Resume Optimization
+                                  Start Resume Tailoring
                                 </span>
                                 <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 ml-2 flex-shrink-0" />
                               </>
