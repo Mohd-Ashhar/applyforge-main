@@ -74,7 +74,6 @@ import { Badge } from "@/components/ui/badge";
 import { useUsageTracking } from "@/hooks/useUsageTracking";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import RadarLocationInput from "@/components/RadarLocationInput";
 import DashboardHeader from "@/components/DashboardHeader";
 import UserAvatar from "@/components/header/UserAvatar";
 
@@ -289,7 +288,7 @@ MultiSelectDropdown.displayName = "MultiSelectDropdown";
 
 const JobDiscoveryAgent: React.FC = () => {
   const [jobTitle, setJobTitle] = useState("");
-  const [selectedLocations, setSelectedLocations] = useState<any[]>([]);
+  const [locationQuery, setLocationQuery] = useState("");
   const [jobTypes, setJobTypes] = useState<string[]>([]);
   const [experienceLevel, setExperienceLevel] = useState<string[]>([]);
   const [isDiscovering, setIsDiscovering] = useState(false);
@@ -356,6 +355,7 @@ const JobDiscoveryAgent: React.FC = () => {
 
   const loadAgentExample = useCallback(() => {
     setJobTitle("Senior Software Engineer");
+    setLocationQuery("Remote");
     setJobTypes(["Full-time"]);
     setExperienceLevel(["Mid-Senior level"]);
     toast({ title: "Example Loaded! 🚀" });
@@ -363,7 +363,7 @@ const JobDiscoveryAgent: React.FC = () => {
 
   const handleResetAgent = useCallback(() => {
     setJobTitle("");
-    setSelectedLocations([]);
+    setLocationQuery("");
     setJobTypes([]);
     setExperienceLevel([]);
     setFormValidation({ jobTitle: true });
@@ -400,9 +400,14 @@ const JobDiscoveryAgent: React.FC = () => {
       const formatArray = (arr: string[]) =>
         arr.length > 0 ? `{${arr.join(",")}}` : null;
 
+      const locationsArray = locationQuery
+        .split(",")
+        .map((l) => l.trim())
+        .filter(Boolean);
+
       const rpcParams = {
         p_job_title: jobTitle.trim(),
-        p_locations: formatArray(selectedLocations.map((loc) => loc.name)),
+        p_locations: formatArray(locationsArray),
         p_experience_levels: formatArray(experienceLevel),
         p_job_types: formatArray(jobTypes),
       };
@@ -416,7 +421,7 @@ const JobDiscoveryAgent: React.FC = () => {
 
       const searchParams = {
         jobTitle: jobTitle.trim(),
-        locations: selectedLocations.map((loc) => loc.name),
+        locations: locationsArray,
         jobTypes,
         experienceLevel,
       };
@@ -435,7 +440,7 @@ const JobDiscoveryAgent: React.FC = () => {
             p_audit_metadata: {
               action: "job_discovery_instant_results",
               job_title: jobTitle,
-              locations: selectedLocations.map((loc) => loc.name),
+              locations: locationsArray,
               job_types: jobTypes,
               experience_level: experienceLevel,
             },
@@ -506,7 +511,7 @@ const JobDiscoveryAgent: React.FC = () => {
         await supabase.from("user_job_preferences").insert({
           user_id: user.id,
           job_title: jobTitle.trim(),
-          locations: selectedLocations.map((loc) => loc.name),
+          locations: locationsArray,
           job_types: jobTypes,
           experience_levels: experienceLevel,
           subscription_plan: userPlan,
@@ -753,7 +758,10 @@ const JobDiscoveryAgent: React.FC = () => {
 
                     {/* Locations */}
                     <div>
-                      <Label className="flex items-center gap-2 text-sm sm:text-base font-semibold text-white">
+                      <Label
+                        htmlFor="location"
+                        className="flex items-center gap-2 text-sm sm:text-base font-semibold text-white"
+                      >
                         <MapPin className="w-4 h-4 sm:w-5 sm:h-5 text-cyan-400 flex-shrink-0" />
                         <span className="truncate">Locations</span>
                         <Tooltip>
@@ -763,19 +771,19 @@ const JobDiscoveryAgent: React.FC = () => {
                           <TooltipContent className="max-w-xs">
                             <p>
                               Enter cities, states, or "Remote" for
-                              location-based filtering
+                              location-based filtering. Separate multiple
+                              entries with a comma.
                             </p>
                           </TooltipContent>
                         </Tooltip>
                       </Label>
-                      <div className="mt-1">
-                        {/* **COMPONENT REPLACED HERE** */}
-                        <RadarLocationInput
-                          onLocationsChange={setSelectedLocations}
-                          placeholder="Kindly enter the city to discover"
-                          maxSelections={1}
-                        />
-                      </div>
+                      <Input
+                        id="location"
+                        value={locationQuery}
+                        onChange={(e) => setLocationQuery(e.target.value)}
+                        placeholder='e.g., "Remote", "New York, USA"'
+                        className="mt-1 bg-slate-800/50 border-slate-600 text-white placeholder-slate-400 focus:border-orange-400 h-10 sm:h-11 text-sm sm:text-base"
+                      />
                     </div>
 
                     {/* Job Types and Experience Level */}
@@ -843,14 +851,14 @@ const JobDiscoveryAgent: React.FC = () => {
                             {jobTitle || "Not specified"}
                           </span>
                         </p>
-                        {selectedLocations.length > 0 && (
+                        {locationQuery && (
                           <p>
                             {" "}
                             <span className="text-orange-400">
                               Locations:
                             </span>{" "}
                             <span className="text-white font-medium">
-                              {selectedLocations.map((l) => l.name).join(", ")}
+                              {locationQuery}
                             </span>
                           </p>
                         )}

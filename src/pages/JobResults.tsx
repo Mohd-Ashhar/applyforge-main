@@ -557,6 +557,38 @@ const DiscoveredJobCard = memo<{
                     </a>
                   </Button>
                 </motion.div>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="border-slate-600 bg-slate-700/50"
+                    >
+                      <MoreVertical className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent
+                    align="end"
+                    className="bg-slate-800 border-slate-700 text-white"
+                  >
+                    <DropdownMenuItem onSelect={() => onShare(job)}>
+                      <Share2 className="mr-2 h-4 w-4" />
+                      <span>Share</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onSelect={() => onDislikeJob(job)}
+                      disabled={isDisliking}
+                      className="text-red-400 focus:bg-red-500/20 focus:text-red-400"
+                    >
+                      {isDisliking ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      ) : (
+                        <Trash2 className="mr-2 h-4 w-4" />
+                      )}
+                      <span>Not Interested</span>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
 
               {/* --- NEW MOBILE ACTION BAR --- */}
