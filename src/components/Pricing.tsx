@@ -453,9 +453,7 @@ const Pricing: React.FC = () => {
         limitations: [
           "One-Click Content Generation",
           "No email support",
-          "Limited Uses",
           "No Job Listing Emails",
-          "Limited Capabilities",
         ],
         cta: "Start with AI Free",
         highlight: false,
