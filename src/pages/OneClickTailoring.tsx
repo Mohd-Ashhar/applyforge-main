@@ -19,6 +19,12 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   FileText,
   Upload,
   Building,
@@ -39,6 +45,9 @@ import {
   Crown,
   Wand2,
   LucideRocket,
+  MoreVertical,
+  Trash2,
+  Share2,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -67,6 +76,7 @@ interface JobProcessingState {
   resume: Set<string>;
   coverLetter: Set<string>;
   applying: Set<string>;
+  deleting: Set<string>; // Added for delete loading state
 }
 
 interface GenerationStatus {
@@ -139,6 +149,8 @@ const TailoringJobCard = memo(
     onMarkAsApplied,
     generationStatus,
     onViewOrDownload,
+    onDeleteJob,
+    onShareJob,
   }: {
     job: SavedJob;
     index: number;
@@ -148,6 +160,8 @@ const TailoringJobCard = memo(
     onMarkAsApplied: (jobId: string, checked: boolean) => void;
     generationStatus: GenerationStatus;
     onViewOrDownload: (url: string, fileName: string) => void;
+    onDeleteJob: (jobId: string) => void;
+    onShareJob: (job: SavedJob) => void;
   }) => {
     const [isHovered, setIsHovered] = useState(false);
     const [isExpanded, setIsExpanded] = useState(false);
@@ -161,27 +175,23 @@ const TailoringJobCard = memo(
         .toUpperCase();
     }, []);
 
-    const truncateDescription = useCallback(
-      (description: string, maxLength: number = 120) => {
-        if (!description) return "";
-        if (description.length <= maxLength) return description;
-        return description.substring(0, maxLength) + "...";
-      },
-      []
-    );
-
     const formatDate = useCallback((dateString: string) => {
+      if (!dateString) return null;
       const date = new Date(dateString);
+      if (isNaN(date.getTime())) return null;
       return date.toLocaleDateString("en-US", {
         month: "short",
         day: "numeric",
       });
     }, []);
 
+    const isDeleting = processing.deleting.has(job.id);
+
     return (
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, x: -100, scale: 0.95 }}
         transition={{ duration: 0.3, delay: index * 0.1 }}
         whileHover={{ y: -4 }}
         onHoverStart={() => setIsHovered(true)}
@@ -192,35 +202,7 @@ const TailoringJobCard = memo(
           onClick={() => setIsExpanded((prev) => !prev)}
           className="cursor-pointer bg-gradient-to-br from-rose-500/5 via-red-500/5 to-orange-500/10 backdrop-blur-xl border border-slate-700/50 hover:border-rose-400/40 transition-all duration-300 hover:shadow-xl overflow-hidden h-full flex flex-col"
         >
-          <CardHeader
-            className="pb-3 sm:pb-4"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
-              <Checkbox
-                id={`applied-${job.id}`}
-                checked={false}
-                onCheckedChange={(checked) =>
-                  checked && onMarkAsApplied(job.id, true)
-                }
-                disabled={processing.applying.has(job.id)}
-                className="flex-shrink-0"
-              />
-              <label
-                htmlFor={`applied-${job.id}`}
-                className="text-xs sm:text-sm font-medium cursor-pointer select-none text-slate-400"
-              >
-                {processing.applying.has(job.id) ? (
-                  <span className="flex items-center gap-2 text-green-400">
-                    <Loader2 className="w-3 h-3 sm:w-4 sm:h-4 animate-spin" />
-                    Agent Processing...
-                  </span>
-                ) : (
-                  "Mark as Applied"
-                )}
-              </label>
-            </div>
-
+          <CardHeader className="pb-3 sm:pb-4 flex-1">
             <div className="flex items-start justify-between">
               <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
                 <motion.div
@@ -231,7 +213,7 @@ const TailoringJobCard = memo(
                   {getCompanyInitials(job.company_name)}
                 </motion.div>
                 <div className="flex-1 min-w-0">
-                  <CardTitle className="text-base sm:text-lg font-semibold truncate text-white group-hover:text-rose-400 transition-colors">
+                  <CardTitle className="text-base sm:text-lg font-semibold text-white group-hover:text-rose-400 transition-colors">
                     {job.job_title}
                   </CardTitle>
                   <div className="flex items-center gap-2 mt-1">
@@ -244,22 +226,59 @@ const TailoringJobCard = memo(
               </div>
             </div>
 
-            <div className="flex items-center gap-2 mt-3 sm:mt-4">
-              <MapPin className="w-3 h-3 sm:w-4 sm:h-4 text-slate-400 flex-shrink-0" />
-              <span className="truncate">
-                {(() => {
-                  if (!job.job_location) return "";
-                  try {
-                    return JSON.parse(job.job_location).join(", ");
-                  } catch (e) {
-                    return job.job_location;
-                  }
-                })()}
-              </span>
+            <div className="space-y-3 pt-3 sm:pt-4">
+              <div className="flex items-center gap-2">
+                <MapPin className="w-3 h-3 sm:w-4 sm:h-4 text-slate-400 flex-shrink-0" />
+                <span className="text-xs sm:text-sm text-slate-300 truncate">
+                  {(() => {
+                    if (!job.job_location) return "Location not specified";
+                    try {
+                      return JSON.parse(job.job_location).join(", ");
+                    } catch (e) {
+                      return job.job_location;
+                    }
+                  })()}
+                </span>
+              </div>
+
+              {/* --- BADGES MOVED TO COLLAPSED VIEW --- */}
+              <div className="flex flex-wrap gap-1 sm:gap-2">
+                {job.employment_type && (
+                  <Badge className="bg-rose-500/20 text-rose-400 border-rose-500/30 text-xs whitespace-nowrap">
+                    <Briefcase className="w-2 h-2 sm:w-3 sm:h-3 mr-1.5 flex-shrink-0" />
+                    <span className="truncate">
+                      {(() => {
+                        if (!job.employment_type) return "";
+                        try {
+                          return JSON.parse(job.employment_type).join(", ");
+                        } catch (e) {
+                          return job.employment_type;
+                        }
+                      })()}
+                    </span>
+                  </Badge>
+                )}
+                {job.seniority_level && (
+                  <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30 text-xs whitespace-nowrap">
+                    <Target className="w-2 h-2 sm:w-3 sm:h-3 mr-1.5 flex-shrink-0" />
+                    <span className="truncate">
+                      {(() => {
+                        if (!job.seniority_level) return "";
+                        try {
+                          return JSON.parse(job.seniority_level).join(", ");
+                        } catch (e) {
+                          return job.seniority_level;
+                        }
+                      })()}
+                    </span>
+                  </Badge>
+                )}
+              </div>
             </div>
           </CardHeader>
 
-          <CardContent className="flex-1 flex flex-col justify-between space-y-3 sm:space-y-4 pt-0">
+          {/* --- EXPANDABLE CONTENT & ACTIONS --- */}
+          <CardContent className="pt-0">
             <AnimatePresence>
               {isExpanded && (
                 <motion.div
@@ -270,185 +289,177 @@ const TailoringJobCard = memo(
                   className="overflow-hidden"
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <div className="pb-3 sm:pb-4 space-y-3 sm:space-y-4">
-                    {(job.employment_type ||
-                      job.seniority_level ||
-                      job.job_function) && (
-                      <div className="flex flex-wrap gap-1 sm:gap-2">
-                        {job.employment_type && (
-                          <Badge className="bg-rose-500/20 text-rose-400 border-rose-500/30 text-xs whitespace-nowrap">
-                            <Briefcase className="w-2 h-2 sm:w-3 sm:h-3 mr-1 flex-shrink-0" />
-                            <span className="truncate">
-                              {(() => {
-                                if (!job.employment_type) return "";
-                                try {
-                                  return JSON.parse(job.employment_type).join(
-                                    ", "
-                                  );
-                                } catch (e) {
-                                  return job.employment_type;
-                                }
-                              })()}
-                            </span>
-                          </Badge>
-                        )}
-                        {job.seniority_level && (
-                          <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30 text-xs whitespace-nowrap">
-                            <Target className="w-2 h-2 sm:w-3 sm:h-3 mr-1 flex-shrink-0" />
-                            <span className="truncate">
-                              {(() => {
-                                if (!job.seniority_level) return "";
-                                try {
-                                  return JSON.parse(job.seniority_level).join(
-                                    ", "
-                                  );
-                                } catch (e) {
-                                  return job.seniority_level;
-                                }
-                              })()}
-                            </span>
-                          </Badge>
-                        )}
-                        {job.job_function && (
-                          <Badge className="bg-purple-500/20 text-purple-400 border-purple-500/30 text-xs whitespace-nowrap">
-                            <span className="truncate">{job.job_function}</span>
-                          </Badge>
-                        )}
-                      </div>
-                    )}
-
+                  <div className="pt-3 sm:pt-4 space-y-3 sm:space-y-4">
                     {job.job_description && (
                       <div className="space-y-2">
-                        <h4 className="font-medium text-xs sm:text-sm flex items-center gap-2">
-                          <Target className="w-3 h-3 sm:w-4 sm:h-4 text-rose-400 flex-shrink-0" />
+                        <h4 className="font-medium text-xs sm:text-sm flex items-center gap-2 text-slate-200">
+                          <FileText className="w-3 h-3 sm:w-4 sm:h-4 text-rose-400 flex-shrink-0" />
                           Job Description
                         </h4>
-                        <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-                          {truncateDescription(job.job_description)}
+                        <p className="text-xs sm:text-sm text-slate-300 leading-relaxed max-h-24 overflow-y-auto pr-2">
+                          {job.job_description}
                         </p>
                       </div>
                     )}
 
-                    {job.posted_at && (
+                    {formatDate(job.posted_at) && (
                       <div className="flex items-center gap-2 text-xs text-slate-400">
                         <Clock className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
                         <span>Posted {formatDate(job.posted_at)}</span>
                       </div>
                     )}
                   </div>
+
+                  {/* --- NEW ACTION PANEL --- */}
+                  <div className="border-t border-slate-700/50 mt-3 sm:mt-4 pt-3 sm:pt-4 space-y-3">
+                    <div className="flex items-center gap-2 sm:gap-3">
+                      <Checkbox
+                        id={`applied-${job.id}`}
+                        checked={false}
+                        onCheckedChange={(checked) =>
+                          checked && onMarkAsApplied(job.id, true)
+                        }
+                        disabled={processing.applying.has(job.id)}
+                        className="flex-shrink-0"
+                      />
+                      <label
+                        htmlFor={`applied-${job.id}`}
+                        className="text-xs sm:text-sm font-medium cursor-pointer select-none text-slate-400"
+                      >
+                        {processing.applying.has(job.id) ? (
+                          <span className="flex items-center gap-2 text-green-400">
+                            <Loader2 className="w-3 h-3 sm:w-4 sm:h-4 animate-spin" />
+                            Processing...
+                          </span>
+                        ) : (
+                          "Mark as Applied"
+                        )}
+                      </label>
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      {generationStatus.resumeUrl ? (
+                        <Button
+                          onClick={() =>
+                            onViewOrDownload(
+                              generationStatus.resumeUrl,
+                              `${job.company_name}_resume.pdf`
+                            )
+                          }
+                          variant="outline"
+                          size="sm"
+                          className="w-full bg-green-500/10 border-green-500/30 text-green-400 hover:bg-green-500 hover:text-white h-9 text-xs sm:text-sm"
+                        >
+                          <Eye className="w-4 h-4 mr-2" />
+                          View Resume
+                        </Button>
+                      ) : (
+                        <Button
+                          onClick={() => onTailorResume(job)}
+                          disabled={processing.resume.has(job.id)}
+                          variant="outline"
+                          size="sm"
+                          className="w-full bg-rose-500/10 border-rose-500/30 text-rose-400 hover:bg-rose-500 hover:text-white h-9 text-xs sm:text-sm"
+                        >
+                          {processing.resume.has(job.id) ? (
+                            <Loader2 className="w-4 mr-2 animate-spin" />
+                          ) : (
+                            <Wand2 className="w-4 mr-2" />
+                          )}
+                          {processing.resume.has(job.id)
+                            ? "Tailoring..."
+                            : "Tailor Resume"}
+                        </Button>
+                      )}
+
+                      {generationStatus.coverLetterUrl ? (
+                        <Button
+                          onClick={() =>
+                            onViewOrDownload(
+                              generationStatus.coverLetterUrl,
+                              `${job.company_name}_cover_letter.pdf`
+                            )
+                          }
+                          variant="outline"
+                          size="sm"
+                          className="w-full bg-green-500/10 border-green-500/30 text-green-400 hover:bg-green-500 hover:text-white h-9 text-xs sm:text-sm"
+                        >
+                          <Eye className="w-4 h-4 mr-2" />
+                          View Cover
+                        </Button>
+                      ) : (
+                        <Button
+                          onClick={() => onGenerateCoverLetter(job)}
+                          disabled={processing.coverLetter.has(job.id)}
+                          variant="outline"
+                          size="sm"
+                          className="w-full bg-red-500/10 border-red-500/30 text-red-400 hover:bg-red-500 hover:text-white h-9 text-xs sm:text-sm"
+                        >
+                          {processing.coverLetter.has(job.id) ? (
+                            <Loader2 className="w-4 mr-2 animate-spin" />
+                          ) : (
+                            <FileText className="w-4 mr-2" />
+                          )}
+                          {processing.coverLetter.has(job.id)
+                            ? "Crafting..."
+                            : "Cover Letter"}
+                        </Button>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <Button
+                        asChild
+                        className="w-full flex-1 bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-700 hover:to-red-700 text-white h-10 text-xs sm:text-sm"
+                        size="sm"
+                      >
+                        <a
+                          href={job.apply_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center justify-center gap-2"
+                        >
+                          <ExternalLink className="w-4 h-4 flex-shrink-0" />
+                          Apply Now
+                        </a>
+                      </Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            className="border-slate-600 bg-slate-700/50 h-10 w-10"
+                          >
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent
+                          align="end"
+                          className="bg-slate-800 border-slate-700 text-white"
+                        >
+                          <DropdownMenuItem onSelect={() => onShareJob(job)}>
+                            <Share2 className="mr-2 h-4 w-4" />
+                            <span>Share</span>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onSelect={() => onDeleteJob(job.id)}
+                            disabled={isDeleting}
+                            className="text-red-400 focus:bg-red-500/20 focus:text-red-400"
+                          >
+                            {isDeleting ? (
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            ) : (
+                              <Trash2 className="mr-2 h-4 w-4" />
+                            )}
+                            <span>Delete Job</span>
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  </div>
                 </motion.div>
               )}
             </AnimatePresence>
-
-            <div
-              className="space-y-2 sm:space-y-3 pt-2"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="grid grid-cols-2 gap-2">
-                <motion.div
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                >
-                  {generationStatus.resumeUrl ? (
-                    <Button
-                      onClick={() =>
-                        onViewOrDownload(
-                          generationStatus.resumeUrl,
-                          `${job.company_name}_${job.job_title}_resume.pdf`
-                        )
-                      }
-                      variant="outline"
-                      size="sm"
-                      className="w-full bg-green-500/10 border-green-500/30 text-green-400 hover:bg-green-500 hover:text-white hover:border-green-500 transition-all duration-200 h-8 sm:h-9 text-xs sm:text-sm"
-                    >
-                      <Eye className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2 flex-shrink-0" />
-                      <span className="truncate">View Resume</span>
-                    </Button>
-                  ) : (
-                    <Button
-                      onClick={() => onTailorResume(job)}
-                      disabled={processing.resume.has(job.id)}
-                      variant="outline"
-                      size="sm"
-                      className="w-full bg-rose-500/10 border-rose-500/30 text-rose-400 hover:bg-rose-500 hover:text-white hover:border-rose-500 transition-all duration-200 h-8 sm:h-9 text-xs sm:text-sm"
-                    >
-                      {processing.resume.has(job.id) ? (
-                        <Loader2 className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2 animate-spin flex-shrink-0" />
-                      ) : (
-                        <Wand2 className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2 flex-shrink-0" />
-                      )}
-                      <span className="truncate">
-                        {processing.resume.has(job.id)
-                          ? "Agent Tailoring..."
-                          : "Tailor Resume"}
-                      </span>
-                    </Button>
-                  )}
-                </motion.div>
-
-                <motion.div
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                >
-                  {generationStatus.coverLetterUrl ? (
-                    <Button
-                      onClick={() =>
-                        onViewOrDownload(
-                          generationStatus.coverLetterUrl,
-                          `${job.company_name}_${job.job_title}_cover_letter.pdf`
-                        )
-                      }
-                      variant="outline"
-                      size="sm"
-                      className="w-full bg-green-500/10 border-green-500/30 text-green-400 hover:bg-green-500 hover:text-white hover:border-green-500 transition-all duration-200 h-8 sm:h-9 text-xs sm:text-sm"
-                    >
-                      <Eye className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2 flex-shrink-0" />
-                      <span className="truncate">View Cover</span>
-                    </Button>
-                  ) : (
-                    <Button
-                      onClick={() => onGenerateCoverLetter(job)}
-                      disabled={processing.coverLetter.has(job.id)}
-                      variant="outline"
-                      size="sm"
-                      className="w-full bg-red-500/10 border-red-500/30 text-red-400 hover:bg-red-500 hover:text-white hover:border-red-500 transition-all duration-200 h-8 sm:h-9 text-xs sm:text-sm"
-                    >
-                      {processing.coverLetter.has(job.id) ? (
-                        <Loader2 className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2 animate-spin flex-shrink-0" />
-                      ) : (
-                        <FileText className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2 flex-shrink-0" />
-                      )}
-                      <span className="truncate">
-                        {processing.coverLetter.has(job.id)
-                          ? "Agent Crafting..."
-                          : "Cover Letter"}
-                      </span>
-                    </Button>
-                  )}
-                </motion.div>
-              </div>
-
-              <motion.div
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-              >
-                <Button
-                  asChild
-                  className="w-full bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-700 hover:to-red-700 text-white h-9 sm:h-10 text-xs sm:text-sm"
-                  size="sm"
-                >
-                  <a
-                    href={job.apply_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center justify-center gap-2"
-                  >
-                    <ExternalLink className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
-                    <span className="truncate">Apply Now</span>
-                  </a>
-                </Button>
-              </motion.div>
-            </div>
           </CardContent>
         </Card>
       </motion.div>
@@ -467,6 +478,7 @@ const InstantTailoringAgent = () => {
     resume: new Set(),
     coverLetter: new Set(),
     applying: new Set(),
+    deleting: new Set(),
   });
   const [generationStatus, setGenerationStatus] = useState<
     Record<string, GenerationStatus>
@@ -476,6 +488,25 @@ const InstantTailoringAgent = () => {
   const navigate = useNavigate();
   const { usage } = useUsageTracking();
   const fetchedForUserId = useRef<string | null>(null);
+
+  const updateProcessingState = useCallback(
+    (
+      type: keyof JobProcessingState,
+      jobId: string,
+      action: "add" | "remove"
+    ) => {
+      setProcessing((prev) => {
+        const newSet = new Set(prev[type]);
+        if (action === "add") {
+          newSet.add(jobId);
+        } else {
+          newSet.delete(jobId);
+        }
+        return { ...prev, [type]: newSet };
+      });
+    },
+    []
+  );
 
   const userName = useMemo(() => {
     if (!user) return "there";
@@ -513,6 +544,71 @@ const InstantTailoringAgent = () => {
         }
       }),
     [filteredJobs, sortBy]
+  );
+
+  // --- NEW HANDLER FUNCTIONS ---
+
+  const handleDeleteJob = useCallback(
+    async (jobId: string) => {
+      if (!user) return;
+
+      updateProcessingState("deleting", jobId, "add");
+
+      try {
+        const { error } = await supabase
+          .from("saved_jobs")
+          .delete()
+          .eq("id", jobId)
+          .eq("user_id", user.id);
+
+        if (error) throw error;
+
+        setSavedJobs((prevJobs) => prevJobs.filter((job) => job.id !== jobId));
+        toast({
+          title: "Job Deleted 👋",
+          description: "The job has been removed from your saved list.",
+        });
+      } catch (error) {
+        console.error("Error deleting job:", error);
+        toast({
+          title: "Deletion Failed",
+          description: "Could not delete the job. Please try again.",
+          variant: "destructive",
+        });
+        updateProcessingState("deleting", jobId, "remove");
+      }
+      // No 'finally' block needed, as we only want to remove the spinner on error
+    },
+    [user, toast, updateProcessingState]
+  );
+
+  const handleShareJob = useCallback(
+    (job: SavedJob) => {
+      const shareUrl = job.apply_url || job.job_link;
+      if (!shareUrl) {
+        toast({
+          title: "No Link Available",
+          description: "This job does not have a shareable link.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (navigator.share) {
+        navigator.share({
+          title: `${job.job_title} at ${job.company_name}`,
+          text: `Check out this job opportunity: ${job.job_title} at ${job.company_name}`,
+          url: shareUrl,
+        });
+      } else {
+        navigator.clipboard.writeText(shareUrl);
+        toast({
+          title: "Link Copied ✅",
+          description: "Job application link copied to clipboard.",
+        });
+      }
+    },
+    [toast]
   );
 
   const checkGenerationStatus = useCallback(
@@ -641,25 +737,6 @@ const InstantTailoringAgent = () => {
       return 0;
     }
   };
-
-  const updateProcessingState = useCallback(
-    (
-      type: keyof JobProcessingState,
-      jobId: string,
-      action: "add" | "remove"
-    ) => {
-      setProcessing((prev) => {
-        const newSet = new Set(prev[type]);
-        if (action === "add") {
-          newSet.add(jobId);
-        } else {
-          newSet.delete(jobId);
-        }
-        return { ...prev, [type]: newSet };
-      });
-    },
-    []
-  );
 
   const handleDownload = useCallback(
     async (url: string, fileName: string) => {
@@ -1440,19 +1517,23 @@ const InstantTailoringAgent = () => {
                   exit={{ opacity: 0 }}
                   className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6"
                 >
-                  {sortedJobs.map((job, index) => (
-                    <TailoringJobCard
-                      key={job.id}
-                      job={job}
-                      index={index}
-                      processing={processing}
-                      onTailorResume={handleTailorResume}
-                      onGenerateCoverLetter={handleGenerateCoverLetter}
-                      onMarkAsApplied={handleMarkAsApplied}
-                      generationStatus={generationStatus[job.id] || {}}
-                      onViewOrDownload={handleDownload}
-                    />
-                  ))}
+                  <AnimatePresence>
+                    {sortedJobs.map((job, index) => (
+                      <TailoringJobCard
+                        key={job.id}
+                        job={job}
+                        index={index}
+                        processing={processing}
+                        onTailorResume={handleTailorResume}
+                        onGenerateCoverLetter={handleGenerateCoverLetter}
+                        onMarkAsApplied={handleMarkAsApplied}
+                        generationStatus={generationStatus[job.id] || {}}
+                        onViewOrDownload={handleDownload}
+                        onDeleteJob={handleDeleteJob}
+                        onShareJob={handleShareJob}
+                      />
+                    ))}
+                  </AnimatePresence>
                 </motion.div>
               )}
             </AnimatePresence>

@@ -384,9 +384,15 @@ const Pricing: React.FC = () => {
   const { processPayment, isProcessing } = usePayment();
   const { user } = useAuth();
 
-  /* set user currency once region is known */
+
   useEffect(() => {
-    if (!isLoading) setCurrency(detectedCurrency);
+    if (!isLoading) {
+      setCurrency(detectedCurrency);
+      // If the user is in India, default to the monthly view
+      if (detectedCurrency === "INR") {
+        setBillingPeriod("monthly");
+      }
+    }
   }, [detectedCurrency, isLoading]);
 
   /* helpers */
@@ -400,6 +406,8 @@ const Pricing: React.FC = () => {
     },
     [user, processPayment, currency, billingPeriod]
   );
+
+  /* set user currency and default billing period once region is known */
 
   const toggleFAQ = useCallback(
     (i: number) => setOpenFAQ(openFAQ === i ? null : i),

@@ -53,7 +53,6 @@ interface PlanData {
   badge?: string;
   isCurrentPlan?: boolean;
   canUpgrade?: boolean;
-  // --- MODIFICATION: Add new property to track monthly-to-yearly switch ---
   isSwitchToYearly?: boolean;
 }
 
@@ -144,6 +143,10 @@ const Pricing: React.FC = () => {
   const { detectedCurrency, isLoading } = useRegionDetection();
   const [currency, setCurrency] = useState<Currency>("INR");
   const [billingPeriod, setBillingPeriod] = useState<BillingPeriod>("yearly");
+  // --- MODIFICATION: Add state to track the specific plan being processed ---
+  const [processingPlan, setProcessingPlan] = useState<SubscriptionPlan | null>(
+    null
+  );
 
   const { processPayment, isProcessing } = usePayment();
   const { user } = useAuth();
@@ -154,7 +157,12 @@ const Pricing: React.FC = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    if (!isLoading) setCurrency(detectedCurrency);
+    if (!isLoading) {
+      setCurrency(detectedCurrency);
+      if (detectedCurrency === "INR") {
+        setBillingPeriod("monthly");
+      }
+    }
   }, [detectedCurrency, isLoading]);
 
   const handleSubscribe = useCallback(
@@ -189,7 +197,13 @@ const Pricing: React.FC = () => {
         return;
       }
 
-      await processPayment(plan, currency, billingPeriod);
+      // --- MODIFICATION: Set the processing plan and clear it after completion ---
+      try {
+        setProcessingPlan(plan);
+        await processPayment(plan, currency, billingPeriod);
+      } finally {
+        setProcessingPlan(null);
+      }
     },
     [user, processPayment, toast, currency, billingPeriod]
   );
@@ -203,11 +217,9 @@ const Pricing: React.FC = () => {
   const plans = useMemo<PlanData[]>(() => {
     const cs = currency === "INR" ? "₹" : "$";
     const currentPlan = usage?.plan_type || "Free";
-    // --- MODIFICATION: Get current billing period from the usage hook ---
     const currentBillingPeriod = usage?.billing_period || "monthly";
     const currentPlanHierarchy = getPlanHierarchy(currentPlan);
 
-    // --- MODIFICATION: Create a helper to calculate plan status ---
     const calculatePlanStatus = (planName: SubscriptionPlan) => {
       if (planName === "Free") {
         return {
@@ -363,227 +375,231 @@ const Pricing: React.FC = () => {
   interface PricingCardProps {
     plan: PlanData;
     index: number;
+    // --- MODIFICATION: Add a prop to indicate if this specific card is processing ---
+    isBeingProcessed: boolean;
   }
 
-  const PricingCard: React.FC<PricingCardProps> = React.memo(({ plan }) => {
-    const baseRing = plan.isCurrentPlan
-      ? "ring-2 ring-green-500/60 border-green-500/50"
-      : plan.highlight
-      ? "ring-2 ring-appforge-blue/50 border-appforge-blue/50"
-      : plan.badge === "Best AI"
-      ? "ring-2 ring-purple-500/80 border-purple-500/60"
-      : "border-white/10";
+  const PricingCard: React.FC<PricingCardProps> = React.memo(
+    ({ plan, isBeingProcessed }) => {
+      const baseRing = plan.isCurrentPlan
+        ? "ring-2 ring-green-500/60 border-green-500/50"
+        : plan.highlight
+        ? "ring-2 ring-appforge-blue/50 border-appforge-blue/50"
+        : plan.badge === "Best AI"
+        ? "ring-2 ring-purple-500/80 border-purple-500/60"
+        : "border-white/10";
 
-    const hoverTarget = { y: -6, scale: 1.02 } as const;
+      const hoverTarget = { y: -6, scale: 1.02 } as const;
 
-    const badgeClass = plan.isCurrentPlan
-      ? "bg-green-500 text-white border border-green-500/30"
-      : plan.highlight
-      ? "bg-appforge-blue text-black border border-appforge-blue/20"
-      : plan.badge === "Best AI"
-      ? "bg-purple-500 text-white border border-purple-500/30"
-      : "";
+      const badgeClass = plan.isCurrentPlan
+        ? "bg-green-500 text-white border border-green-500/30"
+        : plan.highlight
+        ? "bg-appforge-blue text-black border border-appforge-blue/20"
+        : plan.badge === "Best AI"
+        ? "bg-purple-500 text-white border border-purple-500/30"
+        : "";
 
-    const iconBg = {
-      Free: "bg-gradient-to-br from-gray-400 to-gray-600",
-      Basic: "bg-gradient-to-br from-blue-500 to-blue-800",
-      Pro: "bg-gradient-to-br from-purple-500 to-pink-600",
-    }[plan.name] as string;
+      const iconBg = {
+        Free: "bg-gradient-to-br from-gray-400 to-gray-600",
+        Basic: "bg-gradient-to-br from-blue-500 to-blue-800",
+        Pro: "bg-gradient-to-br from-purple-500 to-pink-600",
+      }[plan.name] as string;
 
-    const handleClick = () =>
-      handleSubscribe(
-        plan.name,
-        plan.isCurrentPlan || false,
-        plan.canUpgrade || false
-      );
+      const handleClick = () =>
+        handleSubscribe(
+          plan.name,
+          plan.isCurrentPlan || false,
+          plan.canUpgrade || false
+        );
 
-    const getButtonConfig = () => {
-      if (plan.isCurrentPlan) {
-        return {
-          className:
-            "bg-green-500/20 hover:bg-green-500/30 text-green-400 border border-green-500/30",
-          text: "✓ Current Plan",
-          disabled: false,
-        };
-      }
+      const getButtonConfig = () => {
+        if (plan.isCurrentPlan) {
+          return {
+            className:
+              "bg-green-500/20 hover:bg-green-500/30 text-green-400 border border-green-500/30",
+            text: "✓ Current Plan",
+            disabled: false,
+          };
+        }
 
-      // --- MODIFICATION: Add new button state for monthly-to-yearly switch ---
-      if (plan.isSwitchToYearly) {
-        return {
-          className:
-            "bg-gradient-to-r from-green-500 to-teal-500 hover:from-green-600 hover:to-teal-600 text-white",
-          text: "Switch to Yearly & Save",
-          disabled: false,
-        };
-      }
+        if (plan.isSwitchToYearly) {
+          return {
+            className:
+              "bg-gradient-to-r from-green-500 to-teal-500 hover:from-green-600 hover:to-teal-600 text-white",
+            text: "Switch to Yearly & Save",
+            disabled: false,
+          };
+        }
 
-      if (!plan.canUpgrade) {
-        return {
-          className:
-            "bg-gray-500/20 text-gray-400 border border-gray-500/30 cursor-not-allowed",
-          text: "Cannot Downgrade",
-          disabled: true,
-        };
-      }
+        if (!plan.canUpgrade) {
+          return {
+            className:
+              "bg-gray-500/20 text-gray-400 border border-gray-500/30 cursor-not-allowed",
+            text: "Cannot Downgrade",
+            disabled: true,
+          };
+        }
 
-      if (plan.name === "Pro") {
-        return {
-          className:
-            "bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white",
-          text: plan.cta,
-          disabled: false,
-        };
-      } else if (plan.highlight) {
-        return {
-          className: "bg-appforge-blue hover:bg-appforge-blue/90 text-black",
-          text: plan.cta,
-          disabled: false,
-        };
-      } else {
-        return {
-          className:
-            "bg-white/5 hover:bg-white/10 text-white border border-white/20",
-          text: plan.cta,
-          disabled: false,
-        };
-      }
-    };
+        if (plan.name === "Pro") {
+          return {
+            className:
+              "bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white",
+            text: plan.cta,
+            disabled: false,
+          };
+        } else if (plan.highlight) {
+          return {
+            className: "bg-appforge-blue hover:bg-appforge-blue/90 text-black",
+            text: plan.cta,
+            disabled: false,
+          };
+        } else {
+          return {
+            className:
+              "bg-white/5 hover:bg-white/10 text-white border border-white/20",
+            text: plan.cta,
+            disabled: false,
+          };
+        }
+      };
 
-    const buttonConfig = getButtonConfig();
+      const buttonConfig = getButtonConfig();
 
-    return (
-      <motion.div
-        variants={cardVariants}
-        whileHover={hoverTarget}
-        transition={{ duration: 0.2, ease: "easeOut" }}
-        className="transition-transform will-change-transform"
-        style={{
-          willChange: "transform, opacity",
-          backfaceVisibility: "hidden",
-          transform: "translateZ(0)",
-          isolation: "isolate",
-        }}
-      >
-        <Card
-          className={`relative glass bg-background/75 backdrop-blur-sm shadow-xl overflow-hidden ${baseRing} rounded-2xl p-4 sm:p-6 md:p-8 flex flex-col h-full`}
+      return (
+        <motion.div
+          variants={cardVariants}
+          whileHover={hoverTarget}
+          transition={{ duration: 0.2, ease: "easeOut" }}
+          className="transition-transform will-change-transform"
+          style={{
+            willChange: "transform, opacity",
+            backfaceVisibility: "hidden",
+            transform: "translateZ(0)",
+            isolation: "isolate",
+          }}
         >
-          <div className="absolute top-3 right-3 sm:top-4 sm:right-4 flex flex-col gap-2 z-10">
-            {plan.isCurrentPlan && (
-              <Badge className="bg-green-500 text-white px-2 py-1 sm:px-3 sm:py-1 rounded-full text-xs font-semibold shadow-md flex items-center gap-1">
-                <Crown className="w-3 h-3" />
-                Current Plan
-              </Badge>
-            )}
-            {plan.badge && !plan.isCurrentPlan && (
-              <Badge
-                className={`px-2 py-1 sm:px-3 sm:py-1 rounded-full text-xs font-semibold shadow-md ${badgeClass}`}
-              >
-                {plan.badge}
-              </Badge>
-            )}
-          </div>
-
-          <div
-            className={`${iconBg} text-white mb-4 sm:mb-6 mx-auto p-3 sm:p-4 rounded-xl shadow-md flex justify-center items-center`}
+          <Card
+            className={`relative glass bg-background/75 backdrop-blur-sm shadow-xl overflow-hidden ${baseRing} rounded-2xl p-4 sm:p-6 md:p-8 flex flex-col h-full`}
           >
-            {plan.icon}
-          </div>
-
-          <div className="text-center mb-4 sm:mb-6">
-            <h3 className="text-lg sm:text-xl md:text-2xl font-bold mb-1">
-              {plan.displayName}
-            </h3>
-            <div className="flex items-center justify-center gap-2 mb-2">
-              <div
-                className={`w-2 h-2 rounded-full animate-pulse ${
-                  plan.isCurrentPlan ? "bg-green-400" : "bg-green-400"
-                }`}
-              />
-              <span
-                className={`text-xs sm:text-sm font-medium ${
-                  plan.isCurrentPlan ? "text-green-400" : "text-green-400"
-                }`}
-              >
-                {plan.agentCount}
-              </span>
-            </div>
-            <p className="text-muted-foreground text-xs sm:text-sm md:text-base mb-3">
-              {plan.description}
-            </p>
-
-            <div className="mb-2">
-              <div className="flex items-center justify-center gap-2 mb-1">
-                <span className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-white">
-                  {formatPrice(plan.price)}
-                </span>
-                {plan.originalPrice && (
-                  <span className="text-sm text-muted-foreground line-through">
-                    {formatPrice(plan.originalPrice)}
-                  </span>
-                )}
-              </div>
-              <span className="text-muted-foreground text-xs sm:text-sm md:text-base font-medium">
-                / {plan.period}
-              </span>
-
-              {plan.monthlyEquivalent && (
-                <div className="mt-2">
-                  <div className="text-green-400 text-xs font-medium">
-                    {formatPrice(plan.monthlyEquivalent)} / month when billed
-                    annually
-                  </div>
-                  {plan.savings && (
-                    <div className="text-green-400 text-xs font-medium">
-                      Save {plan.savings} per year! 🎉
-                    </div>
-                  )}
-                </div>
+            <div className="absolute top-3 right-3 sm:top-4 sm:right-4 flex flex-col gap-2 z-10">
+              {plan.isCurrentPlan && (
+                <Badge className="bg-green-500 text-white px-2 py-1 sm:px-3 sm:py-1 rounded-full text-xs font-semibold shadow-md flex items-center gap-1">
+                  <Crown className="w-3 h-3" />
+                  Current Plan
+                </Badge>
+              )}
+              {plan.badge && !plan.isCurrentPlan && (
+                <Badge
+                  className={`px-2 py-1 sm:px-3 sm:py-1 rounded-full text-xs font-semibold shadow-md ${badgeClass}`}
+                >
+                  {plan.badge}
+                </Badge>
               )}
             </div>
-          </div>
 
-          <ul className="space-y-2 sm:space-y-3 mb-4 sm:mb-6 md:mb-8 flex-1">
-            {plan.features.map((f, i) => (
-              <li
-                key={i}
-                className="flex items-start gap-2 sm:gap-3 text-xs sm:text-sm md:text-base"
-              >
-                <Check className="w-3 h-3 sm:w-4 sm:h-4 text-green-400 mt-0.5" />
-                <span className="leading-tight">{f}</span>
-              </li>
-            ))}
-            {plan.limitations?.map((l, i) => (
-              <li
-                key={`lim-${i}`}
-                className="flex items-start gap-2 sm:gap-3 opacity-50"
-              >
-                <span className="w-1.5 h-1.5 rounded-full bg-slate-500/30 mt-1.5" />
-                <span className="text-xs sm:text-sm text-muted-foreground leading-tight">
-                  {l}
+            <div
+              className={`${iconBg} text-white mb-4 sm:mb-6 mx-auto p-3 sm:p-4 rounded-xl shadow-md flex justify-center items-center`}
+            >
+              {plan.icon}
+            </div>
+
+            <div className="text-center mb-4 sm:mb-6">
+              <h3 className="text-lg sm:text-xl md:text-2xl font-bold mb-1">
+                {plan.displayName}
+              </h3>
+              <div className="flex items-center justify-center gap-2 mb-2">
+                <div
+                  className={`w-2 h-2 rounded-full animate-pulse ${
+                    plan.isCurrentPlan ? "bg-green-400" : "bg-green-400"
+                  }`}
+                />
+                <span
+                  className={`text-xs sm:text-sm font-medium ${
+                    plan.isCurrentPlan ? "text-green-400" : "text-green-400"
+                  }`}
+                >
+                  {plan.agentCount}
                 </span>
-              </li>
-            ))}
-          </ul>
+              </div>
+              <p className="text-muted-foreground text-xs sm:text-sm md:text-base mb-3">
+                {plan.description}
+              </p>
 
-          <Button
-            size="lg"
-            disabled={isProcessing || buttonConfig.disabled}
-            onClick={handleClick}
-            className={`w-full font-bold tracking-wide rounded-xl py-2.5 sm:py-3 text-xs sm:text-sm md:text-base ${buttonConfig.className}`}
-          >
-            {isProcessing ? (
-              <>
-                <Loader2 className="w-3 h-3 sm:w-4 sm:h-4 mr-2 animate-spin" />
-                Activating Agents…
-              </>
-            ) : (
-              buttonConfig.text
-            )}
-          </Button>
-        </Card>
-      </motion.div>
-    );
-  });
+              <div className="mb-2">
+                <div className="flex items-center justify-center gap-2 mb-1">
+                  <span className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-white">
+                    {formatPrice(plan.price)}
+                  </span>
+                  {plan.originalPrice && (
+                    <span className="text-sm text-muted-foreground line-through">
+                      {formatPrice(plan.originalPrice)}
+                    </span>
+                  )}
+                </div>
+                <span className="text-muted-foreground text-xs sm:text-sm md:text-base font-medium">
+                  / {plan.period}
+                </span>
+
+                {plan.monthlyEquivalent && (
+                  <div className="mt-2">
+                    <div className="text-green-400 text-xs font-medium">
+                      {formatPrice(plan.monthlyEquivalent)} / month when billed
+                      annually
+                    </div>
+                    {plan.savings && (
+                      <div className="text-green-400 text-xs font-medium">
+                        Save {plan.savings} per year! 🎉
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <ul className="space-y-2 sm:space-y-3 mb-4 sm:mb-6 md:mb-8 flex-1">
+              {plan.features.map((f, i) => (
+                <li
+                  key={i}
+                  className="flex items-start gap-2 sm:gap-3 text-xs sm:text-sm md:text-base"
+                >
+                  <Check className="w-3 h-3 sm:w-4 sm:h-4 text-green-400 mt-0.5" />
+                  <span className="leading-tight">{f}</span>
+                </li>
+              ))}
+              {plan.limitations?.map((l, i) => (
+                <li
+                  key={`lim-${i}`}
+                  className="flex items-start gap-2 sm:gap-3 opacity-50"
+                >
+                  <span className="w-1.5 h-1.5 rounded-full bg-slate-500/30 mt-1.5" />
+                  <span className="text-xs sm:text-sm text-muted-foreground leading-tight">
+                    {l}
+                  </span>
+                </li>
+              ))}
+            </ul>
+
+            <Button
+              size="lg"
+              disabled={isProcessing || buttonConfig.disabled}
+              onClick={handleClick}
+              className={`w-full font-bold tracking-wide rounded-xl py-2.5 sm:py-3 text-xs sm:text-sm md:text-base ${buttonConfig.className}`}
+            >
+              {/* --- MODIFICATION: Use isBeingProcessed for the loading state --- */}
+              {isBeingProcessed ? (
+                <>
+                  <Loader2 className="w-3 h-3 sm:w-4 sm:h-4 mr-2 animate-spin" />
+                  Activating Agents…
+                </>
+              ) : (
+                buttonConfig.text
+              )}
+            </Button>
+          </Card>
+        </motion.div>
+      );
+    }
+  );
   PricingCard.displayName = "PricingCard";
 
   /* ------------------------------------------------------------------ */
@@ -690,8 +706,14 @@ const Pricing: React.FC = () => {
             animate="show"
             key={`desktop-${currency}-${billingPeriod}`}
           >
+            {/* --- MODIFICATION: Pass the isBeingProcessed prop --- */}
             {plans.map((plan, i) => (
-              <PricingCard key={plan.name} plan={plan} index={i} />
+              <PricingCard
+                key={plan.name}
+                plan={plan}
+                index={i}
+                isBeingProcessed={processingPlan === plan.name}
+              />
             ))}
           </motion.div>
 
@@ -702,11 +724,22 @@ const Pricing: React.FC = () => {
             animate="show"
             key={`tablet-${currency}-${billingPeriod}`}
           >
+            {/* --- MODIFICATION: Pass the isBeingProcessed prop --- */}
             {plans.slice(0, 2).map((plan, i) => (
-              <PricingCard key={plan.name} plan={plan} index={i} />
+              <PricingCard
+                key={plan.name}
+                plan={plan}
+                index={i}
+                isBeingProcessed={processingPlan === plan.name}
+              />
             ))}
             <div className="md:col-span-2 max-w-sm mx-auto">
-              <PricingCard plan={plans[2]} index={2} />
+              {/* --- MODIFICATION: Pass the isBeingProcessed prop --- */}
+              <PricingCard
+                plan={plans[2]}
+                index={2}
+                isBeingProcessed={processingPlan === plans[2].name}
+              />
             </div>
           </motion.div>
 
@@ -718,8 +751,14 @@ const Pricing: React.FC = () => {
               key={`mobile-${currency}-${billingPeriod}`}
               className="flex flex-col gap-8 max-w-md mx-auto px-4"
             >
+              {/* --- MODIFICATION: Pass the isBeingProcessed prop --- */}
               {plans.map((plan, i) => (
-                <PricingCard key={plan.name} plan={plan} index={i} />
+                <PricingCard
+                  key={plan.name}
+                  plan={plan}
+                  index={i}
+                  isBeingProcessed={processingPlan === plan.name}
+                />
               ))}
             </motion.div>
           </div>

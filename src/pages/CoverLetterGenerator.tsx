@@ -230,7 +230,7 @@ const CraftingAgentLoadingOverlay = memo(
               className="mt-6 sm:mt-8 max-w-md text-center p-4 sm:p-5 bg-slate-800/40 border border-slate-700/50 rounded-xl backdrop-blur-sm space-y-2"
             >
               <p className="text-sm sm:text-base text-slate-300 font-medium leading-relaxed">
-                This may take 30-45 seconds. Feel free to explore other
+                This can take upto 30 seconds. Feel free to explore other
                 features!
               </p>
               <p className="text-xs sm:text-sm text-slate-400">
