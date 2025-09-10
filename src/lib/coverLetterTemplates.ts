@@ -9,6 +9,12 @@ export interface CoverLetterTemplate {
 
 // This is the single source of truth for your cover letter templates
 export const coverLetterTemplates: CoverLetterTemplate[] = [
+   {
+    id: "innovators-edge",
+    name: "Innovator's Edge",
+    description: "A sharp, modern template for forward-thinking roles.",
+    imageSrc: "/coverLetterTemplates/innovatorsEdge.png",
+  },
   {
     id: "minimalistic-magistic",
     name: "Minimalistic Magistic",
@@ -32,11 +38,5 @@ export const coverLetterTemplates: CoverLetterTemplate[] = [
     name: "Framed Professional",
     description: "An elegant, framed design for a classic touch.",
     imageSrc: "/coverLetterTemplates/framedProfessional.png",
-  },
-  {
-    id: "innovators-edge",
-    name: "Innovator's Edge",
-    description: "A sharp, modern template for forward-thinking roles.",
-    imageSrc: "/coverLetterTemplates/innovatorsEdge.png",
   },
 ];

@@ -1094,7 +1094,7 @@ Preferred Qualifications:
                     transition={{ delay: 0.3 }}
                     className="text-2xl sm:text-3xl md:text-4xl lg:text-6xl font-bold text-white leading-tight"
                   >
-                    Resume Optimization{" "}
+                    Resume Tailoring{" "}
                     <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-indigo-400 bg-clip-text text-transparent">
                       Agent
                     </span>

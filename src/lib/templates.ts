@@ -9,6 +9,12 @@ export interface ResumeTemplate {
 
 // This is now the single source of truth for your templates.
 export const templates: ResumeTemplate[] = [
+   {
+    id: "grety-skyler",
+    name: "Grety Skyler",
+    description: "A clean and minimalist template with a touch of color.",
+    imageSrc: "/templates/grety-skyler.png",
+  },
   {
     id: "skyline-professional",
     name: "Skyline Professional",
@@ -20,12 +26,6 @@ export const templates: ResumeTemplate[] = [
     name: "Quantum Tech",
     description: "A modern, tech-focused layout with a sidebar.",
     imageSrc: "/templates/quantum-tech.png",
-  },
-  {
-    id: "grety-skyler",
-    name: "Grety Skyler",
-    description: "A clean and minimalist template with a touch of color.",
-    imageSrc: "/templates/grety-skyler.png",
   },
   {
     id: "analysts-ledger",
