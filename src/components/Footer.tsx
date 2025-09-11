@@ -20,7 +20,6 @@ const FOOTER_SECTIONS = [
       { label: "Resume Tailoring Agent", href: "/ai-resume-tailor" },
       { label: "Cover Letter Crafting Agent", href: "/cover-letter-generator" },
       { label: "Job Discovery Agent", href: "/job-finder" },
-      { label: "Agent Templates", href: "/templates" },
     ],
   },
   /*
