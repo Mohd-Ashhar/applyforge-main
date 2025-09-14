@@ -1,6 +1,9 @@
+import ReactGA from "react-ga4";
+import { useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import React, { Suspense, lazy } from "react";
 import { Toaster as Sonner } from "@/components/ui/sonner";
-import ReloadPrompt from './components/ReloadPrompt';
+import ReloadPrompt from "./components/ReloadPrompt";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import {
   QueryClient,
@@ -15,6 +18,10 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { HelmetProvider } from "react-helmet-async";
 import { Analytics } from "@vercel/analytics/react";
 
+const MEASUREMENT_ID = "G-58VRMFD2QX";
+
+// 2. Initialize GA4
+ReactGA.initialize(MEASUREMENT_ID);
 
 // Lazy load components for better performance
 const Dashboard = lazy(() => import("./pages/Dashboard"));
@@ -372,6 +379,21 @@ const AppRoutes = () => {
   );
 };
 
+// This helper component tracks pageviews
+const RouteAnalyticsTracker = () => {
+  const location = useLocation();
+
+  useEffect(() => {
+    // Send a pageview event to Google Analytics
+    ReactGA.send({
+      hitType: "pageview",
+      page: location.pathname + location.search,
+    });
+  }, [location]); // This effect runs every time the location changes
+
+  return null; // This component does not render anything
+};
+
 const App = () => {
   const queryClient = createQueryClient();
 
@@ -413,6 +435,7 @@ const App = () => {
             />
             <BrowserRouter>
               <AuthProvider>
+                <RouteAnalyticsTracker />
                 <Suspense fallback={<LoadingSpinner />}>
                   <AppRoutes />
                 </Suspense>
