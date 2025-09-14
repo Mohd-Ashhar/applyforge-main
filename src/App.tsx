@@ -13,6 +13,8 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { HelmetProvider } from "react-helmet-async";
+import { Analytics } from "@vercel/analytics/react";
+
 
 // Lazy load components for better performance
 const Dashboard = lazy(() => import("./pages/Dashboard"));
@@ -417,6 +419,7 @@ const App = () => {
                 <ReloadPrompt />
               </AuthProvider>
             </BrowserRouter>
+            <Analytics />
             {/* React Query Devtools - only in development */}
             {process.env.NODE_ENV === "development" && (
               <ReactQueryDevtools initialIsOpen={false} position="bottom" />
