@@ -1,6 +1,7 @@
 import React, { useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { Helmet } from "react-helmet-async";
 
 const AuthCallback = () => {
   const navigate = useNavigate();
@@ -46,12 +47,18 @@ const AuthCallback = () => {
   }, [user, loading, navigate, searchParams]);
 
   return (
-    <div className="flex items-center justify-center min-h-screen">
-      <div className="text-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto"></div>
-        <p className="mt-4 text-gray-600">Completing authentication...</p>
+    <>
+      <Helmet>
+        <title>Authenticating... | ApplyForge</title>
+        <meta name="robots" content="noindex, nofollow" />
+      </Helmet>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Completing authentication...</p>
+        </div>
       </div>
-    </div>
+    </>
   );
 };
 

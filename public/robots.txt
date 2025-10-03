@@ -9,6 +9,10 @@ Allow: /
 
 User-agent: facebookexternalhit
 Allow: /
+User-agent: *
+Allow: /
+
+Sitemap: https://applyforge.ai/sitemap.xml
 
 User-agent: *
 Disallow: /api/

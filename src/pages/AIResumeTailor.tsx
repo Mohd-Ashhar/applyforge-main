@@ -91,9 +91,9 @@ import { supabase } from "@/integrations/supabase/client";
 import DashboardHeader from "@/components/DashboardHeader";
 import UserAvatar from "@/components/header/UserAvatar";
 import ResumeTemplateViewer from "@/components/ResumeTemplateViewer";
-import { templates } from "@/lib/templates"; // --- CHANGE: Import templates ---
+import { templates } from "@/lib/templates";
+import { Helmet } from "react-helmet-async";
 
-// --- CHANGE: Removed 'resumeStyle' from schema ---
 const resumeOptimizerSchema = z.object({
   jobRole: z.string().min(2, "Job role must be at least 2 characters"),
   jobDescription: z
@@ -206,9 +206,9 @@ const OptimizationAgentLoadingOverlay = memo(
               className="mt-6 sm:mt-8 max-w-md text-center p-4 bg-slate-800/50 rounded-lg border border-slate-700/60"
             >
               <p className="text-sm text-slate-300 leading-relaxed">
-                This can take upto 30 seconds. Feel free to explore other features
-                &mdash; we'll notify you when it's done! You can find all
-                generated resumes later in the{" "}
+                This can take upto 30 seconds. Feel free to explore other
+                features &mdash; we'll notify you when it's done! You can find
+                all generated resumes later in the{" "}
                 <Link
                   to="/tailored-resumes"
                   className="font-semibold text-blue-400 hover:underline"
@@ -817,8 +817,7 @@ Preferred Qualifications:
     if (!user) {
       toast({
         title: "Authentication Required 🔐",
-        description:
-          "Please log in to activate your Resume Tailoring Agent.",
+        description: "Please log in to activate your Resume Tailoring Agent.",
         variant: "destructive",
       });
       navigate("/auth");
@@ -1046,6 +1045,17 @@ Preferred Qualifications:
 
   return (
     <TooltipProvider>
+      <Helmet>
+        <title>
+          AI Resume Tailor | Optimize Your Resume for Job Applications
+        </title>
+        <meta
+          name="description"
+          content="Automatically tailor your resume to any job description. Our AI analyzes the job and optimizes your resume to highlight the right skills and experience, boosting your interview chances."
+        />
+        <link rel="canonical" href="https://applyforge.ai/resume-tailor" />
+      </Helmet>
+
       <div className="min-h-screen bg-background">
         <OptimizationAgentLoadingOverlay
           show={isProcessing}

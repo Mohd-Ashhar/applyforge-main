@@ -77,6 +77,7 @@ import { supabase } from "@/integrations/supabase/client";
 import RadarLocationInput from "@/components/RadarLocationInput";
 import DashboardHeader from "@/components/DashboardHeader";
 import UserAvatar from "@/components/header/UserAvatar";
+import { Helmet } from "react-helmet-async";
 
 const DiscoveryAgentLoadingOverlay = memo(
   ({ show, stage = 0 }: { show: boolean; stage?: number }) => {
@@ -540,6 +541,15 @@ const JobDiscoveryAgent: React.FC = () => {
 
   return (
     <TooltipProvider>
+      <Helmet>
+        <title>AI Job Finder | Discover Your Next Career Opportunity</title>
+        <meta
+          name="description"
+          content="Find job opportunities tailored to your skills and experience. Our AI-powered job finder helps you discover relevant roles and streamline your job search."
+        />
+        <link rel="canonical" href="https://applyforge.ai/job-finder" />
+      </Helmet>
+      
       <div className="min-h-screen bg-background">
         <DiscoveryAgentLoadingOverlay
           show={isDiscovering}

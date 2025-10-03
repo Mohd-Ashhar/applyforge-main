@@ -1,6 +1,5 @@
 import React from "react";
-import { Link, Navigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
+import { Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import Header from "@/components/Header";
 import Hero from "@/components/Hero";
@@ -9,6 +8,7 @@ import HowItWorks from "@/components/HowItWorks";
 import Testimonials from "@/components/Testimonials";
 import Pricing from "@/components/Pricing";
 import Footer from "@/components/Footer";
+import { Helmet } from "react-helmet-async"; // 1. Import Helmet
 
 const Index = () => {
   const { user, loading } = useAuth();
@@ -29,15 +29,29 @@ const Index = () => {
 
   // Show landing page for non-authenticated users
   return (
-    <div>
-      <Header />
-      <Hero />
-      <Features />
-      <HowItWorks />
-      <Testimonials />
-      <Pricing />
-      <Footer />
-    </div>
+    <>
+      {/* 2. Add the Helmet component */}
+      <Helmet>
+        <title>ApplyForge | AI Resume Tailor & Cover Letter Generator</title>
+        <meta
+          name="description"
+          content="Supercharge your job search with ApplyForge's AI toolkit. Instantly tailor your resume, generate unique cover letters, and track your applications to land your dream job."
+        />
+        <link rel="canonical" href="https://applyforge.ai/" />
+      </Helmet>
+
+      <div className="flex flex-col min-h-screen">
+        <Header />
+        <main className="flex-grow">
+          <Hero />
+          <Features />
+          <HowItWorks />
+          <Testimonials />
+          <Pricing />
+        </main>
+        <Footer />
+      </div>
+    </>
   );
 };
 

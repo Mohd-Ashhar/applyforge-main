@@ -58,6 +58,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import DashboardHeader from "@/components/DashboardHeader";
 import UserAvatar from "@/components/header/UserAvatar";
+import { Helmet } from "react-helmet-async";
 
 // **UNCHANGED**
 interface TailoredResume {
@@ -541,39 +542,45 @@ const AIResumeArsenal: React.FC = () => {
   if (!user) {
     // ... (unchanged)
     return (
-      <TooltipProvider>
-        <div className="min-h-screen bg-background flex items-center justify-center p-4">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-          >
-            <Card className="w-full max-w-md bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl border border-slate-700/50 shadow-xl">
-              <CardContent className="pt-6 text-center">
-                <motion.div
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ delay: 0.2 }}
-                  className="mx-auto w-16 h-16 bg-gradient-to-br from-blue-500/20 to-indigo-500/20 rounded-full flex items-center justify-center mb-4 border border-blue-500/20"
-                >
-                  <Brain className="w-8 h-8 text-blue-400" />
-                </motion.div>
-                <h3 className="text-lg font-semibold mb-2 text-white">
-                  Authentication Required
-                </h3>
-                <p className="text-slate-400 mb-6">
-                  Please log in to access your AI Resume Arsenal.
-                </p>
-                <Button
-                  onClick={() => navigate("/auth")}
-                  className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white"
-                >
-                  Login to Continue
-                </Button>
-              </CardContent>
-            </Card>
-          </motion.div>
-        </div>
-      </TooltipProvider>
+      <>
+        <Helmet>
+          <title>My Tailored Resumes | ApplyForge</title>
+        </Helmet>
+
+        <TooltipProvider>
+          <div className="min-h-screen bg-background flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+            >
+              <Card className="w-full max-w-md bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl border border-slate-700/50 shadow-xl">
+                <CardContent className="pt-6 text-center">
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ delay: 0.2 }}
+                    className="mx-auto w-16 h-16 bg-gradient-to-br from-blue-500/20 to-indigo-500/20 rounded-full flex items-center justify-center mb-4 border border-blue-500/20"
+                  >
+                    <Brain className="w-8 h-8 text-blue-400" />
+                  </motion.div>
+                  <h3 className="text-lg font-semibold mb-2 text-white">
+                    Authentication Required
+                  </h3>
+                  <p className="text-slate-400 mb-6">
+                    Please log in to access your AI Resume Arsenal.
+                  </p>
+                  <Button
+                    onClick={() => navigate("/auth")}
+                    className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white"
+                  >
+                    Login to Continue
+                  </Button>
+                </CardContent>
+              </Card>
+            </motion.div>
+          </div>
+        </TooltipProvider>
+      </>
     );
   }
 

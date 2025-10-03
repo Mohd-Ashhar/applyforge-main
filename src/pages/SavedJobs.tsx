@@ -59,6 +59,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import DashboardHeader from "@/components/DashboardHeader";
 import UserAvatar from "@/components/header/UserAvatar";
+import { Helmet } from "react-helmet-async";
 
 // **UNCHANGED**
 interface SavedJob {
@@ -557,167 +558,172 @@ const JobLibrary: React.FC = () => {
   }
 
   return (
-    <TooltipProvider>
-      <div className="min-h-screen bg-background">
-        <DashboardHeader />
-        <motion.div
-          drag="x"
-          dragConstraints={{ left: 0, right: 0 }}
-          dragSnapToOrigin
-          className="container mx-auto px-4 py-8 max-w-7xl"
-        >
+    <>
+      <Helmet>
+        <title>My Saved Jobs | ApplyForge</title>
+      </Helmet>
+      <TooltipProvider>
+        <div className="min-h-screen bg-background">
+          <DashboardHeader />
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="space-y-12"
+            drag="x"
+            dragConstraints={{ left: 0, right: 0 }}
+            dragSnapToOrigin
+            className="container mx-auto px-4 py-8 max-w-7xl"
           >
-            <div className="text-center pt-8 pb-4">
-              <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="flex flex-col items-center gap-6"
-              >
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="space-y-12"
+            >
+              <div className="text-center pt-8 pb-4">
                 <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.2 }}
-                  className="mx-auto w-20 h-20 bg-gradient-to-br from-teal-500/20 via-cyan-500/15 to-sky-500/20 rounded-full flex items-center justify-center border border-teal-500/20 backdrop-blur-xl"
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="flex flex-col items-center gap-6"
                 >
-                  <Bookmark className="w-10 h-10 text-teal-400" />
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2 }}
+                    className="mx-auto w-20 h-20 bg-gradient-to-br from-teal-500/20 via-cyan-500/15 to-sky-500/20 rounded-full flex items-center justify-center border border-teal-500/20 backdrop-blur-xl"
+                  >
+                    <Bookmark className="w-10 h-10 text-teal-400" />
+                  </motion.div>
+                  <div className="space-y-4">
+                    <motion.h1
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.3 }}
+                      className="text-4xl md:text-6xl font-bold text-white leading-tight"
+                    >
+                      Job{" "}
+                      <span className="bg-gradient-to-r from-teal-400 via-cyan-400 to-sky-400 bg-clip-text text-transparent">
+                        Library
+                      </span>
+                    </motion.h1>
+                    <motion.p
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.4 }}
+                      className="text-xl text-slate-300 max-w-2xl mx-auto leading-relaxed"
+                    >
+                      Hey <span className="text-teal-400">{userName}</span>! 👋
+                      Your curated list of tracked job opportunities.
+                    </motion.p>
+                  </div>
                 </motion.div>
-                <div className="space-y-4">
-                  <motion.h1
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.3 }}
-                    className="text-4xl md:text-6xl font-bold text-white leading-tight"
-                  >
-                    Job{" "}
-                    <span className="bg-gradient-to-r from-teal-400 via-cyan-400 to-sky-400 bg-clip-text text-transparent">
-                      Library
-                    </span>
-                  </motion.h1>
-                  <motion.p
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.4 }}
-                    className="text-xl text-slate-300 max-w-2xl mx-auto leading-relaxed"
-                  >
-                    Hey <span className="text-teal-400">{userName}</span>! 👋
-                    Your curated list of tracked job opportunities.
-                  </motion.p>
+              </div>
+
+              <JobTrackerStats jobCount={savedJobs.length} />
+
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.5 }}
+              >
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-2xl font-bold text-white">
+                    Tracked Opportunities
+                  </h2>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      onClick={() =>
+                        setSortBy(
+                          sortBy === "date"
+                            ? "company"
+                            : sortBy === "company"
+                            ? "title"
+                            : "date"
+                        )
+                      }
+                      className="flex items-center gap-2 border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white text-sm"
+                    >
+                      <Filter className="w-4 h-4" />
+                      <span>
+                        Sort: {sortBy.charAt(0).toUpperCase() + sortBy.slice(1)}
+                      </span>
+                    </Button>
+                  </div>
+                </div>
+                <div className="relative mb-6">
+                  <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" />
+                  <input
+                    type="text"
+                    placeholder="Search your library by title, company, or location..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full pl-12 pr-4 py-3 border border-slate-700 rounded-lg bg-slate-800/50 backdrop-blur-sm text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  />
                 </div>
               </motion.div>
-            </div>
 
-            <JobTrackerStats jobCount={savedJobs.length} />
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5 }}
-            >
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold text-white">
-                  Tracked Opportunities
-                </h2>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    onClick={() =>
-                      setSortBy(
-                        sortBy === "date"
-                          ? "company"
-                          : sortBy === "company"
-                          ? "title"
-                          : "date"
-                      )
-                    }
-                    className="flex items-center gap-2 border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white text-sm"
+              <AnimatePresence mode="wait">
+                {isLoading ? (
+                  <LoadingSkeleton />
+                ) : sortedJobs.length === 0 ? (
+                  <motion.div
+                    key="empty"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
                   >
-                    <Filter className="w-4 h-4" />
-                    <span>
-                      Sort: {sortBy.charAt(0).toUpperCase() + sortBy.slice(1)}
-                    </span>
-                  </Button>
-                </div>
-              </div>
-              <div className="relative mb-6">
-                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" />
-                <input
-                  type="text"
-                  placeholder="Search your library by title, company, or location..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-12 pr-4 py-3 border border-slate-700 rounded-lg bg-slate-800/50 backdrop-blur-sm text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500"
-                />
-              </div>
+                    <Card className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl border border-slate-700/50 shadow-xl max-w-lg mx-auto">
+                      <CardContent className="pt-8 pb-8 text-center">
+                        <Bookmark className="w-10 h-10 text-teal-400 mx-auto mb-4" />
+                        <h3 className="text-2xl font-semibold mb-3 text-white">
+                          {searchTerm
+                            ? "No Matching Jobs"
+                            : "Your Library is Empty"}
+                        </h3>
+                        <p className="text-slate-400 mb-6">
+                          {searchTerm
+                            ? `No jobs found for "${searchTerm}".`
+                            : "Discover and save jobs to start building your library!"}
+                        </p>
+                        <Button
+                          onClick={() =>
+                            searchTerm
+                              ? setSearchTerm("")
+                              : navigate("/job-finder")
+                          }
+                          className="bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-700 hover:to-cyan-700 text-white"
+                        >
+                          {searchTerm ? (
+                            "Clear Search"
+                          ) : (
+                            <>
+                              <Search className="w-4 h-4 mr-2" /> Find Jobs to
+                              Save
+                            </>
+                          )}
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key="results"
+                    className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+                  >
+                    {sortedJobs.map((job, index) => (
+                      <TrackedJobCard
+                        key={job.id}
+                        job={job}
+                        index={index}
+                        onRemove={handleRemove}
+                        onShare={handleShare}
+                        removingIds={removingIds}
+                      />
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </motion.div>
-
-            <AnimatePresence mode="wait">
-              {isLoading ? (
-                <LoadingSkeleton />
-              ) : sortedJobs.length === 0 ? (
-                <motion.div
-                  key="empty"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                >
-                  <Card className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl border border-slate-700/50 shadow-xl max-w-lg mx-auto">
-                    <CardContent className="pt-8 pb-8 text-center">
-                      <Bookmark className="w-10 h-10 text-teal-400 mx-auto mb-4" />
-                      <h3 className="text-2xl font-semibold mb-3 text-white">
-                        {searchTerm
-                          ? "No Matching Jobs"
-                          : "Your Library is Empty"}
-                      </h3>
-                      <p className="text-slate-400 mb-6">
-                        {searchTerm
-                          ? `No jobs found for "${searchTerm}".`
-                          : "Discover and save jobs to start building your library!"}
-                      </p>
-                      <Button
-                        onClick={() =>
-                          searchTerm
-                            ? setSearchTerm("")
-                            : navigate("/job-finder")
-                        }
-                        className="bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-700 hover:to-cyan-700 text-white"
-                      >
-                        {searchTerm ? (
-                          "Clear Search"
-                        ) : (
-                          <>
-                            <Search className="w-4 h-4 mr-2" /> Find Jobs to
-                            Save
-                          </>
-                        )}
-                      </Button>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              ) : (
-                <motion.div
-                  key="results"
-                  className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-                >
-                  {sortedJobs.map((job, index) => (
-                    <TrackedJobCard
-                      key={job.id}
-                      job={job}
-                      index={index}
-                      onRemove={handleRemove}
-                      onShare={handleShare}
-                      removingIds={removingIds}
-                    />
-                  ))}
-                </motion.div>
-              )}
-            </AnimatePresence>
           </motion.div>
-        </motion.div>
-      </div>
-    </TooltipProvider>
+        </div>
+      </TooltipProvider>
+    </>
   );
 };
 

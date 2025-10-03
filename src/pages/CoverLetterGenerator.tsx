@@ -92,9 +92,10 @@ import { useUsageTracking } from "@/hooks/useUsageTracking";
 import { supabase } from "@/integrations/supabase/client";
 import DashboardHeader from "@/components/DashboardHeader";
 import UserAvatar from "@/components/header/UserAvatar";
-// --- CHANGE: Import new components and template definitions ---
+
 import CoverLetterTemplateViewer from "@/components/CoverLetterTemplateViewer";
 import { coverLetterTemplates } from "@/lib/coverLetterTemplates";
+import { Helmet } from "react-helmet-async";
 
 const coverLetterSchema = z.object({
   companyName: z.string().min(2, "Company name must be at least 2 characters"),
@@ -1108,6 +1109,20 @@ Requirements:
 
   return (
     <TooltipProvider>
+      <Helmet>
+        <title>
+          AI Cover Letter Generator | Create a Custom Cover Letter in Seconds
+        </title>
+        <meta
+          name="description"
+          content="Generate a personalized cover letter tailored to any job description. Our AI helps you stand out and land more interviews. Get your custom cover letter in seconds!"
+        />
+        <link
+          rel="canonical"
+          href="https://applyforge.ai/cover-letter-generator"
+        />
+      </Helmet>
+
       <div className="min-h-screen bg-background">
         <CraftingAgentLoadingOverlay show={isCrafting} stage={loadingStage} />
 

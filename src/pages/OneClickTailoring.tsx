@@ -54,6 +54,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import DashboardHeader from "@/components/DashboardHeader";
 import { useUsageTracking } from "@/hooks/useUsageTracking";
+import { Helmet } from "react-helmet-async";
 
 interface SavedJob {
   id: string;
@@ -1254,6 +1255,20 @@ const InstantTailoringAgent = () => {
   if (!user) {
     return (
       <TooltipProvider>
+        <Helmet>
+          <title>
+            One-Click Resume Tailoring | Instantly Apply to Saved Jobs
+          </title>
+          <meta
+            name="description"
+            content="Tailor your resume and cover letter for any saved job in a single click. ApplyForge's One-Click Tailoring streamlines your application process, saving you time and effort."
+          />
+          <link
+            rel="canonical"
+            href="https://applyforge.ai/one-click-tailoring"
+          />
+        </Helmet>
+
         <div className="min-h-screen bg-background flex items-center justify-center p-4">
           <motion.div
             initial={{ opacity: 0, y: 20 }}

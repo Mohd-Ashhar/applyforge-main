@@ -4,36 +4,75 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/x-icon" href="/favicon.ico" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
     <meta name="theme-color" content="#18181b" />
     <link rel="manifest" href="/manifest.webmanifest" />
 
-    <title>ApplyForge - AI Job-Seeking Automation</title>
+    <title>ApplyForge | AI Resume Tailor & Cover Letter Generator</title>
 
     <meta
       name="description"
-      content="AI-powered job-seeking platform that helps you tailor resumes, check ATS compatibility, generate cover letters, and find jobs with smart automation."
+      content="Supercharge your job search with ApplyForge's AI toolkit. Instantly tailor your resume, generate unique cover letters, and track your applications to land your dream job."
     />
     <meta name="author" content="ApplyForge" />
     <meta
       name="keywords"
-      content="AI resume tailor, ATS checker, cover letter generator, job finder, resume optimization"
+      content="AI resume tailor, ATS checker, cover letter generator, job finder, resume optimization, job search"
     />
 
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://applyforge.ai/" />
     <meta
       property="og:title"
-      content="ApplyForge - AI Job-Seeking Automation"
+      content="ApplyForge | AI Resume Tailor & Cover Letter Generator"
     />
     <meta
       property="og:description"
-      content="Streamline your job search with AI-powered resume tailoring, ATS checking, cover letter generation, and automated job applications."
+      content="Supercharge your job search with ApplyForge's AI toolkit. Instantly tailor your resume, generate unique cover letters, and track your applications to land your dream job."
     />
-    <meta property="og:type" content="website" />
-    <meta property="og:image" content="/social-preview-image.jpg" />
+    <meta
+      property="og:image"
+      content="https://applyforge.ai/social-preview-image.jpg"
+    />
 
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:site" content="@applyforge" />
-    <meta name="twitter:image" content="/social-preview-image.jpg" />
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content="https://applyforge.ai/" />
+    <meta
+      property="twitter:title"
+      content="ApplyForge | AI Resume Tailor & Cover Letter Generator"
+    />
+    <meta
+      property="twitter:description"
+      content="Supercharge your job search with ApplyForge's AI toolkit. Instantly tailor your resume, generate unique cover letters, and track your applications to land your dream job."
+    />
+    <meta
+      property="twitter:image"
+      content="https://applyforge.ai/social-preview-image.jpg"
+    />
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "Organization",
+            "name": "ApplyForge",
+            "url": "https://applyforge.ai/",
+            "logo": "https://applyforge.ai/pwa-512x512.png",
+            "sameAs": []
+          },
+          {
+            "@type": "WebSite",
+            "name": "ApplyForge",
+            "url": "https://applyforge.ai/",
+            "potentialAction": {
+              "@type": "SearchAction",
+              "target": "https://applyforge.ai/search?q={search_term_string}",
+              "query-input": "required name=search_term_string"
+            }
+          }
+        ]
+      }
+    </script>
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -45,9 +84,9 @@
       src="https://cdn.jsdelivr.net/npm/pdf-lib/dist/pdf-lib.min.js"
       async
     ></script>
-    <script src="https://checkout.razorpay.com/v1/checkout.js" async></script>
   </head>
   <body>
+    <noscript>You need to enable JavaScript to run this app.</noscript>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

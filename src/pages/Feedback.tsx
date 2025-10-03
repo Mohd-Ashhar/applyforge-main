@@ -63,6 +63,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import DashboardHeader from "@/components/DashboardHeader";
 import UserAvatar from "@/components/header/UserAvatar";
+import { Helmet } from "react-helmet-async";
 
 // **ENHANCED AI INSIGHTS COLLECTOR LOADING OVERLAY - AMBER/ORANGE THEME**
 const InsightsCollectorLoadingOverlay = ({
@@ -458,40 +459,46 @@ const AIInsightsCollectorAgent: React.FC = () => {
 
   if (!user) {
     return (
-      <TooltipProvider>
-        <div className="min-h-screen bg-background flex items-center justify-center p-4">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-          >
-            <Card className="w-full max-w-md bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl border border-slate-700/50 shadow-xl">
-              <CardContent className="pt-6 text-center">
-                <motion.div
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ delay: 0.2 }}
-                  className="mx-auto w-16 h-16 bg-gradient-to-br from-amber-500/20 to-orange-500/20 rounded-full flex items-center justify-center mb-4 border border-amber-500/20"
-                >
-                  <Brain className="w-8 h-8 text-amber-400" />
-                </motion.div>
-                <h3 className="text-lg font-semibold mb-2 text-white">
-                  Authentication Required
-                </h3>
-                <p className="text-slate-400 mb-6">
-                  Please log in to share insights with your AI Insights
-                  Collector Agent.
-                </p>
-                <Button
-                  onClick={() => navigate("/auth")}
-                  className="w-full bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white"
-                >
-                  Login to Continue
-                </Button>
-              </CardContent>
-            </Card>
-          </motion.div>
-        </div>
-      </TooltipProvider>
+      <>
+        <Helmet>
+          <title>Submit Feedback | ApplyForge</title>
+          <meta name="robots" content="noindex, nofollow" />
+        </Helmet>
+        <TooltipProvider>
+          <div className="min-h-screen bg-background flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+            >
+              <Card className="w-full max-w-md bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl border border-slate-700/50 shadow-xl">
+                <CardContent className="pt-6 text-center">
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ delay: 0.2 }}
+                    className="mx-auto w-16 h-16 bg-gradient-to-br from-amber-500/20 to-orange-500/20 rounded-full flex items-center justify-center mb-4 border border-amber-500/20"
+                  >
+                    <Brain className="w-8 h-8 text-amber-400" />
+                  </motion.div>
+                  <h3 className="text-lg font-semibold mb-2 text-white">
+                    Authentication Required
+                  </h3>
+                  <p className="text-slate-400 mb-6">
+                    Please log in to share insights with your AI Insights
+                    Collector Agent.
+                  </p>
+                  <Button
+                    onClick={() => navigate("/auth")}
+                    className="w-full bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white"
+                  >
+                    Login to Continue
+                  </Button>
+                </CardContent>
+              </Card>
+            </motion.div>
+          </div>
+        </TooltipProvider>
+      </>
     );
   }
 

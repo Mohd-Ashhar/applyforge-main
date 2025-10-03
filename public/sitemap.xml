@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://applyforge.ai/</loc>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://applyforge.ai/ai-resume-tailor</loc>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://applyforge.ai/ats-checker</loc>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://applyforge.ai/cover-letter-generator</loc>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://applyforge.ai/job-finder</loc>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://applyforge.ai/one-click-tailoring</loc>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://applyforge.ai/pricing</loc>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://applyforge.ai/tailored-resumes</loc>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://applyforge.ai/saved-cover-letters</loc>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://applyforge.ai/saved-jobs</loc>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://applyforge.ai/applied-jobs</loc>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://applyforge.ai/plan-usage</loc>
+    <priority>0.7</priority>
+  </url>
+<url>
+    <loc>https://applyforge.ai/feedback</loc>
+    <priority>0.6</priority>
+</url>
+</urlset>

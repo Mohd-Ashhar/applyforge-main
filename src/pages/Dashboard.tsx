@@ -61,6 +61,7 @@ import DashboardHeader from "@/components/DashboardHeader";
 import { useUsageTracking } from "@/hooks/useUsageTracking";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, UseQueryOptions } from "@tanstack/react-query";
+import { Helmet } from "react-helmet-async";
 
 // **UNCHANGED: AGENT DEFINITIONS**
 const AI_AGENTS = [
@@ -904,6 +905,9 @@ const Dashboard = memo(() => {
 
   return (
     <TooltipProvider>
+      <Helmet>
+        <title>Your Dashboard | ApplyForge</title>
+      </Helmet>
       <div className="min-h-screen bg-background pb-20 md:pb-0">
         <DashboardHeader />
 

@@ -2,6 +2,7 @@ import React from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
+import { HelmetProvider } from "react-helmet-async";
 
 // Enhanced error reporting for production
 const reportError = (error: Error, errorInfo?: any) => {
@@ -229,7 +230,9 @@ const initializeApp = async () => {
     // Render the app with enhanced error boundary
     const EnhancedApp = () => (
       <React.StrictMode>
-        <App />
+        <HelmetProvider>
+          <App />
+        </HelmetProvider>
       </React.StrictMode>
     );
 

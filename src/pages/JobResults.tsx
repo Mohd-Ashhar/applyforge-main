@@ -53,6 +53,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import DashboardHeader from "@/components/DashboardHeader";
 import { useUsageTracking } from "@/hooks/useUsageTracking";
+import { Helmet } from "react-helmet-async";
 
 interface JobResult {
   linkedin_apply_link: string;
@@ -1814,16 +1815,22 @@ const AIJobDiscoveryAgentResults: React.FC = () => {
 
   if (loading) {
     return (
-      <TooltipProvider>
-        <div className="min-h-screen bg-background">
-          <DashboardHeader />
-          <div className="container mx-auto px-4 py-6 sm:py-8">
-            <div className="max-w-6xl mx-auto">
-              <DiscoveryAgentLoadingSkeleton />
+      <>
+        <Helmet>
+          <title>Job Search Results | ApplyForge</title>
+          <meta name="robots" content="noindex, nofollow" />
+        </Helmet>
+        <TooltipProvider>
+          <div className="min-h-screen bg-background">
+            <DashboardHeader />
+            <div className="container mx-auto px-4 py-6 sm:py-8">
+              <div className="max-w-6xl mx-auto">
+                <DiscoveryAgentLoadingSkeleton />
+              </div>
             </div>
           </div>
-        </div>
-      </TooltipProvider>
+        </TooltipProvider>
+      </>
     );
   }
 

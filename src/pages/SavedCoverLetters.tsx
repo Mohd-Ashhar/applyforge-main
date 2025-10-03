@@ -60,6 +60,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import DashboardHeader from "@/components/DashboardHeader";
 import UserAvatar from "@/components/header/UserAvatar";
+import { Helmet } from "react-helmet-async";
 
 interface CoverLetter {
   id: string;
@@ -547,6 +548,10 @@ const AICoverLetterLibrary: React.FC = () => {
 
   return (
     <TooltipProvider>
+      <Helmet>
+        <title>My Saved Cover Letters | ApplyForge</title>
+      </Helmet>
+
       <div className="min-h-screen bg-background">
         <DashboardHeader />
 

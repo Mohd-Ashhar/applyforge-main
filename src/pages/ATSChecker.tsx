@@ -91,6 +91,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useUsageTracking } from "@/hooks/useUsageTracking";
 import { supabase } from "@/integrations/supabase/client";
 import DashboardHeader from "@/components/DashboardHeader";
+import { Helmet } from "react-helmet-async";
 
 const atsCheckerSchema = z.object({
   jobDescription: z
@@ -998,6 +999,15 @@ Preferred Qualifications:
 
   return (
     <TooltipProvider>
+      <Helmet>
+        <title>Free ATS Resume Checker | See Your ATS Match Score</title>
+        <meta
+          name="description"
+          content="Scan your resume against any job description with our free ATS checker. Get an instant match score, identify missing keywords, and learn how to beat the bots."
+        />
+        <link rel="canonical" href="https://applyforge.ai/ats-checker" />
+      </Helmet>
+
       <div className="min-h-screen bg-background">
         <ATSAgentLoadingOverlay show={isLoading} stage={loadingStage} />
 

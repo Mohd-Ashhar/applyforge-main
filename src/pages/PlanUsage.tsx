@@ -56,6 +56,7 @@ import UserAvatar from "@/components/header/UserAvatar";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { Link, useNavigate } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 
 // **TYPES & INTERFACES (UNCHANGED)**
 interface UsageItem {
@@ -621,14 +622,20 @@ const PlanUsagePage = () => {
 
   if (isLoading) {
     return (
-      <TooltipProvider>
-        <div className="min-h-screen bg-background">
-          <DashboardHeader />
-          <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-8 max-w-7xl">
-            <UsageLoadingSkeleton />
+      <>
+        <Helmet>
+          <title>My Plan & Usage | ApplyForge</title>
+          <meta name="robots" content="noindex, nofollow" />
+        </Helmet>
+        <TooltipProvider>
+          <div className="min-h-screen bg-background">
+            <DashboardHeader />
+            <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-8 max-w-7xl">
+              <UsageLoadingSkeleton />
+            </div>
           </div>
-        </div>
-      </TooltipProvider>
+        </TooltipProvider>
+      </>
     );
   }
 

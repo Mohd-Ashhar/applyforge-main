@@ -24,6 +24,7 @@ import {
   BillingPeriod,
 } from "@/services/paymentService";
 import { Variants, motion } from "framer-motion";
+import { Helmet } from "react-helmet-async";
 
 /* ------------------------------------------------------------------ */
 /* Types                                                               */
@@ -620,134 +621,98 @@ const Pricing: React.FC = () => {
   /* ------------------------------------------------------------------ */
 
   return (
-    <div
-      className="min-h-screen bg-background overflow-hidden"
-      style={{ contain: "layout style paint", willChange: "auto" }}
-    >
-      <span className="pointer-events-none absolute -left-40 top-1/4 w-80 h-80 bg-blue-400/15 rounded-full blur-3xl" />
-      <span className="pointer-events-none absolute right-0 top-0 w-80 h-56 bg-purple-500/10 rounded-full blur-3xl" />
-      <span className="pointer-events-none absolute left-1/2 top-1/2 w-96 h-96 bg-pink-500/5 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2" />
+    <>
+      <Helmet>
+        <title>Pricing Plans | ApplyForge</title>
+        <meta
+          name="description"
+          content="Explore ApplyForge's pricing plans. Choose the perfect plan to fit your job search needs, from free trials to unlimited access to our AI resume tailor and cover letter generator."
+        />
+        <link rel="canonical" href="https://applyforge.ai/pricing" />
+      </Helmet>
+      <div
+        className="min-h-screen bg-background overflow-hidden"
+        style={{ contain: "layout style paint", willChange: "auto" }}
+      >
+        <span className="pointer-events-none absolute -left-40 top-1/4 w-80 h-80 bg-blue-400/15 rounded-full blur-3xl" />
+        <span className="pointer-events-none absolute right-0 top-0 w-80 h-56 bg-purple-500/10 rounded-full blur-3xl" />
+        <span className="pointer-events-none absolute left-1/2 top-1/2 w-96 h-96 bg-pink-500/5 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2" />
 
-      <div className="container mx-auto px-4 sm:px-6 lg:px-10 py-8 relative z-10">
-        <motion.header
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="text-center mb-12 md:mb-16"
-        >
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 sm:mb-6">
-            Choose Your{" "}
-            <span className="bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500 bg-clip-text text-transparent">
-              AI Plan
-            </span>
-          </h2>
-          <p className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto mb-6 sm:mb-8 px-4">
-            Deploy intelligent agents to accelerate your career while you focus
-            on interviews.
-          </p>
+        <div className="container mx-auto px-4 sm:px-6 lg:px-10 py-8 relative z-10">
+          <motion.header
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="text-center mb-12 md:mb-16"
+          >
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 sm:mb-6">
+              Choose Your{" "}
+              <span className="bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500 bg-clip-text text-transparent">
+                AI Plan
+              </span>
+            </h2>
+            <p className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto mb-6 sm:mb-8 px-4">
+              Deploy intelligent agents to accelerate your career while you
+              focus on interviews.
+            </p>
 
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-6">
-            {detectedCurrency === "INR" && (
-              <div className="flex items-center gap-2">
-                <Button
-                  variant={currency === "INR" ? "default" : "outline"}
-                  onClick={() => setCurrency("INR")}
-                  size="sm"
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-6">
+              {detectedCurrency === "INR" && (
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant={currency === "INR" ? "default" : "outline"}
+                    onClick={() => setCurrency("INR")}
+                    size="sm"
+                  >
+                    India (₹)
+                  </Button>
+                  <Button
+                    variant={currency === "USD" ? "default" : "outline"}
+                    onClick={() => setCurrency("USD")}
+                    size="sm"
+                  >
+                    International ($)
+                  </Button>
+                </div>
+              )}
+
+              <div className="flex items-center bg-white/5 rounded-lg p-1 border border-white/10">
+                <button
+                  type="button"
+                  onClick={() => setBillingPeriod("monthly")}
+                  className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                    billingPeriod === "monthly"
+                      ? "bg-white text-black"
+                      : "text-muted-foreground hover:text-white"
+                  }`}
                 >
-                  India (₹)
-                </Button>
-                <Button
-                  variant={currency === "USD" ? "default" : "outline"}
-                  onClick={() => setCurrency("USD")}
-                  size="sm"
+                  Monthly
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setBillingPeriod("yearly")}
+                  className={`px-4 py-2 rounded-md text-sm font-medium transition-all flex items-center gap-2 ${
+                    billingPeriod === "yearly"
+                      ? "bg-white text-black"
+                      : "text-muted-foreground hover:text-white"
+                  }`}
                 >
-                  International ($)
-                </Button>
+                  Yearly
+                  <Badge className="bg-green-500 text-white text-xs px-1.5 py-0.5">
+                    -25%
+                  </Badge>
+                </button>
               </div>
-            )}
-
-            <div className="flex items-center bg-white/5 rounded-lg p-1 border border-white/10">
-              <button
-                type="button"
-                onClick={() => setBillingPeriod("monthly")}
-                className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
-                  billingPeriod === "monthly"
-                    ? "bg-white text-black"
-                    : "text-muted-foreground hover:text-white"
-                }`}
-              >
-                Monthly
-              </button>
-              <button
-                type="button"
-                onClick={() => setBillingPeriod("yearly")}
-                className={`px-4 py-2 rounded-md text-sm font-medium transition-all flex items-center gap-2 ${
-                  billingPeriod === "yearly"
-                    ? "bg-white text-black"
-                    : "text-muted-foreground hover:text-white"
-                }`}
-              >
-                Yearly
-                <Badge className="bg-green-500 text-white text-xs px-1.5 py-0.5">
-                  -25%
-                </Badge>
-              </button>
             </div>
-          </div>
-        </motion.header>
+          </motion.header>
 
-        <div className="max-w-7xl mx-auto">
-          <motion.div
-            className="hidden lg:grid lg:grid-cols-3 gap-6 xl:gap-10"
-            variants={fadeStagger}
-            initial="hidden"
-            animate="show"
-            key={`desktop-${currency}-${billingPeriod}`}
-          >
-            {/* --- MODIFICATION: Pass the isBeingProcessed prop --- */}
-            {plans.map((plan, i) => (
-              <PricingCard
-                key={plan.name}
-                plan={plan}
-                index={i}
-                isBeingProcessed={processingPlan === plan.name}
-              />
-            ))}
-          </motion.div>
-
-          <motion.div
-            className="hidden md:grid lg:hidden md:grid-cols-2 gap-6 max-w-4xl mx-auto"
-            variants={fadeStagger}
-            initial="hidden"
-            animate="show"
-            key={`tablet-${currency}-${billingPeriod}`}
-          >
-            {/* --- MODIFICATION: Pass the isBeingProcessed prop --- */}
-            {plans.slice(0, 2).map((plan, i) => (
-              <PricingCard
-                key={plan.name}
-                plan={plan}
-                index={i}
-                isBeingProcessed={processingPlan === plan.name}
-              />
-            ))}
-            <div className="md:col-span-2 max-w-sm mx-auto">
-              {/* --- MODIFICATION: Pass the isBeingProcessed prop --- */}
-              <PricingCard
-                plan={plans[2]}
-                index={2}
-                isBeingProcessed={processingPlan === plans[2].name}
-              />
-            </div>
-          </motion.div>
-
-          <div className="md:hidden mt-8 sm:mt-12">
+          <div className="max-w-7xl mx-auto">
             <motion.div
+              className="hidden lg:grid lg:grid-cols-3 gap-6 xl:gap-10"
               variants={fadeStagger}
               initial="hidden"
               animate="show"
-              key={`mobile-${currency}-${billingPeriod}`}
-              className="flex flex-col gap-8 max-w-md mx-auto px-4"
+              key={`desktop-${currency}-${billingPeriod}`}
             >
               {/* --- MODIFICATION: Pass the isBeingProcessed prop --- */}
               {plans.map((plan, i) => (
@@ -759,35 +724,81 @@ const Pricing: React.FC = () => {
                 />
               ))}
             </motion.div>
-          </div>
 
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.2, duration: 0.6 }}
-            className="mt-16 sm:mt-20 text-center"
-          >
-            <div className="bg-gradient-to-r from-blue-500/10 to-purple-500/10 rounded-2xl p-6 sm:p-8 max-w-4xl mx-auto">
-              <h3 className="text-xl sm:text-2xl font-bold mb-4">
-                🚀 Deploy Your AI Agent Workforce Today
-              </h3>
-              <p className="text-muted-foreground text-sm sm:text-base">
-                Every plan deploys intelligent agents that work 24/7. Higher
-                tiers unlock more advanced agents with better autonomous
-                decision-making, faster processing and deeper personalization
-                for maximum career acceleration.
-              </p>
-              {billingPeriod === "yearly" && (
-                <div className="mt-4 inline-flex items-center gap-2 bg-green-500/20 text-green-400 px-4 py-2 rounded-full text-sm font-medium">
-                  🎉 Save 25% with annual agent deployment!
-                </div>
-              )}
+            <motion.div
+              className="hidden md:grid lg:hidden md:grid-cols-2 gap-6 max-w-4xl mx-auto"
+              variants={fadeStagger}
+              initial="hidden"
+              animate="show"
+              key={`tablet-${currency}-${billingPeriod}`}
+            >
+              {/* --- MODIFICATION: Pass the isBeingProcessed prop --- */}
+              {plans.slice(0, 2).map((plan, i) => (
+                <PricingCard
+                  key={plan.name}
+                  plan={plan}
+                  index={i}
+                  isBeingProcessed={processingPlan === plan.name}
+                />
+              ))}
+              <div className="md:col-span-2 max-w-sm mx-auto">
+                {/* --- MODIFICATION: Pass the isBeingProcessed prop --- */}
+                <PricingCard
+                  plan={plans[2]}
+                  index={2}
+                  isBeingProcessed={processingPlan === plans[2].name}
+                />
+              </div>
+            </motion.div>
+
+            <div className="md:hidden mt-8 sm:mt-12">
+              <motion.div
+                variants={fadeStagger}
+                initial="hidden"
+                animate="show"
+                key={`mobile-${currency}-${billingPeriod}`}
+                className="flex flex-col gap-8 max-w-md mx-auto px-4"
+              >
+                {/* --- MODIFICATION: Pass the isBeingProcessed prop --- */}
+                {plans.map((plan, i) => (
+                  <PricingCard
+                    key={plan.name}
+                    plan={plan}
+                    index={i}
+                    isBeingProcessed={processingPlan === plan.name}
+                  />
+                ))}
+              </motion.div>
             </div>
-          </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.2, duration: 0.6 }}
+              className="mt-16 sm:mt-20 text-center"
+            >
+              <div className="bg-gradient-to-r from-blue-500/10 to-purple-500/10 rounded-2xl p-6 sm:p-8 max-w-4xl mx-auto">
+                <h3 className="text-xl sm:text-2xl font-bold mb-4">
+                  🚀 Deploy Your AI Agent Tools
+                </h3>
+                <p className="text-muted-foreground text-sm sm:text-base">
+                  Every plan deploys intelligent agents that work 24/7. Higher
+                  tiers unlock more advanced agents with better autonomous
+                  decision-making, faster processing and deeper personalization
+                  for maximum career acceleration.
+                </p>
+                {billingPeriod === "yearly" && (
+                  <div className="mt-4 inline-flex items-center gap-2 bg-green-500/20 text-green-400 px-4 py-2 rounded-full text-sm font-medium">
+                    🎉 Save 25% with annual agent deployment!
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 };
 
